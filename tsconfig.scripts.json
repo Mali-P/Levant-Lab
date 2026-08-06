@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The scripts are Node, but they import app modules that touch the DOM
+    // and import.meta.env, so both sets of globals have to stay available.
+    "types": ["node", "vite/client"]
+  },
+  "include": ["scripts"]
+}

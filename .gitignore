@@ -1,0 +1,21 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vite
+coverage
+
+# Credentials for the audio generator. Never committed, never bundled.
+.env
+.env.*
+!.env.example
+*.serviceaccount.json
+gcp-*.json
+google-credentials*.json
+
+# Written by `npm run generate-audio`.
+audio-report.json
+
+# TypeScript incremental build cache
+*.tsbuildinfo

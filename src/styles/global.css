@@ -1,0 +1,1318 @@
+:root {
+  /* Two accents run through the whole app: one per language, so the user can
+     tell Hebrew from Arabic at a glance without reading either. */
+  --he: #4d8dff;
+  --ar: #f2a03d;
+
+  --bg: #0e1116;
+  --surface: #171c25;
+  --surface-2: #1f2634;
+  --card: #f7f5ef;
+  --card-ink: #14181f;
+  --ink: #eef1f6;
+  --ink-dim: #98a2b3;
+  --line: #2a3243;
+  --ok: #38cd85;
+  --bad: #ff6b6b;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+
+  --radius: 20px;
+  --radius-sm: 12px;
+  --tap: 48px;
+  --font-scale: 1;
+  --motion: 1;
+
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --script: 'Segoe UI', 'Noto Sans Hebrew', 'Noto Sans Arabic', 'Arial Unicode MS', system-ui, sans-serif;
+
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f2f0ec;
+  --surface: #ffffff;
+  --surface-2: #f6f4f0;
+  --card: #ffffff;
+  --card-ink: #14181f;
+  --ink: #14181f;
+  --ink-dim: #5d6675;
+  --line: #ddd8d0;
+  --shadow: 0 14px 34px rgba(30, 26, 20, 0.16);
+  color-scheme: light;
+}
+
+:root[data-contrast='high'] {
+  --ink: #ffffff;
+  --ink-dim: #d6dbe4;
+  --line: #6b7688;
+  --he: #7fb0ff;
+  --ar: #ffc46b;
+  --ok: #5df0a6;
+  --bad: #ff9494;
+}
+
+:root[data-theme='light'][data-contrast='high'] {
+  --ink: #000000;
+  --ink-dim: #2b3240;
+  --line: #6b7688;
+  --he: #0a48c8;
+  --ar: #8a4a00;
+  --ok: #036b3c;
+  --bad: #b30015;
+}
+
+:root[data-motion='reduced'] {
+  --motion: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion: 0;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/*
+ * The scrollbar is carved out of the right edge only, which shifts every
+ * centred screen a bar's width to the left and reads as lopsided padding.
+ * A thin bar with the gutter reserved on both edges keeps content genuinely
+ * centred and costs a few pixels instead of a full bar.
+ */
+html {
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: calc(16px * var(--font-scale));
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+:root[data-motion='reduced'] *,
+:root[data-motion='reduced'] *::before,
+:root[data-motion='reduced'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+h1, h2, h3 {
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Focus must stay obvious for keyboard users on desktop. */
+:focus-visible {
+  outline: 3px solid var(--he);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- direction ---------- */
+
+.hebrew,
+.arabic {
+  direction: rtl;
+  text-align: right;
+  font-family: var(--script);
+  unicode-bidi: isolate;
+}
+
+.english {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+}
+
+.script-lg {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.translit {
+  font-size: 0.82rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.02em;
+  direction: ltr;
+  text-align: inherit;
+}
+
+/* ---------- shell ---------- */
+
+.app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: env(safe-area-inset-top) 0 0;
+}
+
+.screen {
+  flex: 1;
+  padding: 12px 10px 92px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.screen-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+}
+
+.screen-head h1 {
+  font-size: 1.5rem;
+  flex: 1;
+}
+
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+  z-index: 20;
+}
+
+.tabbar a {
+  flex: 1;
+  max-width: 120px;
+  min-height: var(--tap);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-decoration: none;
+  color: var(--ink-dim);
+  font-size: 0.68rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+}
+
+.tabbar a[aria-current='page'] {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.tabbar .tab-icon {
+  font-size: 1.2rem;
+}
+
+/* ---------- surfaces and controls ---------- */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: var(--tap);
+}
+
+.btn {
+  min-height: var(--tap);
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.12s ease, background 0.16s ease;
+}
+
+.btn:active {
+  transform: scale(calc(1 - 0.03 * var(--motion)));
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: transparent;
+}
+
+.btn-danger {
+  color: var(--bad);
+  border-color: var(--bad);
+  background: transparent;
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-icon {
+  min-width: var(--tap);
+  padding: 0 12px;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field > label {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--ink-dim);
+}
+
+.input,
+select.input,
+textarea.input {
+  min-height: var(--tap);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  width: 100%;
+}
+
+textarea.input {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+
+.chip-he { color: var(--he); border-color: color-mix(in srgb, var(--he) 45%, transparent); }
+.chip-ar { color: var(--ar); border-color: color-mix(in srgb, var(--ar) 45%, transparent); }
+.chip-ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.chip-bad { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+
+.muted { color: var(--ink-dim); }
+.small { font-size: 0.82rem; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.spread { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.grow { flex: 1; }
+
+/* ---------- study card ---------- */
+
+.study {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.study-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.card-stage {
+  position: relative;
+  flex: 1;
+  min-height: 60vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  touch-action: pan-y;
+}
+
+/* The two layers behind the live card that make the deck feel physical. */
+.card-shadow {
+  position: absolute;
+  inset: 0;
+  border-radius: 26px;
+  background: var(--card);
+  opacity: 0.28;
+  transform: translateY(10px) scale(0.965);
+}
+
+.card-shadow.deep {
+  opacity: 0.14;
+  transform: translateY(20px) scale(0.93);
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  background: var(--card);
+  color: var(--card-ink);
+  border-radius: 26px;
+  box-shadow: var(--shadow);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  user-select: none;
+  overflow-y: auto;
+}
+
+.card-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 0 8px;
+  text-align: center;
+}
+
+.card-prompt .word {
+  font-size: clamp(2rem, 9vw, 2.9rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.card-prompt .word.script-prompt {
+  text-transform: none;
+  font-size: clamp(2.2rem, 10vw, 3.2rem);
+}
+
+.card-prompt .glyph {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.answer-block {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.answer-block .lang-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.lang-label.hebrew-label { color: #1f5fd0; }
+.lang-label.arabic-label { color: #a05a08; }
+
+.answer-input {
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 2px solid rgba(0, 0, 0, 0.14);
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--card-ink);
+  font-size: 1.5rem;
+  font-family: var(--script);
+}
+
+.answer-input:focus {
+  border-color: #1f5fd0;
+  outline: none;
+}
+
+.answer-input.arabic-input:focus {
+  border-color: #a05a08;
+}
+
+.answer-reveal {
+  font-size: 2rem;
+  font-weight: 650;
+  font-family: var(--script);
+  min-height: 2.4rem;
+}
+
+.card-audio {
+  display: flex;
+  gap: 10px;
+}
+
+.card-audio .btn {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--card-ink);
+}
+
+.swipe-hint {
+  position: absolute;
+  top: 18px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.swipe-hint.right { right: 18px; color: var(--ok); border: 2px solid var(--ok); }
+.swipe-hint.left { left: 18px; color: var(--bad); border: 2px solid var(--bad); }
+
+/* ---------- feedback ---------- */
+
+.feedback {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(6, 8, 12, 0.62);
+  padding: 10px;
+}
+
+.feedback-sheet {
+  width: 100%;
+  max-width: 690px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 16px 14px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* Result is carried by an icon and a word, never by colour alone. */
+.verdict .mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.95rem;
+  font-weight: 900;
+  border: 2px solid currentColor;
+}
+
+.verdict.pass { color: var(--ok); }
+.verdict.fail { color: var(--bad); }
+
+.headline {
+  font-size: 1.6rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.correction {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---------- feminine / masculine pairs ---------- */
+
+/* One form of a word. The row itself is LTR so the ♀ / ♂ marker always sits
+   at the start of the line rather than drifting to the far side of the
+   Hebrew or Arabic beside it, which each isolate back into RTL. */
+.form-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.form-line > :not(.form-marker):not(.translit) {
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
+/* Transliteration is Latin. It has to stay LTR even inside a form line, or a
+   word ending in an apostrophe or hyphen — arba'a, ʿash-shughul — reorders. */
+.form-line > .translit {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+}
+
+/* A word in a list row: forms stacked, hugging the right edge under the RTL
+   script, and never squeezing the English column off a narrow screen. */
+.forms-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+  max-width: 42%;
+  flex: 0 1 auto;
+  overflow-wrap: anywhere;
+}
+
+.forms-inline .form-line {
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.forms-inline .form-marker {
+  font-size: 0.72em;
+}
+
+/* Under about 380px two scripts plus English no longer fit on one line, so
+   the row wraps and the scripts share the second line instead of truncating. */
+@media (max-width: 380px) {
+  .list-item {
+    flex-wrap: wrap;
+  }
+
+  .list-item .english {
+    flex-basis: 100%;
+  }
+
+  .forms-inline {
+    max-width: 48%;
+  }
+}
+
+.correction .form-line {
+  flex-wrap: wrap;
+}
+
+.form-marker {
+  flex: none;
+  font-size: 0.78em;
+  font-weight: 600;
+  color: var(--ink-dim);
+  font-family: var(--sans);
+}
+
+/* ---------- progress ---------- */
+
+.runs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.runs .seg {
+  flex: 1;
+  min-width: 14px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+.runs .seg.filled {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+
+.bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width calc(0.4s * var(--motion)) ease;
+}
+
+.bar.he > span { background: var(--he); }
+.bar.ar > span { background: var(--ar); }
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.tile .value {
+  font-size: 1.7rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.list-item .icon {
+  font-size: 1.5rem;
+  width: 34px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* A locked deck is legible but plainly out of reach: no pointer, no lift. */
+.panel.locked {
+  background: var(--surface-2);
+  color: var(--ink-dim);
+  border-style: dashed;
+}
+
+.panel.locked .eyebrow {
+  font-weight: 600;
+}
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  overflow: hidden;
+}
+
+.confetti i {
+  position: absolute;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  animation: fall 1600ms ease-in forwards;
+}
+
+@keyframes fall {
+  from { transform: translateY(-12vh) rotate(0deg); opacity: 1; }
+  to { transform: translateY(105vh) rotate(680deg); opacity: 0; }
+}
+
+.empty {
+  text-align: center;
+  padding: 28px 12px;
+  color: var(--ink-dim);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ---------- corrections ---------- */
+
+/* Buttons rendered as router links must not keep anchor styling. */
+a.btn,
+a.btn:visited {
+  text-decoration: none;
+  color: inherit;
+}
+
+a.btn-primary,
+a.btn-primary:visited {
+  color: var(--bg);
+}
+
+/*
+ * The study screen is the one place that must never scroll: the card has to
+ * stay put under the thumb while the controls stay reachable below it.
+ */
+.screen.study {
+  height: 100dvh;
+  overflow: hidden;
+  padding-bottom: 84px;
+  gap: 10px;
+}
+
+.screen.study .card-stage {
+  min-height: 0;
+}
+
+.screen.study .card {
+  padding: 14px 12px;
+}
+
+/*
+ * Only the card may shrink. Everything else on the study screen keeps its
+ * natural height so the grading controls can never be pushed off-screen by a
+ * long revealed answer.
+ */
+.screen.study > *:not(.card-stage) {
+  flex-shrink: 0;
+}
+
+.screen.study .card {
+  max-height: 100%;
+}
+
+/*
+ * .screen sets flex:1, which lets the study screen grow past its own height
+ * and push the grading controls under the tab bar. Pinning the flex basis is
+ * what actually binds it to the viewport.
+ */
+.screen.study {
+  flex: 0 0 auto;
+  max-height: 100dvh;
+}
+
+/* Self-assessment: four choices in two rows, so the card keeps the screen. */
+.grade-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.grade-grid .btn {
+  min-height: 52px;
+  padding: 0 10px;
+  font-size: 0.92rem;
+}
+
+/*
+ * Tighter card internals on the study screen so a revealed card shows the
+ * prompt and both answers without scrolling on a normal phone.
+ */
+.screen.study .card {
+  gap: 10px;
+}
+
+.screen.study .card-prompt {
+  padding: 4px 0 2px;
+  gap: 4px;
+}
+
+.screen.study .card-prompt .glyph {
+  font-size: 2.1rem;
+}
+
+.screen.study .card-prompt .word {
+  font-size: clamp(1.8rem, 8vw, 2.5rem);
+}
+
+.screen.study .answer-block {
+  padding-top: 10px;
+  gap: 4px;
+}
+
+.screen.study .answer-reveal {
+  font-size: 1.8rem;
+  min-height: 2.1rem;
+}
+
+/* The audio buttons sit inside the card, where the 48px tap target would
+   otherwise inflate every label row past what the card can afford. They stay
+   comfortably tappable at 38px because nothing crowds them horizontally. */
+.screen.study .card .lang-label .btn {
+  min-height: 38px;
+  min-width: 38px;
+  padding: 0;
+}
+
+.screen.study .card-prompt .glyph {
+  font-size: 1.8rem;
+}
+
+.screen.study .translit {
+  font-size: 0.78rem;
+}
+
+/* --- Pronunciation ---------------------------------------------------- */
+
+.speaker-row {
+  display: inline-flex;
+  gap: 0.15rem;
+  align-items: center;
+}
+
+/* State is announced through aria-pressed as well, never by colour alone. */
+.btn.speaker.playing {
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+.btn.speaker {
+  transition: transform 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn.speaker {
+    transition: none;
+  }
+}
+
+.review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.review-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.review-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.15rem 0.6rem;
+  margin: 0.5rem 0 0;
+}
+
+.review-meta dt {
+  font-weight: 600;
+}
+
+.review-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- alphabets ---------- */
+
+/*
+ * Separate stacks per script. One font for everything is what produces the
+ * classic bug where Hebrew niqqud collide or Arabic stops joining, so the
+ * two are declared apart and a bundled face can be dropped into either
+ * without touching the other. There is deliberately no handwriting stack:
+ * cursive Hebrew and everyday Arabic handwriting are drawn assets here, not
+ * a slanted print face. See docs/alphabet-assets.md.
+ */
+:root {
+  --script-he: 'Noto Sans Hebrew', 'Frank Ruhl Libre', 'David Libre', 'Segoe UI',
+    'Arial Hebrew', system-ui, sans-serif;
+  --script-ar: 'Noto Naskh Arabic', 'Noto Sans Arabic', 'Segoe UI', 'Geeza Pro',
+    system-ui, sans-serif;
+}
+
+.hebrew {
+  font-family: var(--script-he);
+}
+
+.arabic {
+  font-family: var(--script-ar);
+}
+
+.section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 4px 0 0;
+}
+
+.glyph-set {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.glyph {
+  line-height: 1.25;
+  /* Niqqud and harakat sit above and below the letter; without room they are
+     clipped by the line box, which is exactly what a vowel lesson cannot afford. */
+  padding: 0.15em 0;
+  unicode-bidi: isolate;
+}
+
+.glyph-sm { font-size: 1.4rem; }
+.glyph-md { font-size: 2.2rem; }
+.glyph-lg { font-size: 3rem; }
+
+.glyph-hand {
+  height: 1.1em;
+  width: auto;
+  vertical-align: baseline;
+}
+
+.glyph-note {
+  align-self: center;
+}
+
+.script-icon {
+  font-size: 1.6rem;
+}
+
+.letter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 10px;
+}
+
+.letter-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px;
+  min-height: var(--tap);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+  text-align: center;
+}
+
+.letter-tile-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.letter-hero {
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+.letter-hero-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Each shape keeps its own RTL box, isolated from its English caption, so the
+   bidi algorithm cannot reorder the row of forms. */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.form-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 64px;
+  padding: 8px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  font-size: 1.8rem;
+}
+
+.segmented {
+  display: flex;
+  gap: 4px;
+}
+
+.segmented .btn {
+  padding: 0 12px;
+  font-size: 0.8rem;
+}
+
+.btn.selected {
+  background: var(--surface-2);
+  border-color: var(--ink-dim);
+  color: var(--ink);
+}
+
+.skill-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skill-row .bar > span {
+  background: var(--he);
+}
+
+/* ---------------------------------------------------------------- practice */
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 6px;
+}
+
+.mode-grid .btn {
+  padding: 0 10px;
+  font-size: 0.82rem;
+}
+
+.question {
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  min-height: 150px;
+  justify-content: center;
+}
+
+.question .glyph {
+  font-size: 4rem;
+}
+
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+/* Tall enough that a glyph and a name sit on the same footprint, so the
+   buttons do not jump around between question types. */
+.option {
+  min-height: 82px;
+  height: auto;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.option-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.2;
+}
+
+.option-correct {
+  border-color: var(--ok);
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+}
+
+.option-wrong {
+  border-color: var(--bad);
+  color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+}
+
+/* Dimmed, not hidden: the learner can still read what they did not pick. */
+.option-dim {
+  opacity: 0.45;
+}
+
+.option:disabled {
+  /* The default disabled rule greys out the marked answers too. */
+  opacity: 1;
+}
+
+.option-dim:disabled {
+  opacity: 0.45;
+}
+
+.verdict-panel {
+  gap: 8px;
+}
+
+.verdict-panel.pass {
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+
+.verdict-panel.fail {
+  border-color: color-mix(in srgb, var(--bad) 45%, transparent);
+}
+
+/* ----------------------------------------------------------------- writing */
+
+.stroke-guide {
+  width: 100%;
+  max-width: 200px;
+  aspect-ratio: 1;
+  align-self: center;
+}
+
+.stroke-guide-path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stroke-guide-start circle {
+  fill: var(--he);
+}
+
+.stroke-guide-start text {
+  fill: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.stroke-hints {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tracing {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tracing-surface {
+  width: 100%;
+  max-width: 320px;
+  align-self: center;
+}
+
+.tracing-canvas {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+  border-radius: var(--radius);
+  /* The pen must not be able to scroll or zoom the page out from under it. */
+  cursor: crosshair;
+}
+
+.tracing-grid {
+  fill: var(--surface);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.tracing-guide-line {
+  stroke: var(--line);
+  stroke-width: 0.5;
+  stroke-dasharray: 3 3;
+}
+
+.tracing-ghost {
+  fill: var(--ink);
+  opacity: 0.16;
+  font-size: 78px;
+}
+
+.tracing-target {
+  fill: none;
+  stroke: var(--ink-dim);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.35;
+  stroke-dasharray: 4 4;
+}
+
+.tracing-target.hidden {
+  /* Kept in the DOM so its length can still be measured for scoring. */
+  visibility: hidden;
+}
+
+.tracing-ink {
+  fill: none;
+  stroke: var(--he);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.arabic .tracing-ink,
+.tracing-canvas.arabic .tracing-ink {
+  stroke: var(--ar);
+}
