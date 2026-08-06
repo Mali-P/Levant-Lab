@@ -7,6 +7,8 @@ import { useAppearance } from './hooks/useAppearance';
 import DashboardScreen from './app/DashboardScreen';
 import CategoriesScreen from './app/CategoriesScreen';
 import CategoryScreen from './app/CategoryScreen';
+import DeckScreen from './app/DeckScreen';
+import MemoriseScreen from './app/MemoriseScreen';
 import StudyScreen from './app/StudyScreen';
 import ManageScreen from './app/ManageScreen';
 import CardEditorScreen from './app/CardEditorScreen';
@@ -86,6 +88,10 @@ export default function App() {
         <Route path="/" element={<DashboardScreen />} />
         <Route path="/categories" element={<CategoriesScreen />} />
         <Route path="/category/:categoryId" element={<CategoryScreen />} />
+        {/* A deck opens on its mode picker, so Memorise comes before the
+            testing modes rather than after a failed run. */}
+        <Route path="/deck/:deckId" element={<DeckScreen />} />
+        <Route path="/memorise/:deckId" element={<MemoriseScreen />} />
         <Route path="/study/:deckId" element={<StudyScreen />} />
         {/* The alphabets sit beside the decks, never in front of them: nothing
             here gates the vocabulary. */}

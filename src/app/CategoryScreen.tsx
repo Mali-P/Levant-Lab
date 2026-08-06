@@ -81,17 +81,11 @@ export default function CategoryScreen() {
             />
 
             {gate.unlocked ? (
-              <div className="row">
-                <Link className="btn btn-primary grow" to={'/study/' + deck.id + '?mode=normal'}>
-                  Normal
-                </Link>
-                <Link className="btn grow" to={'/study/' + deck.id + '?mode=hard'}>
-                  Hard
-                </Link>
-                <Link className="btn grow" to={'/study/' + deck.id + '?mode=brutal'}>
-                  Brutal
-                </Link>
-              </div>
+              // One way in, so a deck always offers Memorise before it offers
+              // a test. The modes themselves live on the picker.
+              <Link className="btn btn-primary btn-block" to={'/deck/' + deck.id}>
+                Study this deck
+              </Link>
             ) : (
               <p className="small muted">
                 Opens once <strong>{gate.blockedBy!.name}</strong> is mastered —{' '}
