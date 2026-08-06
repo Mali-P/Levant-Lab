@@ -15,11 +15,12 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 4;
+export const STARTER_CONTENT_VERSION = 5;
 
 /**
  * How many cards the official starter set contains: sixteen categories of ten,
- * plus the ten number decks that run from one to a hundred.
+ * the three greeting decks, plus the ten number decks that run from one to a
+ * hundred.
  */
 export const OFFICIAL_CARD_COUNT = SEED_CATEGORIES.reduce(
   (total, category) =>

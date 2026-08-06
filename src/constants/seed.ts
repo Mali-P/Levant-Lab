@@ -189,8 +189,69 @@ const NUMBER_DECKS: SeedDeck[] = [
 ];
 
 /**
- * Starter content: seventeen categories, one ten-card deck each except the
- * numbers, which run to a hundred. Words come
+ * Everyday spoken greetings, in the shapes people actually say them: مرحبا
+ * rather than the textbook مرحباً, أهلا rather than أهلاً.
+ *
+ * Where a card carries a feminine/masculine pair, the gender is the person
+ * being *spoken to*, not the speaker — a greeting changes its ending to match
+ * whoever it is aimed at — except "good / fine", where the ending is the
+ * speaker's own. The masculine form stays the headline, as everywhere else in
+ * the starter set.
+ *
+ * Several pairs are written identically because the ـك ending goes unvowelled
+ * in everyday writing, so only the transliteration tells كيفِك from كيفَك.
+ */
+const GREETING_DECKS: SeedDeck[] = [
+  {
+    name: 'Hello and goodbye',
+    cards: [
+      c('hello', ['שלום', 'shalom'], ['مرحبا', 'marḥaba'], { ar: 'The everyday spoken form; the written مرحباً is textbook Arabic.' }),
+      c('hello (warm reply)', ['שלום שלום', 'shalom shalom'], ['مرحبتين', 'marḥabtēn'], { ar: 'Literally "two hellos" — a common reply to مرحبا, though مرحبا or أهلا can come back just as well.' }),
+      c('hi / hey', ['אהלן', 'ahalan'], ['أهلا', 'ahlan'], { he: 'Borrowed straight from Arabic and just as casual in Hebrew.' }),
+      c('welcome', ['ברוכה הבאה', 'brukha haba\'a', 'ברוך הבא', 'barukh haba'], ['أهلا وسهلا', 'ahlan w sahlan'], { ar: 'Said to a guest arriving; the Arabic form does not change.' }),
+      c('peace be upon you', ['שלום עליכם', 'shalom ʿalekhem'], ['السلام عليكم', 'as-salāmu ʿalēkum'], { ar: 'A little more formal or religious than مرحبا, and always welcome.' }),
+      c('and upon you peace (reply)', ['עליכם שלום', 'ʿalekhem shalom'], ['وعليكم السلام', 'w ʿalēkum as-salām']),
+      c('goodbye', ['להתראות', 'lehitra\'ot'], ['مع السلامة', 'maʿ as-salāme'], { ar: 'Said to the person leaving.' }),
+      c('bye', ['ביי', 'bay'], ['يلا باي', 'yalla bāy'], { ar: 'Very casual, and extremely common.' }),
+      c('see you later', ['נתראה', 'nitra\'e'], ['بشوفك بعدين', 'bashūfik baʿdēn', 'بشوفك بعدين', 'bashūfak baʿdēn'], { ar: 'The ending follows whoever you are speaking to.' }),
+      c('take care', ['תשמרי על עצמך', 'tishmeri ʿal ʿatsmekh', 'תשמור על עצמך', 'tishmor ʿal ʿatsmekha'], ['ديري بالك', 'dīri bālik', 'دير بالك', 'dīr bālak'], { ar: 'Literally "mind yourself" — a warm way to close a conversation.' }),
+    ],
+  },
+  {
+    name: 'Times of day',
+    cards: [
+      c('good morning', ['בוקר טוב', 'boker tov'], ['صباح الخير', 'ṣabāḥ el-khēr']),
+      c('good morning (reply)', ['בוקר אור', 'boker or'], ['صباح النور', 'ṣabāḥ en-nūr'], { ar: 'Answering "morning of goodness" with "morning of light".' }),
+      c('good morning (warmer reply)', ['בוקר מקסים', 'boker maksim'], ['صباح الورد', 'ṣabāḥ el-ward'], { ar: '"Morning of roses" — friendlier still, and common between friends.' }),
+      c('good afternoon', ['צהריים טובים', 'tsohorayim tovim'], ['مسا الخير', 'masa el-khēr'], { ar: 'Palestinian Arabic does not normally use a distinct everyday greeting for "good afternoon"; مسا الخير can cover late afternoon and evening.' }),
+      c('good evening', ['ערב טוב', 'erev tov'], ['مسا الخير', 'masa el-khēr'], { ar: 'The spoken مسا, not the written مساء.' }),
+      c('good evening (reply)', ['ערב טוב גם לך', 'erev tov gam lakh'], ['مسا النور', 'masa en-nūr'], { he: 'Hebrew simply returns the greeting.' }),
+      c('good night', ['לילה טוב', 'layla tov'], ['تصبحي على خير', 'tiṣbaḥi ʿala khēr', 'تصبح على خير', 'tiṣbaḥ ʿala khēr'], { ar: 'Literally "may you wake to goodness"; said on parting for the night.' }),
+      c('good night (reply)', ['לילה טוב גם לך', 'layla tov gam lakh'], ['وإنتِ من أهل الخير', 'w inti min ahl el-khēr', 'وإنت من أهل الخير', 'w inte min ahl el-khēr'], { ar: 'The set answer to تصبح على خير.' }),
+      c('sweet dreams', ['חלומות פז', 'khalomot paz'], ['أحلام سعيدة', 'aḥlām saʿīde']),
+      c('have a nice day', ['יום נעים', 'yom naʿim'], ['نهارك سعيد', 'nahārik saʿīd', 'نهارك سعيد', 'nahārak saʿīd']),
+    ],
+  },
+  {
+    name: 'How are you?',
+    cards: [
+      c('how are you?', ['מה שלומך', 'ma shlomekh', 'מה שלומך', 'ma shlomkha'], ['كيفك', 'kīfik', 'كيفك', 'kīfak'], { ar: 'The one greeting you will hear most; the ending matches the person you ask.' }),
+      c('how is it going?', ['איך הולך', 'ekh holekh'], ['كيف الأمور', 'kīf el-umūr'], { ar: 'Literally "how are the matters" — asked of anyone.' }),
+      c('what\'s new?', ['מה נשמע', 'ma nishmaʿ'], ['شو أخبارك', 'shū akhbārik', 'شو أخبارك', 'shū akhbārak'], { ar: 'Literally "what is your news".' }),
+      c('good / fine', ['בסדר', 'beseder'], ['منيحة', 'mnīḥa', 'منيح', 'mnīḥ'], { ar: 'Here the ending follows the speaker: a woman says منيحة.' }),
+      c('thank God (I am well)', ['ברוך השם', 'barukh hashem'], ['الحمد لله', 'el-ḥamdulillah'], { ar: 'The usual answer to كيفك, whether or not the speaker is religious.' }),
+      c('and you?', ['ואת', 've\'at', 'ואתה', 've\'ata'], ['وإنتِ', 'w inti', 'وإنت', 'w inte']),
+      c('thank you', ['תודה', 'toda'], ['شكرا', 'shukran']),
+      c('you\'re welcome', ['בבקשה', 'bevakasha'], ['ولا يهمّك', 'wala yhimmik', 'ولا يهمّك', 'wala yhimmak'], { ar: 'Literally "don\'t worry about it"; عفوا is the more formal option.' }),
+      c('please', ['בבקשה', 'bevakasha'], ['من فضلك', 'min faḍlik', 'من فضلك', 'min faḍlak']),
+      c('excuse me / sorry', ['סליחה', 'slikha'], ['لو سمحتي', 'law samaḥti', 'لو سمحت', 'law samaḥt'], { ar: 'Getting someone\'s attention; آسف is the apology.' }),
+    ],
+  },
+];
+
+/**
+ * Starter content: eighteen categories, one ten-card deck each except the
+ * greetings, which take three, and the numbers, which run to a hundred. Words come
  * from the Palestinian Arabic and Hebrew starter table, which lists a feminine
  * and a masculine form for every entry; where the two are identical the card
  * carries a single form.
@@ -198,6 +259,11 @@ const NUMBER_DECKS: SeedDeck[] = [
  * Adding a category here needs no code change anywhere else.
  */
 export const SEED_CATEGORIES: SeedCategory[] = [
+  {
+    name: 'Greetings',
+    icon: '👋',
+    decks: GREETING_DECKS,
+  },
   {
     name: 'Counting and numbers',
     icon: '🔢',

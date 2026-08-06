@@ -324,7 +324,7 @@ export default function DataScreen() {
           missing starter cards, and does not delete your own cards.
         </p>
         <p className="small muted">
-          The official set is {OFFICIAL_CARD_COUNT} cards across seventeen
+          The official set is {OFFICIAL_CARD_COUNT} cards across eighteen
           categories, each word with its feminine and masculine form in Hebrew
           and Palestinian Arabic.
           {coverage && coverage.missing > 0 && (
