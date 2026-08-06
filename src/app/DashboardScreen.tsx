@@ -1,0 +1,187 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import type { StudySession } from '../types';
+import { useData } from '../stores/dataStore';
+import { useSettings } from '../stores/settingsStore';
+import { db } from '../services/database/db';
+import { accuracy, statusFor, STATUS_LABELS } from '../features/review/mastery';
+
+function greeting(hour: number): string {
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+export default function DashboardScreen() {
+  const settings = useSettings((s) => s.settings);
+  const categories = useData((s) => s.categories);
+  const decks = useData((s) => s.decks);
+  const cards = useData((s) => s.cards);
+  const cardProgress = useData((s) => s.cardProgress);
+  const deckProgress = useData((s) => s.deckProgress);
+  const [open, setOpen] = useState<StudySession | null>(null);
+
+  useEffect(() => {
+    db.sessions
+      .orderBy('updatedAt')
+      .reverse()
+      .filter((s) => !s.completedAt)
+      .first()
+      .then((s) => setOpen(s ?? null));
+  }, []);
+
+  const now = new Date().toISOString();
+  const progressList = Object.values(cardProgress);
+
+  const hebrewCorrect = progressList.reduce((n, p) => n + p.hebrew.correct, 0);
+  const hebrewTotal = progressList.reduce(
+    (n, p) => n + p.hebrew.correct + p.hebrew.incorrect, 0);
+  const arabicCorrect = progressList.reduce((n, p) => n + p.arabic.correct, 0);
+  const arabicTotal = progressList.reduce(
+    (n, p) => n + p.arabic.correct + p.arabic.incorrect, 0);
+
+  const hebrewPct = hebrewTotal ? Math.round((hebrewCorrect / hebrewTotal) * 100) : 0;
+  const arabicPct = arabicTotal ? Math.round((arabicCorrect / arabicTotal) * 100) : 0;
+
+  const masteredCount = cards.filter(
+    (c) => statusFor(cardProgress[c.id], now, settings.enableMasteryDecay) === 'mastered',
+  ).length;
+
+  const dueDecks = decks
+    .map((deck) => {
+      const deckCards = cards.filter((c) => c.deckId === deck.id);
+      const due = deckCards.filter((c) => {
+        const status = statusFor(cardProgress[c.id], now, settings.enableMasteryDecay);
+        return status === 'rusty' || status === 'needs-review' || status === 'forgotten';
+      }).length;
+      return { deck, due, total: deckCards.length };
+    })
+    .filter((d) => d.due > 0)
+    .sort((a, b) => b.due - a.due)
+    .slice(0, 4);
+
+  const weakest = cards
+    .map((card) => ({ card, p: cardProgress[card.id] }))
+    .filter((row) => row.p && row.p.hebrew.incorrect + row.p.arabic.incorrect > 0)
+    .sort(
+      (a, b) =>
+        accuracy(a.p!.hebrew) + accuracy(a.p!.arabic) -
+        (accuracy(b.p!.hebrew) + accuracy(b.p!.arabic)),
+    )
+    .slice(0, 3);
+
+  const openDeck = open ? decks.find((d) => d.id === open.deckId) : undefined;
+
+  return (
+    <div className="screen">
+      <header className="screen-head">
+        <div className="grow">
+          <div className="eyebrow">Hebrew · Levantine Arabic</div>
+          <h1>{greeting(new Date().getHours())}</h1>
+        </div>
+      </header>
+
+      {open && openDeck && (
+        <Link className="panel" to={'/study/' + openDeck.id + '?mode=' + open.mode} style={{ textDecoration: 'none', color: 'inherit' }}>
+          <span className="eyebrow">Continue</span>
+          <strong style={{ fontSize: '1.2rem' }}>
+            {openDeck.name} — {open.mode === 'normal' ? 'Normal' : open.mode === 'hard' ? 'Hard mode' : 'Brutal mode'}
+          </strong>
+          <span className="small muted">
+            {open.mode === 'normal'
+              ? 'Card ' + (open.currentIndex + 1) + ' of ' + open.activeCardIds.length +
+                ' · retry pile ' + open.retryCardIds.length
+              : 'Run ' + (open.perfectRunsCompleted + 1) + ' of ' + open.perfectRunsRequired}
+          </span>
+        </Link>
+      )}
+
+      <div className="tile-grid">
+        <div className="tile">
+          <span className="eyebrow">Cards mastered</span>
+          <span className="value">{masteredCount}</span>
+          <span className="small muted">of {cards.length}</span>
+        </div>
+        <div className="tile">
+          <span className="eyebrow">Weakest language</span>
+          <span className="value">
+            {hebrewTotal + arabicTotal === 0
+              ? '—'
+              : hebrewPct <= arabicPct
+                ? 'Hebrew'
+                : 'Arabic'}
+          </span>
+          <span className="small muted">
+            {hebrewTotal + arabicTotal === 0
+              ? 'No answers yet'
+              : Math.min(hebrewPct, arabicPct) + '% accuracy'}
+          </span>
+        </div>
+      </div>
+
+      <section className="panel">
+        <span className="eyebrow">Hebrew versus Arabic</span>
+        <div className="spread small">
+          <span>Hebrew</span>
+          <span>{hebrewPct}%</span>
+        </div>
+        <div className="bar he"><span style={{ width: hebrewPct + '%' }} /></div>
+        <div className="spread small">
+          <span>Arabic</span>
+          <span>{arabicPct}%</span>
+        </div>
+        <div className="bar ar"><span style={{ width: arabicPct + '%' }} /></div>
+      </section>
+
+      {dueDecks.length > 0 && (
+        <section className="stack">
+          <span className="eyebrow">Due for review</span>
+          <div className="list">
+            {dueDecks.map(({ deck, due, total }) => (
+              <Link className="list-item" key={deck.id} to={'/study/' + deck.id + '?mode=normal'}>
+                <span className="icon" aria-hidden="true">
+                  {categories.find((c) => c.id === deck.categoryId)?.icon}
+                </span>
+                <span className="grow">
+                  <strong>{deck.name}</strong>
+                  <div className="small muted">{due} of {total} need review</div>
+                </span>
+                <span aria-hidden="true">›</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {weakest.length > 0 && (
+        <section className="stack">
+          <span className="eyebrow">Weakest cards</span>
+          <div className="list">
+            {weakest.map(({ card, p }) => (
+              <Link className="list-item" key={card.id} to={'/manage/card/' + card.id}>
+                <span className="grow english">
+                  <strong>{card.english}</strong>
+                  <div className="small muted">
+                    Hebrew {Math.round(accuracy(p!.hebrew) * 100)}% · Arabic{' '}
+                    {Math.round(accuracy(p!.arabic) * 100)}% ·{' '}
+                    {STATUS_LABELS[statusFor(p, now, settings.enableMasteryDecay)]}
+                  </div>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <Link className="btn btn-primary btn-block" to="/categories">
+        Choose a deck
+      </Link>
+
+      {Object.keys(deckProgress).length === 0 && (
+        <p className="small muted" style={{ textAlign: 'center' }}>
+          Nothing studied yet. Pick a category to begin.
+        </p>
+      )}
+    </div>
+  );
+}
