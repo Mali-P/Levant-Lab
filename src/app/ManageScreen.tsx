@@ -10,6 +10,7 @@ import WordForms from '../components/cards/WordForms';
 import { wordForms } from '../utils/wordForms';
 
 type Filter =
+  | 'none'
   | 'all'
   | 'arabic-weakest'
   | 'hebrew-weakest'
@@ -19,6 +20,7 @@ type Filter =
   | 'missing-transliteration';
 
 const FILTERS: { value: Filter; label: string }[] = [
+  { value: 'none', label: 'Select…' },
   { value: 'all', label: 'All cards' },
   { value: 'arabic-weakest', label: 'Arabic weakest' },
   { value: 'hebrew-weakest', label: 'Hebrew weakest' },
@@ -38,12 +40,18 @@ export default function ManageScreen() {
   const saveCard = useData((s) => s.saveCard);
 
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<Filter>('all');
+  // Defaults to nothing: rendering every card on entry stalls the screen once
+  // the collection grows into the thousands.
+  const [filter, setFilter] = useState<Filter>('none');
   const [deckFilter, setDeckFilter] = useState('all');
   const now = new Date().toISOString();
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
+
+    // Nothing picked and nothing narrowed down: stay empty rather than paint
+    // the whole collection.
+    if (filter === 'none' && !needle && deckFilter === 'all') return [];
 
     let rows = cards.filter((card) => {
       if (deckFilter !== 'all' && card.deckId !== deckFilter) return false;
@@ -175,7 +183,11 @@ export default function ManageScreen() {
 
       <Link className="btn btn-block" to="/data">Import, export and backup</Link>
 
-      <p className="small muted">{visible.length} shown</p>
+      <p className="small muted">
+        {filter === 'none' && !query.trim() && deckFilter === 'all'
+          ? 'Search, pick a deck, or choose a filter to list cards'
+          : visible.length + ' shown'}
+      </p>
 
       <div className="list">
         {visible.map((card) => (
