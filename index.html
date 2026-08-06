@@ -7,6 +7,33 @@
     <meta name="description" content="Private dual-language flashcard drilling for Hebrew and Levantine Arabic." />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <title>Hebrew + Levantine Arabic Flashcards</title>
+    <script>
+      /*
+       * The theme has to be on <html> before the first paint. The real setting
+       * lives in IndexedDB and arrives several frames too late for that, so the
+       * last choice is mirrored into localStorage and read here; a dark app
+       * flashing white on every launch is worse than the duplicated state.
+       */
+      (function () {
+        var root = document.documentElement;
+        var resolved = 'dark';
+        try {
+          var stored = localStorage.getItem('theme');
+          var pref = stored === 'light' || stored === 'dark' ? stored : 'system';
+          resolved =
+            pref === 'system'
+              ? window.matchMedia('(prefers-color-scheme: light)').matches
+                ? 'light'
+                : 'dark'
+              : pref;
+        } catch (e) {
+          /* Private mode can throw on localStorage; the dark default stands. */
+        }
+        root.dataset.theme = resolved;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = resolved === 'light' ? '#f2f0ec' : '#0e1116';
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

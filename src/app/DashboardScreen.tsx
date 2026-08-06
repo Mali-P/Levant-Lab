@@ -5,6 +5,7 @@ import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { db } from '../services/database/db';
 import { accuracy, statusFor, STATUS_LABELS } from '../features/review/mastery';
+import ThemeToggle from '../components/controls/ThemeToggle';
 
 function greeting(hour: number): string {
   if (hour < 12) return 'Good morning';
@@ -79,6 +80,7 @@ export default function DashboardScreen() {
           <div className="eyebrow">Hebrew · Levantine Arabic</div>
           <h1>{greeting(new Date().getHours())}</h1>
         </div>
+        <ThemeToggle />
       </header>
 
       {open && openDeck && (

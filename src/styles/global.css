@@ -15,6 +15,14 @@
   --ok: #38cd85;
   --bad: #ff6b6b;
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  /* Behind the feedback sheet. Tinted per scheme so a light app is not dimmed
+     by a slab of near-black. */
+  --scrim: rgba(6, 8, 12, 0.62);
+  /* The two cards stacked behind the live one. In dark they read as the pale
+     card showing through; in light the card is white on near-white, so there
+     they need an edge of their own instead. */
+  --card-stack: var(--card);
+  --card-stack-line: transparent;
 
   --radius: 20px;
   --radius-sm: 12px;
@@ -38,10 +46,16 @@
   --ink-dim: #5d6675;
   --line: #ddd8d0;
   --shadow: 0 14px 34px rgba(30, 26, 20, 0.16);
+  --scrim: rgba(38, 32, 24, 0.42);
+  --card-stack: #ffffff;
+  --card-stack-line: #e2ddd5;
   color-scheme: light;
 }
 
-:root[data-contrast='high'] {
+/* Scoped away from the light scheme, which has its own high-contrast block
+   below: an unqualified white --ink here would win on any property the light
+   block does not happen to restate. */
+:root:not([data-theme='light'])[data-contrast='high'] {
   --ink: #ffffff;
   --ink-dim: #d6dbe4;
   --line: #6b7688;
@@ -103,6 +117,11 @@ body {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
+  /* Only the page canvas eases between schemes. Transitioning every surface
+     would make the switch look like a slow wipe, and the reduced-motion rule
+     below collapses even this to nothing. */
+  transition: background-color calc(0.2s * var(--motion)) ease,
+    color calc(0.2s * var(--motion)) ease;
 }
 
 :root[data-motion='reduced'] *,
@@ -408,9 +427,21 @@ textarea.input {
   position: absolute;
   inset: 0;
   border-radius: 26px;
-  background: var(--card);
+  background: var(--card-stack);
+  border: 1px solid var(--card-stack-line);
   opacity: 0.28;
   transform: translateY(10px) scale(0.965);
+}
+
+/* Opacity is what fades the stack into a dark background; over a light one it
+   only fades the borders away too, leaving nothing to see. */
+:root[data-theme='light'] .card-shadow {
+  opacity: 1;
+  box-shadow: var(--shadow);
+}
+
+:root[data-theme='light'] .card-shadow.deep {
+  opacity: 1;
 }
 
 .card-shadow.deep {
@@ -545,7 +576,7 @@ textarea.input {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(6, 8, 12, 0.62);
+  background: var(--scrim);
   padding: 10px;
 }
 
@@ -1315,4 +1346,130 @@ a.btn-primary:visited {
 .arabic .tracing-ink,
 .tracing-canvas.arabic .tracing-ink {
   stroke: var(--ar);
+}
+
+/* ---------- study mode picker ---------- */
+
+.mode-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mode-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  min-height: var(--tap);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+}
+
+/*
+ * Memorise is the first rung of the ladder, so it is the one option that reads
+ * as the recommended move. The testing modes stay deliberately quieter.
+ */
+.mode-choice.lead {
+  border-color: var(--he);
+  background: var(--surface-2);
+}
+
+.mode-choice-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex: none;
+}
+
+.mode-choice-name {
+  display: block;
+  font-weight: 700;
+}
+
+.mode-choice .small {
+  display: block;
+}
+
+.mode-choice-go {
+  flex: none;
+  color: var(--ink-dim);
+}
+
+/* ---------- memorise card ---------- */
+
+/* Nothing on this card is typed into, so the whole face is a tap target. */
+.memorise-card {
+  cursor: pointer;
+}
+
+.memorise-hint {
+  text-align: center;
+  margin: auto 0 0;
+  padding-bottom: 8px;
+}
+
+.memorise-forms {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/*
+ * Four forms, two labels and the English all have to sit on one card face
+ * without scrolling — a form the learner has to scroll to find is a form they
+ * will skip. Once the card is turned over the English has done its job, so it
+ * gives up the space the scripts need.
+ */
+.screen.study .memorise-card.flipped .card-prompt {
+  padding: 0;
+}
+
+.screen.study .memorise-card.flipped .card-prompt .word {
+  font-size: clamp(1.3rem, 5vw, 1.7rem);
+}
+
+.screen.study .memorise-card.flipped .answer-block {
+  padding-top: 8px;
+  gap: 2px;
+}
+
+.screen.study .memorise-card.flipped .memorise-forms {
+  gap: 2px;
+}
+
+/*
+ * One form per row: the word on the left, its speaker on the right. The row is
+ * LTR so the ♀ / ♂ marker and the play button keep their places regardless of
+ * the script between them, which isolates back into RTL on its own.
+ */
+.memorise-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  direction: ltr;
+}
+
+.memorise-form .form-line {
+  font-family: var(--script);
+  font-size: 1.9rem;
+  font-weight: 650;
+}
+
+.screen.study .memorise-form .form-line {
+  font-size: 1.5rem;
+}
+
+/*
+ * Script and transliteration share a line rather than stacking. Four stacked
+ * pairs plus their romanisations do not fit one card face, and the reading
+ * "שמונה — shmone" is the pairing the learner wants anyway.
+ */
+.memorise-form > .grow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
 }
