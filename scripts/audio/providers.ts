@@ -105,7 +105,7 @@ export async function azureArabic(config: AudioConfig): Promise<Synthesizer> {
           'Ocp-Apim-Subscription-Key': key,
           'Content-Type': 'application/ssml+xml',
           'X-Microsoft-OutputFormat': 'audio-24khz-96kbitrate-mono-mp3',
-          'User-Agent': 'levantine-language-app-audio-generator',
+          'User-Agent': 'levantry-audio-generator',
         },
         body: ssml,
       });

@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'Hebrew + Levantine Arabic Flashcards',
-        short_name: 'HE/AR Cards',
+        name: 'Levantry — Hebrew + Levantine Arabic Flashcards',
+        short_name: 'Levantry',
         description: 'Strict dual-language flashcard drilling for Hebrew and Levantine Arabic.',
         theme_color: '#0e1116',
         background_color: '#0e1116',

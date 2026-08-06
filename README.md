@@ -1,4 +1,6 @@
-# Hebrew + Levantine Arabic Flashcards
+# Levantry
+
+Hebrew + Levantine Arabic flashcards, at [levantry.app](https://levantry.app).
 
 A private, offline-first, mobile-first flashcard app for drilling **Hebrew and
 Levantine Arabic at the same time**. A card only counts as correct when both
