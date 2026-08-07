@@ -10,6 +10,24 @@ import { db } from '../services/database/db';
 import { emptyDeckProgress } from '../services/database/defaults';
 import { applyAnswerToProgress } from '../features/review/mastery';
 import { uid } from '../utils/random';
+import type { SyncCollection } from '../services/sync/protocol';
+
+/**
+ * Remembers a deletion so sync can carry it to the other device.
+ *
+ * Written unconditionally, whether or not sync is switched on: a card deleted
+ * today and a server paired next week must still agree, and a tombstone costs
+ * a few dozen bytes. Deliberately outside the delete transaction — failing to
+ * note a deletion must not roll back the deletion itself.
+ */
+async function noteDeletions(
+  collection: SyncCollection,
+  keys: string[],
+  deletedAt = new Date().toISOString(),
+): Promise<void> {
+  if (keys.length === 0) return;
+  await db.tombstones.bulkPut(keys.map((key) => ({ collection, key, deletedAt })));
+}
 
 type DataState = {
   categories: Category[];
@@ -107,6 +125,11 @@ export const useData = create<DataState>((set, get) => ({
       await db.cards.bulkDelete(cardIds);
       await db.cardProgress.bulkDelete(cardIds);
     });
+    await noteDeletions('categories', [id]);
+    await noteDeletions('decks', deckIds);
+    await noteDeletions('cards', cardIds);
+    await noteDeletions('cardProgress', cardIds);
+    await noteDeletions('deckProgress', deckIds);
     await get().load();
   },
 
@@ -143,6 +166,10 @@ export const useData = create<DataState>((set, get) => ({
       await db.cardProgress.bulkDelete(cardIds);
       await db.deckProgress.delete(id);
     });
+    await noteDeletions('decks', [id]);
+    await noteDeletions('deckProgress', [id]);
+    await noteDeletions('cards', cardIds);
+    await noteDeletions('cardProgress', cardIds);
     await get().load();
   },
 
@@ -167,6 +194,8 @@ export const useData = create<DataState>((set, get) => ({
       await db.cards.delete(id);
       await db.cardProgress.delete(id);
     });
+    await noteDeletions('cards', [id]);
+    await noteDeletions('cardProgress', [id]);
     set({ cards: get().cards.filter((c) => c.id !== id) });
   },
 
@@ -192,14 +221,22 @@ export const useData = create<DataState>((set, get) => ({
 
   async recordAnswer(cardId, result) {
     const now = new Date().toISOString();
-    const next = applyAnswerToProgress(get().cardProgress[cardId], cardId, result, now);
+    // `updatedAt` is stamped here rather than inside `applyAnswerToProgress`,
+    // which is pure scoring logic that sync has no business reaching into.
+    const scored = applyAnswerToProgress(get().cardProgress[cardId], cardId, result, now);
+    const next: CardProgress = { ...scored, updatedAt: now };
     await db.cardProgress.put(next);
     set({ cardProgress: { ...get().cardProgress, [cardId]: next } });
   },
 
   async saveDeckProgress(deckId, patch) {
     const current = get().deckProgress[deckId] ?? emptyDeckProgress(deckId);
-    const next: DeckProgress = { ...current, ...patch, deckId };
+    const next: DeckProgress = {
+      ...current,
+      ...patch,
+      deckId,
+      updatedAt: new Date().toISOString(),
+    };
     await db.deckProgress.put(next);
     set({ deckProgress: { ...get().deckProgress, [deckId]: next } });
   },

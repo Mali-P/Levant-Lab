@@ -220,6 +220,12 @@ export type AlphabetProgress = {
   lastPractisedAt?: string;
   incorrectCount: number;
   mastered: boolean;
+  /**
+   * When this row last changed, for sync's last-write-wins comparison. Distinct
+   * from `lastPractisedAt`, which only moves when a letter is actually drilled:
+   * a reset rewrites the row without practising it.
+   */
+  updatedAt?: string;
 };
 
 /** The skill an exercise exercises, and so the score it moves. */

@@ -138,6 +138,13 @@ export type CardProgress = {
   consecutiveBothCorrect: number;
   masteryScore: number;
   nextReviewAt?: string;
+  /**
+   * When this row last changed. Only sync reads it, to decide which device's
+   * version of a score wins. Optional because rows written before sync existed
+   * have none; those count as the oldest possible, so a later edit on either
+   * device beats them.
+   */
+  updatedAt?: string;
 };
 
 export type DeckProgress = {
@@ -147,6 +154,8 @@ export type DeckProgress = {
   normalModeCompletedAt?: string;
   hardModePassedAt?: string;
   lastStudiedAt?: string;
+  /** See `CardProgress.updatedAt`. */
+  updatedAt?: string;
 };
 
 export type SessionAnswer = {
@@ -208,6 +217,13 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 
 export type Settings = {
   id: 'settings';
+
+  /**
+   * When any preference last changed, for sync's last-write-wins comparison.
+   * The row travels as one unit, so a single toggle moves the stamp. Voice
+   * choices are stripped before it leaves the device — see `DEVICE_LOCAL_SETTINGS`.
+   */
+  updatedAt?: string;
 
   /**
    * Which build of the official starter set this device has been topped up
@@ -278,4 +294,32 @@ export type Snapshot = {
   createdAt: string;
   label: string;
   payload: BackupFile;
+};
+
+/**
+ * A row this device deleted, kept so the deletion can be told to the other
+ * device. `collection` matches a `SyncCollection`; `key` is that collection's
+ * primary key as a string.
+ */
+export type Tombstone = {
+  collection: string;
+  key: string;
+  deletedAt: string;
+};
+
+/** One row, id `'sync'`. Absent until the learner first opens the sync screen. */
+export type SyncState = {
+  id: 'sync';
+  /**
+   * Identifies this install to the server, so it is not sent back its own
+   * writes. Generated once; deliberately not derived from anything about the
+   * hardware or the person.
+   */
+  deviceId: string;
+  /** Shown in the server log and on the other device, e.g. "Laptop". */
+  deviceName?: string;
+  /** Highest server seq already applied here. 0 means nothing synced yet. */
+  seq: number;
+  lastSyncedAt?: string;
+  lastError?: string;
 };

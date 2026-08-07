@@ -17,6 +17,7 @@ npm run dev       # development server
 npm run build     # production build into dist/
 npm run preview   # serve the production build
 npm test          # unit tests for the study engine and validation
+npm run serve     # build, then serve the app and the sync server together
 ```
 
 ### Putting it on your phone
@@ -25,6 +26,56 @@ npm test          # unit tests for the study engine and validation
 Chrome on Android and choose **Add to home screen**. After the first load it
 works with no network: cards, progress, statistics and device voices are all
 local.
+
+## Syncing the phone with the laptop
+
+The app is still local-first: every device studies from its own IndexedDB and
+works with no network at all. Sync is an optional extra that lets two devices
+agree, and it runs on your own machine — there is no cloud account.
+
+On the laptop:
+
+```bash
+npm run serve
+```
+
+That builds the app and starts the sync server, which serves both the app and
+the API from one address. It prints a token and the addresses it is reachable
+on:
+
+```text
+  token   3f9c…             <- goes into every device, once
+  http://192.168.1.20:4180  <- open this on the phone
+```
+
+On the phone, open that address over the same Wi-Fi, go to **Cards → Sync with
+another device**, paste the token, and press **Sync now**. Do the same on the
+laptop at `http://localhost:4180`. From then on each device sends everything it
+holds and takes back whatever is newer.
+
+What to expect:
+
+- Cards, decks, categories, card and deck progress, alphabet progress and
+  settings all travel.
+- Where the same row was changed on both devices, **the later change wins**.
+  There is no field-by-field merge, so editing one card on both devices between
+  syncs loses the earlier edit.
+- Deletions travel too, and are remembered, so a card deleted on the laptop
+  does not reappear from the phone.
+- A **study session in progress does not sync** — it stays on the device it was
+  started on. So does your chosen Hebrew and Arabic voice, since a voice
+  installed on Windows does not exist on Android.
+- Sync only ever happens when you press the button. Nothing runs in the
+  background.
+
+The server keeps its copy in `server/data/store.json` and its token in
+`server/data/token.txt`. Both are git-ignored. `GET /api/backup` with the token
+downloads the whole thing as JSON. Set `LEVANTRY_SYNC_TOKEN` to pin your own
+token and `PORT` to move it off 4180.
+
+Reaching it from outside the house needs a tunnel (`cloudflared tunnel --url
+http://localhost:4180`) pointed at that one port — which also gets you HTTPS,
+and so the service worker and **Add to home screen**.
 
 ## How the study loop works
 
@@ -54,6 +105,12 @@ The study engine is deterministic and completely independent of the UI:
   single-clip player that makes overlapping playback impossible
 - `src/services/speech/` — `SpeechService` interface plus a Web Speech
   implementation, now only the fallback for cards with no bundled recording
+- `src/services/sync/` — the optional device sync: `protocol.ts` is the wire
+  format shared with the server, `reconcile.ts` holds every rule that decides
+  which version of a row survives (and is where the tests are), `collections.ts`
+  says what each table's key and change stamp are, `client.ts` is the plumbing
+- `server/` — the sync server itself: dependency-free Node, a JSON store behind
+  an atomic rename, and static serving of `dist/` so devices need one address
 - `src/stores/` — Zustand stores wiring the engine to persistence
 - `src/app/` — screens; `src/components/` — presentation
 
@@ -156,7 +213,11 @@ are committed; the credentials that made them are not.
 
 ## Privacy
 
-There is no account, no server, no analytics and no telemetry. Nothing leaves
-the device unless you press export. Back up regularly from **Cards → Import,
-export and backup**: JSON for a full backup, CSV for bulk card editing. A
-snapshot is taken automatically before any restore or destructive action.
+There is no account, no analytics and no telemetry. Nothing leaves the device
+unless you press export — or turn on sync, in which case your cards go to the
+sync server you are running yourself, on your own network, guarded by a token
+only your devices have. There is no third party in the path either way.
+
+Back up regularly from **Cards → Import, export and backup**: JSON for a full
+backup, CSV for bulk card editing. A snapshot is taken automatically before any
+restore or destructive action.

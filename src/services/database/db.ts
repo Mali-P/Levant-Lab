@@ -8,12 +8,16 @@ import type {
   Settings,
   Snapshot,
   StudySession,
+  SyncState,
+  Tombstone,
 } from '../../types';
 import type { AlphabetProgress } from '../../types/alphabet';
 
 /**
- * All persistence is local IndexedDB. Nothing here talks to a network, which
- * is what makes the app work offline and keeps the vocabulary private.
+ * All persistence is local IndexedDB. This database is still the only thing the
+ * app studies from, and it stays complete offline; the optional sync server is
+ * a peer the app can be told to exchange rows with, never a source it depends
+ * on.
  */
 export class FlashcardDatabase extends Dexie {
   categories!: Table<Category, string>;
@@ -29,6 +33,20 @@ export class FlashcardDatabase extends Dexie {
    * a letter in both alphabets, so the bare id would collide.
    */
   alphabetProgress!: Table<AlphabetProgress, [string, string]>;
+
+  /**
+   * Deletions, remembered.
+   *
+   * A row that is simply gone is indistinguishable from a row this device has
+   * not been told about yet, so without these a card deleted on the laptop
+   * would be handed straight back by the next sync from the phone, which still
+   * holds it. Kept indefinitely: they are a few dozen bytes each, and expiring
+   * one is exactly how a deleted card comes back to life.
+   */
+  tombstones!: Table<Tombstone, [string, string]>;
+
+  /** A single row: this device's identity and how far it has synced. */
+  syncState!: Table<SyncState, string>;
 
   constructor(name = 'levantine-flashcards') {
     super(name);
@@ -47,6 +65,13 @@ export class FlashcardDatabase extends Dexie {
     // before the alphabet modules existed keeps every card and every score.
     this.version(2).stores({
       alphabetProgress: '[script+letterId], script, mastered, lastPractisedAt',
+    });
+
+    // v3 adds the two tables sync needs. Again purely additive: an install that
+    // never turns sync on carries two empty tables and behaves exactly as before.
+    this.version(3).stores({
+      tombstones: '[collection+key], deletedAt',
+      syncState: 'id',
     });
   }
 }

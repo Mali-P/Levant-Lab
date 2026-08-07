@@ -22,13 +22,21 @@ export const useSettings = create<SettingsState>((set, get) => ({
   },
 
   async update(patch) {
-    const next: Settings = { ...get().settings, ...patch, id: 'settings' };
+    // Stamped so sync can tell which device changed a preference last. The
+    // whole settings row is one syncable unit, so any change moves the stamp.
+    const next: Settings = {
+      ...get().settings,
+      ...patch,
+      id: 'settings',
+      updatedAt: new Date().toISOString(),
+    };
     set({ settings: next });
     await db.settings.put(next);
   },
 
   async reset() {
-    set({ settings: DEFAULT_SETTINGS });
-    await db.settings.put(DEFAULT_SETTINGS);
+    const next: Settings = { ...DEFAULT_SETTINGS, updatedAt: new Date().toISOString() };
+    set({ settings: next });
+    await db.settings.put(next);
   },
 }));

@@ -15,6 +15,7 @@ import CardEditorScreen from './app/CardEditorScreen';
 import StatsScreen from './app/StatsScreen';
 import SettingsScreen from './app/SettingsScreen';
 import DataScreen from './app/DataScreen';
+import SyncScreen from './app/SyncScreen';
 import PronunciationReviewScreen from './app/PronunciationReviewScreen';
 import AlphabetsScreen from './app/AlphabetsScreen';
 import AlphabetHomeScreen from './app/AlphabetHomeScreen';
@@ -129,6 +130,7 @@ export default function App() {
         <Route path="/stats" element={<StatsScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
         <Route path="/data" element={<DataScreen />} />
+        <Route path="/sync" element={<SyncScreen />} />
         <Route path="/audio-review" element={<PronunciationReviewScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

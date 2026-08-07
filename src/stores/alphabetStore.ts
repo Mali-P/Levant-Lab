@@ -8,6 +8,14 @@ import type {
 } from '../types/alphabet';
 import { db } from '../services/database/db';
 import { applyAlphabetAnswer, requiredSkills } from '../features/alphabet/progress';
+import type { SyncCollection } from '../services/sync/protocol';
+
+/** See the equivalent in `dataStore`: a deletion has to be remembered to travel. */
+async function recordDeletions(collection: SyncCollection, keys: string[]): Promise<void> {
+  if (keys.length === 0) return;
+  const deletedAt = new Date().toISOString();
+  await db.tombstones.bulkPut(keys.map((key) => ({ collection, key, deletedAt })));
+}
 
 type AlphabetState = {
   /** Keyed `script:letterId`, because ids are only unique within a script. */
@@ -56,18 +64,27 @@ export const useAlphabet = create<AlphabetState>((set, get) => ({
 
   async recordAnswer(letter, script, skill, correct) {
     const key = progressKey(script, letter.id);
-    const next = applyAlphabetAnswer(get().progress[key], letter.id, script, {
+    const now = new Date().toISOString();
+    const scored = applyAlphabetAnswer(get().progress[key], letter.id, script, {
       skill,
       correct,
-      now: new Date().toISOString(),
+      now,
       required: requiredSkills(letter),
     });
+    // Stamped here, outside the pure scoring function, purely so sync can tell
+    // which device holds the later version of this letter's standing.
+    const next: AlphabetProgress = { ...scored, updatedAt: now };
     await db.alphabetProgress.put(next);
     set({ progress: { ...get().progress, [key]: next } });
   },
 
   async resetScript(script) {
+    const cleared = Object.values(get().progress).filter((row) => row.script === script);
     await db.alphabetProgress.where('script').equals(script).delete();
+    await recordDeletions(
+      'alphabetProgress',
+      cleared.map((row) => progressKey(row.script, row.letterId)),
+    );
     set({
       progress: Object.fromEntries(
         Object.entries(get().progress).filter(([, row]) => row.script !== script),

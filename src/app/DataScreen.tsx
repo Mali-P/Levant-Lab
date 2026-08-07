@@ -198,6 +198,18 @@ export default function DataScreen() {
       {message && <div className="panel"><p className="small">{message}</p></div>}
 
       <section className="panel">
+        <span className="eyebrow">Other devices</span>
+        <p className="small muted">
+          Keep this device's cards and progress in step with your laptop over
+          your own network. Nothing leaves the house and nothing is uploaded
+          anywhere.
+        </p>
+        <Link className="btn btn-block" to="/sync">
+          Sync with another device
+        </Link>
+      </section>
+
+      <section className="panel">
         <span className="eyebrow">Export</span>
         <button className="btn btn-block" onClick={exportAll}>Export everything as JSON</button>
         <button className="btn btn-block" onClick={exportCsv}>Export all cards as CSV</button>
