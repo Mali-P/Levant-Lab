@@ -362,7 +362,7 @@ const TITLE_DECKS: SeedDeck[] = [
  * Unlike every other starter category this one is a starting point rather than
  * a finished set: sentences added from inside the app land in "My sentences"
  * beside these, and nothing else in the codebase treats them as strays. The
- * five below were written out by hand before the app had anywhere to put them
+ * nine below were written out by hand before the app had anywhere to put them
  * — whole sentences aimed at one particular person, which is the shape the
  * word-per-card starter set cannot hold.
  *
@@ -400,6 +400,45 @@ const CUSTOM_DECKS: SeedDeck[] = [
         ['את רוצה', 'at rotsa', 'אתה רוצה', 'ata rotse'],
         ['بدِّك', 'biddek', 'بدَّك', 'biddak'],
         { ar: 'Written بدك either way — only the transliteration tells the two endings apart.' },
+      ),
+      c(
+        'may I ask — are you Jewish or Arab?',
+        [
+          'אפשר לשאול, את יהודייה או ערבייה',
+          'efshar lish\'ol, at yehudiya o araviya',
+          'אפשר לשאול, אתה יהודי או ערבי',
+          'efshar lish\'ol, ata yehudi o aravi',
+        ],
+        [
+          'لو سمحتي، إنتِ يهودية ولا عربية',
+          'law samaḥti, inti yahūdiyye walla ʿarabiyye',
+          'لو سمحت، إنت يهودي ولا عربي',
+          'law samaḥt, inta yahūdi walla ʿarabi',
+        ],
+        {
+          he: 'אפשר לשאול ("may I ask") is what keeps this polite; the bare את יהודייה או ערבייה is blunt. The opener says nothing about who is asking, so it reads the same whoever you are.',
+          ar: 'لو سمحتي is the feminine "excuse me", said to a woman; لو سمحت to a man. ولا is the spoken "or" inside a question — أم belongs to written Arabic.',
+        },
+      ),
+      c(
+        'do you speak Hebrew?',
+        ['את מדברת עברית', 'at medaberet ivrit', 'אתה מדבר עברית', 'ata medaber ivrit'],
+        ['بتحكي عبري', 'btiḥki ʿibri'],
+        {
+          ar: 'بتحكي is said the same way to a woman or to a man — verbs whose stem already ends in -i keep one form. عبري is the everyday name of the language; العبرية is the formal one.',
+        },
+      ),
+      c(
+        'do you speak Arabic?',
+        ['את מדברת ערבית', 'at medaberet aravit', 'אתה מדבר ערבית', 'ata medaber aravit'],
+        ['بتحكي عربي', 'btiḥki ʿarabi'],
+        { ar: 'One form of بتحكي whether you are asking a woman or a man.' },
+      ),
+      c(
+        'do you speak English?',
+        ['את מדברת אנגלית', 'at medaberet anglit', 'אתה מדבר אנגלית', 'ata medaber anglit'],
+        ['بتحكي إنجليزي', 'btiḥki inglīzi'],
+        { ar: 'إنجليزي is the spoken form; انكليزي is what you hear further north.' },
       ),
     ],
   },
@@ -1111,6 +1150,36 @@ export const SEED_CATEGORIES: SeedCategory[] = [
           c('up', ['למעלה', 'lema\'la'], ['فوق', 'fōq']),
           c('down', ['למטה', 'lemata'], ['تحت', 'taḥt']),
           c('behind', ['מאחור', 'me\'akhore'], ['ورا', 'wara']),
+        ],
+      },
+      {
+        name: 'Asking the way',
+        cards: [
+          c('how do I get there?', ['איך מגיעים לשם', 'ekh magi\'im lesham'], ['كيف بوصل لهنيك', 'kīf bōṣal la-hnīk']),
+          c('is it far from here?', ['זה רחוק מכאן', 'ze rakhok mikan'], ['بعيد عن هون', 'baʿīd ʿan hōn']),
+          c('turn right', ['פני ימינה', 'pni yamina', 'פנה ימינה', 'pne yamina'], ['لفّي عاليمين', 'liffi ʿal-yamīn', 'لفّ عاليمين', 'liff ʿal-yamīn']),
+          c('turn left', ['פני שמאלה', 'pni smola', 'פנה שמאלה', 'pne smola'], ['لفّي عالشمال', 'liffi ʿash-shimāl', 'لفّ عالشمال', 'liff ʿash-shimāl']),
+          c('go straight', ['סעי ישר', 'si\'i yashar', 'סע ישר', 'sa yashar'], ['امشي دغري', 'imshi dughri'], { ar: 'The Arabic ends the same way whoever is being told.' }),
+          c('next to', ['ליד', 'leyad'], ['جنب', 'janb']),
+          c('opposite', ['מול', 'mul'], ['مقابل', 'muqābel']),
+          c('between', ['בין', 'bein'], ['بين', 'bēn']),
+          c('at the corner', ['בפינה', 'bapina'], ['عالزاوية', 'ʿaz-zāwye']),
+          c('after the traffic light', ['אחרי הרמזור', 'akharei haramzor'], ['بعد الإشارة', 'baʿd el-ishāra']),
+        ],
+      },
+      {
+        name: 'Places in town',
+        cards: [
+          c('street', ['רחוב', 'rekhov'], ['شارع', 'shāreʿ']),
+          c('square', ['כיכר', 'kikar'], ['ميدان', 'mīdān']),
+          c('mosque', ['מסגד', 'misgad'], ['جامع', 'jāmeʿ']),
+          c('church', ['כנסייה', 'knesiya'], ['كنيسة', 'kanīse']),
+          c('synagogue', ['בית כנסת', 'beit knesset'], ['كنيس', 'kanīs']),
+          c('school', ['בית ספר', 'beit sefer'], ['مدرسة', 'madrase']),
+          c('university', ['אוניברסיטה', 'universita'], ['جامعة', 'jāmʿa']),
+          c('bank', ['בנק', 'bank'], ['بنك', 'bank']),
+          c('post office', ['דואר', 'do\'ar'], ['بريد', 'barīd']),
+          c('park', ['פארק', 'park'], ['حديقة', 'ḥadīqa']),
         ],
       },
     ],
