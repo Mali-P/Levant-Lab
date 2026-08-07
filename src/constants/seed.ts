@@ -294,7 +294,56 @@ const TITLE_DECKS: SeedDeck[] = [
 ];
 
 /**
- * Starter content: nineteen categories, one ten-card deck each except the
+ * The learner's own category.
+ *
+ * Unlike every other starter category this one is a starting point rather than
+ * a finished set: sentences added from inside the app land in "My sentences"
+ * beside these, and nothing else in the codebase treats them as strays. The
+ * five below were written out by hand before the app had anywhere to put them
+ * — whole sentences aimed at one particular person, which is the shape the
+ * word-per-card starter set cannot hold.
+ *
+ * Where a sentence is spoken to a woman — mother — only her form is given;
+ * where anyone could be addressed, the usual feminine/masculine pair is there.
+ */
+export const CUSTOM_CATEGORY = 'Custom';
+export const CUSTOM_DECK = 'My sentences';
+
+const CUSTOM_DECKS: SeedDeck[] = [
+  {
+    name: CUSTOM_DECK,
+    cards: [
+      c('hi', ['שלום', 'shalom'], ['مرحبا', 'marḥaba']),
+      c(
+        'how are you, mom?',
+        ['מה שלומך אמא', 'ma shlomekh ima'],
+        ['كيف حالك ماما', 'kīf ḥālek māma'],
+        { ar: 'The ـك ending is the feminine حالِك; كيفك is the shorter everyday version of the same question.' },
+      ),
+      c(
+        'my name is Mali',
+        ['קוראים לי מאלי', 'kor\'im li Mali'],
+        ['اسمي مالي', 'ismi Mali'],
+        { he: 'Literally "they call me Mali", which is how the introduction is normally made.' },
+      ),
+      c(
+        'I want to help you at your home, mom',
+        ['אני רוצה לעזור לך בבית שלך אמא', 'ani rotse laʿazor lakh babayit shelakh ima'],
+        ['أنا بدي أساعدك بالبيت ماما', 'ana biddi asāʿdek bil-bēt māma'],
+        { ar: 'أساعدِك is the feminine "help you"; drop بالبيت and it is simply "I want to help you".' },
+      ),
+      c(
+        'do you want?',
+        ['את רוצה', 'at rotsa', 'אתה רוצה', 'ata rotse'],
+        ['بدِّك', 'biddek', 'بدَّك', 'biddak'],
+        { ar: 'Written بدك either way — only the transliteration tells the two endings apart.' },
+      ),
+    ],
+  },
+];
+
+/**
+ * Starter content: twenty categories, one ten-card deck each except the
  * greetings, which take three, the titles and pronouns, which take two, and the
  * numbers, which run to a hundred. Words come
  * from the Palestinian Arabic and Hebrew starter table, which lists a feminine
@@ -654,5 +703,12 @@ export const SEED_CATEGORIES: SeedCategory[] = [
         ],
       },
     ],
+  },
+  // Last, so the learner's own sentences sit at the end of the ladder rather
+  // than in front of the words the starter set teaches first.
+  {
+    name: CUSTOM_CATEGORY,
+    icon: '✍️',
+    decks: CUSTOM_DECKS,
   },
 ];

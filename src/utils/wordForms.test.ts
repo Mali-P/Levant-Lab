@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { wordForms } from './wordForms';
-import { SEED_CATEGORIES } from '../constants/seed';
+import { CUSTOM_CATEGORY, CUSTOM_DECK, SEED_CATEGORIES } from '../constants/seed';
 
 describe('wordForms', () => {
   it('returns one unmarked form when a word has no gendered pair', () => {
@@ -28,14 +28,28 @@ describe('starter cards', () => {
     category.decks.flatMap((deck) => deck.cards),
   );
 
-  it('ships every category with full decks', () => {
-    expect(SEED_CATEGORIES).toHaveLength(19);
-    for (const category of SEED_CATEGORIES) {
+  it('ships every taught category with full decks', () => {
+    expect(SEED_CATEGORIES).toHaveLength(20);
+    // Custom is the learner's own and grows from inside the app, so it is the
+    // one category not held to a full ten.
+    for (const category of SEED_CATEGORIES.filter((c) => c.name !== CUSTOM_CATEGORY)) {
       expect(category.decks.length, category.name).toBeGreaterThan(0);
       for (const deck of category.decks) {
         expect(deck.cards, category.name + ' / ' + deck.name).toHaveLength(10);
       }
     }
+  });
+
+  it('opens the custom category with the sentences written by hand', () => {
+    const custom = SEED_CATEGORIES.find((c) => c.name === CUSTOM_CATEGORY)!;
+    expect(custom.decks.map((d) => d.name)).toEqual([CUSTOM_DECK]);
+    expect(custom.decks[0].cards.map((c) => c.english)).toEqual([
+      'hi',
+      'how are you, mom?',
+      'my name is Mali',
+      'I want to help you at your home, mom',
+      'do you want?',
+    ]);
   });
 
   it('counts from one to a hundred, ten to a deck', () => {

@@ -1,5 +1,5 @@
 import type { Category, Deck, Flashcard } from '../../types';
-import { SEED_CATEGORIES, type SeedCard } from '../../constants/seed';
+import { CUSTOM_CATEGORY, SEED_CATEGORIES, type SeedCard } from '../../constants/seed';
 import { uid } from '../../utils/random';
 import { audioIdFor } from '../audio/paths';
 import { withClipPaths } from '../audio/manifest';
@@ -15,12 +15,14 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 6;
+export const STARTER_CONTENT_VERSION = 7;
 
 /**
  * How many cards the official starter set contains: sixteen categories of ten,
- * the three greeting decks, the two title and pronoun decks, plus the ten
- * number decks that run from one to a hundred.
+ * the three greeting decks, the two title and pronoun decks, the ten number
+ * decks that run from one to a hundred, and the five sentences the Custom
+ * category opens with. Sentences added there afterwards are the learner's own
+ * and are counted nowhere here.
  */
 export const OFFICIAL_CARD_COUNT = SEED_CATEGORIES.reduce(
   (total, category) =>
@@ -41,9 +43,15 @@ const OFFICIAL_KEYS: ReadonlySet<string> = new Set(
   ),
 );
 
+/**
+ * Decks whose contents the official set defines in full — the Custom category
+ * excepted, since a sentence the learner writes there belongs in its deck and
+ * must not be read as a leftover from an older seed.
+ */
 const OFFICIAL_DECK_KEYS: ReadonlySet<string> = new Set(
-  SEED_CATEGORIES.flatMap((category) =>
-    category.decks.map((deck) => (category.name + '|' + deck.name).toLowerCase()),
+  SEED_CATEGORIES.filter((category) => category.name !== CUSTOM_CATEGORY).flatMap(
+    (category) =>
+      category.decks.map((deck) => (category.name + '|' + deck.name).toLowerCase()),
   ),
 );
 
