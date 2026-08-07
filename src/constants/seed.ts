@@ -324,6 +324,36 @@ const TITLE_DECKS: SeedDeck[] = [
       c('hers / his', ['שלה', 'shela', 'שלו', 'shelo'], ['تبعها', 'tabaʿha', 'تبعه', 'tabaʿo'], { ar: 'Here the ending follows the owner, not the person spoken to.' }),
     ],
   },
+  {
+    name: 'Saying it is mine',
+    cards: [
+      c('my house', ['הבית שלי', 'habayit sheli'], ['بيتي', 'bēti'], { ar: 'Possession is a suffix on the noun: بيت plus ـي.' }),
+      c('your house', ['הבית שלך', 'habayit shelakh', 'הבית שלך', 'habayit shelkha'], ['بيتك', 'bētik', 'بيتك', 'bētak'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'Written the same either way; only the ending is said differently.' }),
+      c('her house / his house', ['הבית שלה', 'habayit shela', 'הבית שלו', 'habayit shelo'], ['بيتها', 'bētha', 'بيته', 'bēto'], { ar: 'Here the ending follows the owner.' }),
+      c('our house', ['הבית שלנו', 'habayit shelanu'], ['بيتنا', 'bētna']),
+      c('your house (more than one)', ['הבית שלכן', 'habayit shelakhen', 'הבית שלכם', 'habayit shelakhem'], ['بيتكم', 'bētkom'], { ar: 'Spoken Palestinian Arabic uses one plural ending for a group of any gender.' }),
+      c('their house', ['הבית שלהן', 'habayit shelahen', 'הבית שלהם', 'habayit shelahem'], ['بيتهم', 'bēthom']),
+      c('my name', ['השם שלי', 'hashem sheli'], ['اسمي', 'ismi']),
+      c('my mother', ['אמא שלי', 'ima sheli'], ['أمّي', 'immi']),
+      c('with me', ['איתי', 'iti'], ['معي', 'maʿi']),
+      c('I have', ['יש לי', 'yesh li'], ['عندي', 'ʿindi'], { he: 'Literally "there is to me"; Hebrew has no verb for "have".' }),
+    ],
+  },
+  {
+    name: 'This, that and which',
+    cards: [
+      c('this', ['זאת', 'zot', 'זה', 'ze'], ['هاي', 'hayy', 'هاد', 'hād'], { ar: 'The gender here is the thing pointed at, not a person.' }),
+      c('these', ['אלה', 'ele'], ['هدول', 'hadōl'], { ar: 'One form for any group.' }),
+      c('that one (over there)', ['ההיא', 'hahi', 'ההוא', 'hahu'], ['هديك', 'hadīk', 'هداك', 'hadāk']),
+      c('who?', ['מי', 'mi'], ['مين', 'mīn']),
+      c('what?', ['מה', 'ma'], ['شو', 'shū'], { ar: 'The Levantine question word; ماذا is written Arabic.' }),
+      c('where?', ['איפה', 'eifo'], ['وين', 'wēn']),
+      c('when?', ['מתי', 'matai'], ['إيمتى', 'ēmta']),
+      c('why?', ['למה', 'lama'], ['ليش', 'lēsh']),
+      c('how?', ['איך', 'ekh'], ['كيف', 'kīf']),
+      c('how much?', ['כמה', 'kama'], ['قدّيش', 'addēsh']),
+    ],
+  },
 ];
 
 /**
