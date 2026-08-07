@@ -517,6 +517,19 @@ textarea.input {
   font-weight: 650;
 }
 
+/* A chip the learner can press. It keeps the chip's size and place in the meta
+   row, so only its face says whether it is on. */
+.chip-toggle {
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--ink-dim);
+}
+
+.chip-toggle.on {
+  color: var(--terracotta);
+  border-color: color-mix(in srgb, var(--terracotta) 45%, transparent);
+}
+
 .chip-he { color: var(--he); border-color: color-mix(in srgb, var(--he) 45%, transparent); }
 .chip-ar { color: var(--ar); border-color: color-mix(in srgb, var(--ar) 45%, transparent); }
 .chip-ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
@@ -1544,6 +1557,39 @@ a.btn-primary:visited {
   text-align: center;
   margin: auto 0 0;
   padding-bottom: 8px;
+}
+
+/*
+ * Every card on the study screen — memorise tablet and test card alike — is
+ * sized by the same rule, so moving between the modes does not change the
+ * shape of the thing in front of the learner.
+ *
+ * The stage is what carries it, not the card: the two stacked shadows behind
+ * the card are pinned to the stage, and sizing the card alone would leave them
+ * standing at the old size.
+ *
+ * Height is content-led between a floor and the viewport. The floor keeps a
+ * near-empty face — one English word, waiting to be flipped — reading as a
+ * card rather than a strip, and it is a little over half the height the stage
+ * used to insist on. The cap is what any full face grows into: four forms and
+ * two labels turned over, or a revealed answer pair with its typed fields.
+ */
+.screen.study .card-stage {
+  flex: 0 1 auto;
+  min-height: 46%;
+  max-height: 100%;
+  width: min(100%, 292px);
+  margin-inline: auto;
+  align-self: center;
+}
+
+/* The screen's own 10px gap reads as a crack between two things that touch.
+   The buttons under the card are a separate object from it, so they stand
+   off it. */
+.screen.study .card-stage + .row,
+.screen.study .card-stage + .btn,
+.screen.study .card-stage + .grade-grid {
+  margin-top: 14px;
 }
 
 /* The front of the card holds one word. Centring it turns the space the card

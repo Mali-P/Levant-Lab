@@ -40,6 +40,11 @@ export default function MemoriseScreen() {
   const { play } = usePronunciation(settings);
 
   const [session, setSession] = useState<MemoriseSession | null>(null);
+  // A first read through a deck follows the deck's own order — a counting deck
+  // in particular only makes sense from one upwards — so the pass starts
+  // unshuffled whatever the global study setting says. The learner turns
+  // shuffling on here once the order itself has become the thing they remember.
+  const [shuffle, setShuffle] = useState(false);
 
   const deck = decks.find((d) => d.id === deckId);
   const category = categories.find((c) => c.id === deck?.categoryId);
@@ -69,13 +74,14 @@ export default function MemoriseScreen() {
         deckId,
         cardIds: deckCards.map((c) => c.id),
         now: new Date().toISOString(),
-        shuffleCards: settings.shuffleCards,
+        shuffleCards: shuffle,
       }),
     );
-    // Rebuilding on a settings tweak would throw away the learner's place, so
-    // the shuffle preference is read once, when the pass starts.
+    // Flipping the toggle deliberately deals the deck again from the top:
+    // re-ordering the cards under a half-finished pass would leave the learner
+    // with a "card 4 of 10" that means nothing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckId, deckCards.length, locked]);
+  }, [deckId, deckCards.length, locked, shuffle]);
 
   const currentCard = session
     ? deckCards.find((c) => c.id === currentMemoriseCardId(session))
@@ -94,11 +100,11 @@ export default function MemoriseScreen() {
       s
         ? restartMemorise(s, {
             now: new Date().toISOString(),
-            shuffleCards: settings.shuffleCards,
+            shuffleCards: shuffle,
           })
         : s,
     );
-  }, [settings.shuffleCards]);
+  }, [shuffle]);
 
   // Autoplay follows the same per-language settings as the study screen, and
   // speaks the leading — feminine — form of each word.
@@ -256,6 +262,16 @@ export default function MemoriseScreen() {
         <span className="chip">
           {session.viewed.length} / {session.order.length} viewed
         </span>
+        {/* Sits with the tallies rather than in Settings: which order a deck
+            reads best in is a per-deck, per-pass decision. */}
+        <button
+          type="button"
+          className={'chip chip-toggle' + (shuffle ? ' on' : '')}
+          aria-pressed={shuffle}
+          onClick={() => setShuffle((s) => !s)}
+        >
+          Shuffle {shuffle ? 'on' : 'off'}
+        </button>
       </div>
 
       <MemoriseCard
