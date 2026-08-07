@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ALPHABET_SCRIPTS, SCRIPT_LABEL, alphabetCounts } from '../data/alphabets';
 import ScreenHeader from '../components/controls/ScreenHeader';
+import Icon from '../components/ornament/Icon';
 
 const SCRIPT_ICON = { hebrew: 'א', arabic: 'ع' } as const;
 
@@ -33,7 +34,7 @@ export default function AlphabetsScreen() {
                 <strong>{SCRIPT_LABEL[script]}</strong>
                 <div className="small muted">{extras.join(' \u00b7 ')}</div>
               </span>
-              <span aria-hidden="true">&rsaquo;</span>
+              <Icon name="forward" className="chevron" />
             </Link>
           );
         })}

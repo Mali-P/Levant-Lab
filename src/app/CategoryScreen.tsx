@@ -1,4 +1,7 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import type { Deck } from '../types';
+import { CUSTOM_CATEGORY } from '../constants/seed';
+import { uid } from '../utils/random';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { statusFor, STATUS_LABELS } from '../features/review/mastery';
@@ -6,15 +9,19 @@ import { gateDecks } from '../features/review/unlock';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import PerfectRuns from '../components/progress/PerfectRuns';
 import WordForms from '../components/cards/WordForms';
+import Icon from '../components/ornament/Icon';
+import { LevantMotif } from '../components/ornament/Ornament';
 
 export default function CategoryScreen() {
   const { categoryId = '' } = useParams();
+  const navigate = useNavigate();
   const settings = useSettings((s) => s.settings);
   const categories = useData((s) => s.categories);
   const decks = useData((s) => s.decks);
   const cards = useData((s) => s.cards);
   const cardProgress = useData((s) => s.cardProgress);
   const deckProgress = useData((s) => s.deckProgress);
+  const saveCard = useData((s) => s.saveCard);
 
   const category = categories.find((c) => c.id === categoryId);
   const gates = gateDecks(
@@ -22,6 +29,33 @@ export default function CategoryScreen() {
     deckProgress,
   );
   const now = new Date().toISOString();
+
+  // The learner's own category is the one place a card can be started from
+  // outside the manage screen, so the sentences kept there can be added while
+  // reading the deck they belong to.
+  const own = category?.name === CUSTOM_CATEGORY;
+
+  /**
+   * Opens a blank card in the chosen deck. It is written before the editor
+   * loads because the editor addresses a card by id; an empty row is harmless
+   * and shows as "Untitled card" until it is filled in.
+   */
+  async function addSentence(deck: Deck) {
+    const id = uid('card');
+    const stamp = new Date().toISOString();
+    await saveCard({
+      id,
+      deckId: deck.id,
+      categoryId: deck.categoryId,
+      english: '',
+      hebrew: { script: '' },
+      // The dialect the rest of this deck is written in; the editor can change it.
+      arabic: { script: '', dialect: 'Palestinian' },
+      createdAt: stamp,
+      updatedAt: stamp,
+    });
+    navigate('/manage/card/' + id);
+  }
 
   if (!category) {
     return (
@@ -37,6 +71,7 @@ export default function CategoryScreen() {
 
       {gates.length === 0 && (
         <div className="empty">
+          <LevantMotif name="amphora" />
           <p>No decks here yet.</p>
           <Link className="btn btn-primary" to="/manage">Add cards</Link>
         </div>
@@ -71,7 +106,9 @@ export default function CategoryScreen() {
               {gate.unlocked ? (
                 progress?.hardModePassedAt && <span className="chip chip-ok">Passed</span>
               ) : (
-                <span className="chip">🔒 Locked</span>
+                <span className="chip">
+                  <Icon name="lock" /> Locked
+                </span>
               )}
             </div>
 
@@ -91,6 +128,12 @@ export default function CategoryScreen() {
                 Opens once <strong>{gate.blockedBy!.name}</strong> is mastered —{' '}
                 {gate.perfectRunsRequired} flawless runs through it.
               </p>
+            )}
+
+            {own && (
+              <button className="btn btn-block" onClick={() => addSentence(deck)}>
+                Add a sentence
+              </button>
             )}
 
             {deckCards.length > 0 && gate.unlocked && (

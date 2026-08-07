@@ -4,6 +4,12 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   base: './',
+  // Listen on every interface so a phone on the same network can reach the
+  // dev and preview servers without passing --host each time.
+  server: { host: true },
+  // allowedHosts covers one-off Cloudflare quick tunnels, which serve the
+  // built app over HTTPS so the service worker can register and install.
+  preview: { host: true, allowedHosts: ['.trycloudflare.com'] },
   plugins: [
     react(),
     VitePWA({
@@ -13,8 +19,8 @@ export default defineConfig({
         name: 'Levantry — Hebrew + Levantine Arabic Flashcards',
         short_name: 'Levantry',
         description: 'Strict dual-language flashcard drilling for Hebrew and Levantine Arabic.',
-        theme_color: '#0e1116',
-        background_color: '#0e1116',
+        theme_color: '#191510',
+        background_color: '#191510',
         display: 'standalone',
         orientation: 'portrait',
         start_url: './',

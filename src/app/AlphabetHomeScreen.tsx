@@ -4,39 +4,46 @@ import { SCRIPT_LABEL, alphabetCounts, lettersFor } from '../data/alphabets';
 import { needsReview, summarise } from '../features/alphabet/progress';
 import { useAlphabet } from '../stores/alphabetStore';
 import ScreenHeader from '../components/controls/ScreenHeader';
+import Icon, { type IconName } from '../components/ornament/Icon';
 
-const MODES = [
+const MODES: {
+  key: string;
+  icon: IconName;
+  title: string;
+  description: string;
+  to: string;
+}[] = [
   {
     key: 'learn',
-    icon: '\ud83d\udcd6',
+    icon: 'codex',
     title: 'Learn',
     description: 'Meet every letter, its sound and its forms',
     to: 'letters',
   },
   {
     key: 'practise',
-    icon: '\ud83c\udfaf',
+    icon: 'target',
     title: 'Practise',
     description: 'Recognition, matching and quizzes',
     to: 'practise',
   },
   {
     key: 'listen',
-    icon: '\ud83d\udd0a',
+    icon: 'ear',
     title: 'Listen',
     description: 'Hear a letter and pick it out',
     to: 'practise?mode=listen',
   },
   {
     key: 'write',
-    icon: '\u270d\ufe0f',
+    icon: 'stylus',
     title: 'Write',
     description: 'Tracing and free writing',
     to: 'practise?mode=write',
   },
   {
     key: 'progress',
-    icon: '\ud83d\udcca',
+    icon: 'columns',
     title: 'Progress overview',
     description: 'What is introduced, what is mastered, what needs work',
     to: 'progress',
@@ -93,13 +100,13 @@ export default function AlphabetHomeScreen() {
             to={'/alphabet/' + alphabet + '/' + mode.to}
           >
             <span className="icon" aria-hidden="true">
-              {mode.icon}
+              <Icon name={mode.icon} />
             </span>
             <span className="grow">
               <strong>{mode.title}</strong>
               <div className="small muted">{mode.description}</div>
             </span>
-            <span aria-hidden="true">&rsaquo;</span>
+            <Icon name="forward" className="chevron" />
           </Link>
         ))}
 
@@ -119,7 +126,7 @@ export default function AlphabetHomeScreen() {
                 {mistakes.length} letters you have missed, worst first
               </div>
             </span>
-            <span aria-hidden="true">&rsaquo;</span>
+            <Icon name="forward" className="chevron" />
           </Link>
         )}
       </div>

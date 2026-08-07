@@ -10,6 +10,7 @@ import { useSettings } from '../stores/settingsStore';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import LetterGlyph from '../components/alphabet/LetterGlyph';
 import LetterSpeaker from '../components/alphabet/LetterSpeaker';
+import Icon from '../components/ornament/Icon';
 import { StrokeGuide } from '../components/alphabet/TracingCanvas';
 import { strokeSequenceOf } from '../features/alphabet/forms';
 
@@ -261,7 +262,7 @@ export default function LetterDetailScreen() {
             <strong>Practise this letter</strong>
             <div className="small muted">Recognise it, hear it, pick it out</div>
           </span>
-          <span aria-hidden="true">&rsaquo;</span>
+          <Icon name="forward" className="chevron" />
         </Link>
         <Link
           className="list-item"
@@ -279,7 +280,7 @@ export default function LetterDetailScreen() {
             <strong>Write this letter</strong>
             <div className="small muted">Trace it, then write it from memory</div>
           </span>
-          <span aria-hidden="true">&rsaquo;</span>
+          <Icon name="forward" className="chevron" />
         </Link>
       </div>
     </div>

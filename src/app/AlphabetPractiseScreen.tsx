@@ -2,6 +2,7 @@ import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import type { AlphabetScript } from '../types/alphabet';
 import { SCRIPT_LABEL } from '../data/alphabets';
 import { buildLetterDecks, deckLetters } from '../features/alphabet/decks';
+import Icon from '../components/ornament/Icon';
 import {
   MODE_DESCRIPTION,
   MODE_LABEL,
@@ -116,7 +117,7 @@ export default function AlphabetPractiseScreen() {
                 <div className="small muted">{deck.description}</div>
               </span>
               <span className="chip">{available}</span>
-              <span aria-hidden="true">&rsaquo;</span>
+              <Icon name="forward" className="chevron" />
             </Link>
           ))}
         </div>

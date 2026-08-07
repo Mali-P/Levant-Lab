@@ -2,6 +2,7 @@ import type { SpeechLanguage } from '../../services/speech';
 import type { WordForm } from '../../utils/wordForms';
 import { useSettings } from '../../stores/settingsStore';
 import { pronunciationLabel, usePronunciation } from '../../hooks/usePronunciation';
+import Icon from '../ornament/Icon';
 
 type Props = {
   form: WordForm;
@@ -40,7 +41,7 @@ export default function SpeakerButton({ form, language, label, className }: Prop
       // Announced rather than shown, so the state is never colour-only.
       aria-pressed={playing}
     >
-      <span aria-hidden="true">🔊</span>
+      <Icon name="speaker" />
     </button>
   );
 }

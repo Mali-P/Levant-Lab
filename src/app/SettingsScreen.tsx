@@ -155,6 +155,8 @@ export default function SettingsScreen() {
           onChange={(v) => update({ cardAnimationIntensity: v })} />
       </section>
 
+      <Link className="btn btn-block" to="/manage">Cards and decks</Link>
+
       <Link className="btn btn-block" to="/data">Backup, import and export</Link>
 
       <p className="small muted">

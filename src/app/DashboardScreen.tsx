@@ -6,6 +6,26 @@ import { useSettings } from '../stores/settingsStore';
 import { db } from '../services/database/db';
 import { accuracy, statusFor, STATUS_LABELS } from '../features/review/mastery';
 import ThemeToggle from '../components/controls/ThemeToggle';
+import Icon from '../components/ornament/Icon';
+import {
+  EngravedDivider,
+  Wordmark,
+  categoryIcon,
+} from '../components/ornament/Ornament';
+
+/**
+ * The engraved mark for a category, falling back to whatever icon is stored
+ * on the record — a category the learner created keeps its own.
+ */
+function CategoryMark({
+  category,
+}: {
+  category?: { name: string; icon: string };
+}) {
+  if (!category) return null;
+  const mark = categoryIcon(category.name);
+  return mark ? <Icon name={mark} /> : <>{category.icon}</>;
+}
 
 function greeting(hour: number): string {
   if (hour < 12) return 'Good morning';
@@ -75,13 +95,20 @@ export default function DashboardScreen() {
 
   return (
     <div className="screen">
-      <header className="screen-head">
+      {/* The wordmark leads the app's own screen: the name, then the two
+          languages it teaches, each in its own script. The greeting keeps its
+          place underneath rather than competing with the brand for the
+          heading slot. */}
+      <header className="screen-head brand-head">
         <div className="grow">
-          <div className="eyebrow">Hebrew · Levantine Arabic</div>
-          <h1>{greeting(new Date().getHours())}</h1>
+          <Wordmark />
         </div>
         <ThemeToggle />
       </header>
+
+      <p className="greeting muted">{greeting(new Date().getHours())}</p>
+
+      <EngravedDivider />
 
       {open && openDeck && (
         <Link className="panel" to={'/study/' + openDeck.id + '?mode=' + open.mode} style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -142,13 +169,15 @@ export default function DashboardScreen() {
             {dueDecks.map(({ deck, due, total }) => (
               <Link className="list-item" key={deck.id} to={'/study/' + deck.id + '?mode=normal'}>
                 <span className="icon" aria-hidden="true">
-                  {categories.find((c) => c.id === deck.categoryId)?.icon}
+                  <CategoryMark
+                    category={categories.find((c) => c.id === deck.categoryId)}
+                  />
                 </span>
                 <span className="grow">
                   <strong>{deck.name}</strong>
                   <div className="small muted">{due} of {total} need review</div>
                 </span>
-                <span aria-hidden="true">›</span>
+                <Icon name="forward" className="chevron" />
               </Link>
             ))}
           </div>

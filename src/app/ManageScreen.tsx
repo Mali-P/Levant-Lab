@@ -140,6 +140,7 @@ export default function ManageScreen() {
       <ScreenHeader
         title="Cards"
         eyebrow={cards.length + ' total'}
+        back
         action={
           <button className="btn btn-primary" onClick={addCard} disabled={decks.length === 0}>
             New

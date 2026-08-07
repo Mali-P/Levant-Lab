@@ -25,14 +25,20 @@ import AlphabetPractiseScreen from './app/AlphabetPractiseScreen';
 import AlphabetSessionScreen from './app/AlphabetSessionScreen';
 import AlphabetWriteScreen from './app/AlphabetWriteScreen';
 import { useAlphabet } from './stores/alphabetStore';
+import Icon, { type IconName } from './components/ornament/Icon';
 
-const TABS = [
-  { to: '/', icon: '🏠', label: 'Home' },
-  { to: '/categories', icon: '🗂️', label: 'Study' },
-  { to: '/alphabets', icon: '🔤', label: 'Letters' },
-  { to: '/manage', icon: '✏️', label: 'Cards' },
-  { to: '/stats', icon: '📊', label: 'Stats' },
-  { to: '/settings', icon: '⚙️', label: 'Settings' },
+/*
+ * The destinations, each with its engraved mark: a temple front for home, a
+ * scroll for the decks, an inscribed stele for the letters, carved columns
+ * for the figures, and a rosette for the settings. The label stays under
+ * every one of them — the icons are a second cue, never the only one.
+ */
+const TABS: { to: string; icon: IconName; label: string }[] = [
+  { to: '/', icon: 'temple', label: 'Home' },
+  { to: '/categories', icon: 'scroll', label: 'Study' },
+  { to: '/alphabets', icon: 'stele', label: 'Letters' },
+  { to: '/stats', icon: 'columns', label: 'Stats' },
+  { to: '/settings', icon: 'rosette', label: 'Settings' },
 ];
 
 export default function App() {
@@ -131,7 +137,7 @@ export default function App() {
         {TABS.map((tab) => (
           <NavLink key={tab.to} to={tab.to} end={tab.to === '/'}>
             <span className="tab-icon" aria-hidden="true">
-              {tab.icon}
+              <Icon name={tab.icon} />
             </span>
             {tab.label}
           </NavLink>

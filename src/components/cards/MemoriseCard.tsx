@@ -8,6 +8,7 @@ import {
 import type { Flashcard } from '../../types';
 import { wordForms } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
+import { EngravedDivider } from '../ornament/Ornament';
 
 export type MemoriseCardProps = {
   card: Flashcard;
@@ -84,6 +85,10 @@ export default function MemoriseCard(props: MemoriseCardProps) {
           Next
         </motion.span>
 
+        {/* The catalogue label at the head of the tablet. It names the mode,
+            not the card, so it stays put when the card is turned over. */}
+        <div className="eyebrow memorise-eyebrow">Memorise</div>
+
         <div className="card-prompt">
           {card.icon && (
             <span className="glyph" aria-hidden="true">
@@ -93,9 +98,14 @@ export default function MemoriseCard(props: MemoriseCardProps) {
           <h2 className="word english">{card.english}</h2>
         </div>
 
+        <EngravedDivider tone="card" tight={flipped} />
+
         {flipped ? (
-          sides.map(({ language, label, side }) => (
+          sides.map(({ language, label, side }, i) => (
             <div className="answer-block" key={language}>
+              {/* A band between the two languages, never above the first —
+                  the divider under the prompt already opens the block. */}
+              {i > 0 && <EngravedDivider tone="card" tight />}
               <div
                 className={
                   'lang-label ' +
@@ -138,9 +148,7 @@ export default function MemoriseCard(props: MemoriseCardProps) {
             </div>
           ))
         ) : (
-          <p className="memorise-hint small muted">
-            Tap the card to see the Hebrew and Arabic.
-          </p>
+          <p className="memorise-hint small muted">Tap to flip</p>
         )}
       </motion.article>
     </div>

@@ -1,5 +1,6 @@
 import type { ThemeMode } from '../../types';
 import { useSettings } from '../../stores/settingsStore';
+import Icon, { type IconName } from '../ornament/Icon';
 
 /*
  * Cycling rather than a plain on/off switch, because "match the system" is a
@@ -9,10 +10,10 @@ import { useSettings } from '../../stores/settingsStore';
  */
 const ORDER: ThemeMode[] = ['system', 'light', 'dark'];
 
-const FACE: Record<ThemeMode, { icon: string; label: string }> = {
-  system: { icon: '🌗', label: 'Theme: matching the system' },
-  light: { icon: '☀️', label: 'Theme: light' },
-  dark: { icon: '🌙', label: 'Theme: dark' },
+const FACE: Record<ThemeMode, { icon: IconName; label: string }> = {
+  system: { icon: 'half-disc', label: 'Theme: matching the system' },
+  light: { icon: 'sun', label: 'Theme: light' },
+  dark: { icon: 'moon', label: 'Theme: dark' },
 };
 
 export default function ThemeToggle() {
@@ -32,7 +33,7 @@ export default function ThemeToggle() {
       aria-label={face.label + '. Switch to ' + FACE[next].label.toLowerCase() + '.'}
       title={face.label}
     >
-      <span aria-hidden="true">{face.icon}</span>
+      <Icon name={face.icon} />
     </button>
   );
 }

@@ -10,6 +10,7 @@ import type {
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { useSpeech } from '../hooks/useSpeech';
+import Icon from '../components/ornament/Icon';
 import ScreenHeader from '../components/controls/ScreenHeader';
 
 const DIALECTS: ArabicDialect[] = [
@@ -70,12 +71,12 @@ export default function CardEditorScreen() {
     };
     patchSide(language, {
       forms,
-      script: forms.masculine.script,
-      transliteration: forms.masculine.transliteration,
+      script: forms.feminine.script,
+      transliteration: forms.feminine.transliteration,
     });
   };
 
-  /** Drops the pair back to a single word, keeping the masculine form. */
+  /** Drops the pair back to a single word, keeping the feminine form. */
   const clearForms = (language: 'hebrew' | 'arabic') =>
     patchSide(language, { forms: undefined });
 
@@ -234,7 +235,7 @@ export default function CardEditorScreen() {
         <div className="spread">
           <span className="eyebrow">Hebrew</span>
           <button className="btn btn-ghost btn-icon" onClick={() => void speak(draft, 'hebrew')} aria-label="Play Hebrew">
-            🔊
+            <Icon name="speaker" />
           </button>
         </div>
         {wordFields('hebrew')}
@@ -272,7 +273,7 @@ export default function CardEditorScreen() {
         <div className="spread">
           <span className="eyebrow">Levantine Arabic</span>
           <button className="btn btn-ghost btn-icon" onClick={() => void speak(draft, 'arabic')} aria-label="Play Arabic">
-            🔊
+            <Icon name="speaker" />
           </button>
         </div>
         {wordFields('arabic')}

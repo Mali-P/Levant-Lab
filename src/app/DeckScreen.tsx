@@ -5,6 +5,8 @@ import { statusFor } from '../features/review/mastery';
 import { gateDecks } from '../features/review/unlock';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import PerfectRuns from '../components/progress/PerfectRuns';
+import Icon from '../components/ornament/Icon';
+import { LevantMotif } from '../components/ornament/Ornament';
 
 /**
  * The mode picker a deck opens on.
@@ -18,26 +20,26 @@ const CHOICES = [
     href: (deckId: string) => '/memorise/' + deckId,
     name: 'Memorise',
     blurb: 'Learn the cards by flipping them. Nothing is scored.',
-    icon: '📖',
+    icon: 'codex' as const,
     lead: true,
   },
   {
     href: (deckId: string) => '/study/' + deckId + '?mode=normal',
     name: 'Normal',
     blurb: 'Incorrect cards return at the end.',
-    icon: '🎯',
+    icon: 'target' as const,
   },
   {
     href: (deckId: string) => '/study/' + deckId + '?mode=hard',
     name: 'Hard',
     blurb: 'Repeat the deck until you get 100%.',
-    icon: '🔥',
+    icon: 'flame' as const,
   },
   {
     href: (deckId: string) => '/study/' + deckId + '?mode=brutal',
     name: 'Brutal',
     blurb: 'Typed answers, no hints, and one slip wipes your runs.',
-    icon: '💀',
+    icon: 'chisel' as const,
   },
 ];
 
@@ -117,6 +119,7 @@ export default function DeckScreen() {
 
       {deckCards.length === 0 ? (
         <div className="empty">
+          <LevantMotif name="amphora" />
           <p>This deck has no cards yet.</p>
           <Link className="btn btn-primary" to="/manage">
             Add cards
@@ -134,14 +137,14 @@ export default function DeckScreen() {
                 to={choice.href(deck.id)}
               >
                 <span className="mode-choice-icon" aria-hidden="true">
-                  {choice.icon}
+                  <Icon name={choice.icon} />
                 </span>
                 <span className="grow">
                   <span className="mode-choice-name">{choice.name}</span>
                   <span className="small muted">{choice.blurb}</span>
                 </span>
                 <span className="mode-choice-go" aria-hidden="true">
-                  →
+                  <Icon name="forward" />
                 </span>
               </Link>
             ))}

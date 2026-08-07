@@ -1,31 +1,115 @@
+/*
+ * ============================================================================
+ * Levantry stone system
+ * ============================================================================
+ *
+ * The whole interface is cut from three levels of limestone: a darker warm
+ * ground, a pale sandstone panel, and a warm ivory card. Everything else —
+ * borders, buttons, dividers, icons — is either quarried from that stack or
+ * fired from clay against it.
+ *
+ * Two rules keep it an app rather than a diorama:
+ *
+ *   1. Texture never touches type. Every surface carries its grain as a
+ *      background layer only, so glyphs — Latin, Hebrew niqqud and Arabic
+ *      harakat alike — always render on flat colour at full contrast.
+ *   2. The card is the brightest, least textured, most readable surface in
+ *      the app, because it is the only one anybody has to actually read.
+ *
+ * The palette tokens are the source of truth; the pre-stone token names
+ * (--bg, --surface, --card, --he, --ar…) survive as aliases so every rule
+ * written against them restyles with the palette rather than against it.
+ */
+
 :root {
-  /* Two accents run through the whole app: one per language, so the user can
-     tell Hebrew from Arabic at a glance without reading either. */
-  --he: #4d8dff;
-  --ar: #f2a03d;
+  /* ---- texture primitives --------------------------------------------
+     Two families — ink-dark grain for pale stone, chalk-light grain for
+     dark stone — so a surface can be textured in either scheme without a
+     second set of rules. Cards are ivory in both schemes and therefore
+     always take the dark family. */
 
-  --bg: #0e1116;
-  --surface: #171c25;
-  --surface-2: #1f2634;
-  --card: #f7f5ef;
-  --card-ink: #14181f;
-  --ink: #eef1f6;
-  --ink-dim: #98a2b3;
-  --line: #2a3243;
-  --ok: #38cd85;
-  --bad: #ff6b6b;
-  --shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-  /* Behind the feedback sheet. Tinted per scheme so a light app is not dimmed
-     by a slab of near-black. */
-  --scrim: rgba(6, 8, 12, 0.62);
-  /* The two cards stacked behind the live one. In dark they read as the pale
-     card showing through; in light the card is white on near-white, so there
-     they need an edge of their own instead. */
-  --card-stack: var(--card);
-  --card-stack-line: transparent;
+  --tex-b-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.16'/%3E%3C/svg%3E");
+  --tex-b-grain-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.08'/%3E%3C/svg%3E");
+  --tex-w-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='2'/%3E%3CfeFuncG type='linear' slope='2'/%3E%3CfeFuncB type='linear' slope='2'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.09'/%3E%3C/svg%3E");
+  --tex-w-grain-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='2'/%3E%3CfeFuncG type='linear' slope='2'/%3E%3CfeFuncB type='linear' slope='2'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.05'/%3E%3C/svg%3E");
 
-  --radius: 20px;
-  --radius-sm: 12px;
+  /* Scuffs and two hairline cracks, drawn rather than generated so they land
+     where a chisel would leave them instead of peppering the surface. */
+  --tex-b-scratch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cg fill='none' stroke='%23000' stroke-linecap='round' opacity='0.07'%3E%3Cpath d='M14 46 L96 39' stroke-width='0.7'/%3E%3Cpath d='M120 18 L188 51' stroke-width='0.6'/%3E%3Cpath d='M212 84 L246 132' stroke-width='0.5'/%3E%3Cpath d='M28 150 L74 141' stroke-width='0.7'/%3E%3Cpath d='M92 196 L165 205' stroke-width='0.55'/%3E%3Cpath d='M186 232 L238 221' stroke-width='0.6'/%3E%3Cpath d='M56 244 L110 236' stroke-width='0.5'/%3E%3Cpath d='M232 26 L250 60' stroke-width='0.6'/%3E%3C/g%3E%3Cg fill='none' stroke='%23000' stroke-width='0.5' opacity='0.05'%3E%3Cpath d='M0 108 C60 104 90 118 140 110 C190 102 220 116 260 110'/%3E%3Cpath d='M64 0 C70 40 58 70 66 104'/%3E%3C/g%3E%3C/svg%3E");
+  --tex-w-scratch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cg fill='none' stroke='%23fff' stroke-linecap='round' opacity='0.06'%3E%3Cpath d='M14 46 L96 39' stroke-width='0.7'/%3E%3Cpath d='M120 18 L188 51' stroke-width='0.6'/%3E%3Cpath d='M212 84 L246 132' stroke-width='0.5'/%3E%3Cpath d='M28 150 L74 141' stroke-width='0.7'/%3E%3Cpath d='M92 196 L165 205' stroke-width='0.55'/%3E%3Cpath d='M186 232 L238 221' stroke-width='0.6'/%3E%3Cpath d='M56 244 L110 236' stroke-width='0.5'/%3E%3Cpath d='M232 26 L250 60' stroke-width='0.6'/%3E%3C/g%3E%3Cg fill='none' stroke='%23fff' stroke-width='0.5' opacity='0.045'%3E%3Cpath d='M0 108 C60 104 90 118 140 110 C190 102 220 116 260 110'/%3E%3Cpath d='M64 0 C70 40 58 70 66 104'/%3E%3C/g%3E%3C/svg%3E");
+
+  /* Uneven weathering, so two panels on one screen are not the same rock. */
+  --tex-b-mottle:
+    radial-gradient(120px 90px at 14% 12%, rgba(0, 0, 0, 0.05), transparent 72%),
+    radial-gradient(170px 130px at 86% 82%, rgba(0, 0, 0, 0.04), transparent 74%),
+    radial-gradient(150px 110px at 62% 24%, rgba(255, 255, 255, 0.05), transparent 70%);
+  --tex-w-mottle:
+    radial-gradient(120px 90px at 14% 12%, rgba(255, 255, 255, 0.035), transparent 72%),
+    radial-gradient(170px 130px at 86% 82%, rgba(0, 0, 0, 0.18), transparent 74%),
+    radial-gradient(150px 110px at 62% 24%, rgba(255, 255, 255, 0.028), transparent 70%);
+
+  /* Fired clay: finer and warmer than stone, and never glossy. */
+  --tex-clay:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23c)' opacity='0.13'/%3E%3C/svg%3E"),
+    radial-gradient(120% 140% at 30% 0%, rgba(255, 255, 255, 0.14), transparent 62%);
+
+  /* ---- night stone (default scheme) ---------------------------------- */
+
+  --stone-bg: #191510;
+  --stone-panel: #241e16;
+  --stone-panel-2: #2f2719;
+  --stone-card: #f1ead8;
+  --ink: #ede3d0;
+  --muted-ink: #a99a84;
+  --card-ink: #2b2620;
+  --card-muted-ink: #6a604f;
+  --sand-border: #453a2c;
+  --sand-border-soft: rgba(220, 198, 160, 0.14);
+
+  --terracotta: #b0522b;
+  --terracotta-dark: #8a3d1d;
+  /* The fill is too dark to read as text against night stone, so labels,
+     icons and active states take the kiln-bright variant instead. */
+  --terracotta-ink: #dd8b5d;
+  --lapis: #2f5d88;
+  --lapis-ink: #86b3e0;
+  --olive: #7d8a4d;
+  --olive-ink: #a9b877;
+  --bronze: #a8834a;
+  --clay-text: #fbf4e4;
+
+  --ok: #8fc9a0;
+  --bad: #ef948a;
+
+  --tex-grain: var(--tex-w-grain);
+  --tex-grain-soft: var(--tex-w-grain-soft);
+  --tex-scratch: var(--tex-w-scratch);
+  --tex-mottle: var(--tex-w-mottle);
+
+  --shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 3px 10px rgba(0, 0, 0, 0.38);
+  --scrim: rgba(14, 10, 6, 0.68);
+  --card-stack: #d9cfb8;
+  --card-stack-line: rgba(0, 0, 0, 0.2);
+
+  /* ---- aliases kept from the pre-stone palette ------------------------
+     Every rule already written against these now draws from the quarry. */
+  --bg: var(--stone-bg);
+  --surface: var(--stone-panel);
+  --surface-2: var(--stone-panel-2);
+  --card: var(--stone-card);
+  --ink-dim: var(--muted-ink);
+  --line: var(--sand-border);
+  --he: var(--lapis-ink);
+  --ar: var(--terracotta-ink);
+  --focus: var(--bronze);
+
+  /* Cut stone, not lozenges: small radii, and a couple of surfaces given a
+     deliberately uneven corner so the eye reads a chiselled edge. */
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-btn: 8px;
+  --radius-cut: 11px 9px 12px 8px;
   --tap: 48px;
   /* One column width for the whole app. This is a phone-shaped study tool, so
      on a desktop it stays a narrow centred column rather than stretching a
@@ -35,48 +119,80 @@
   --motion: 1;
 
   --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Editorial rather than antique: a museum label, not a rune. Used for the
+     wordmark, headings and figures — never for the learning content. */
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia,
+    'Times New Roman', serif;
   --script: 'Segoe UI', 'Noto Sans Hebrew', 'Noto Sans Arabic', 'Arial Unicode MS', system-ui, sans-serif;
 
   color-scheme: dark;
 }
 
+/* ---- daylight limestone ------------------------------------------------ */
+
 :root[data-theme='light'] {
-  --bg: #f2f0ec;
-  --surface: #ffffff;
-  --surface-2: #f6f4f0;
-  --card: #ffffff;
-  --card-ink: #14181f;
-  --ink: #14181f;
-  --ink-dim: #5d6675;
-  --line: #ddd8d0;
-  --shadow: 0 14px 34px rgba(30, 26, 20, 0.16);
-  --scrim: rgba(38, 32, 24, 0.42);
-  --card-stack: #ffffff;
-  --card-stack-line: #e2ddd5;
+  --stone-bg: #d3c8b3;
+  --stone-panel: #e7e0ce;
+  --stone-panel-2: #ddd4bf;
+  --stone-card: #f5f0e2;
+  --ink: #2a2620;
+  --muted-ink: #5e5548;
+  --card-ink: #2a2620;
+  --card-muted-ink: #675d4e;
+  --sand-border: #b3a58b;
+  --sand-border-soft: rgba(90, 72, 44, 0.16);
+
+  --terracotta: #a94a26;
+  --terracotta-dark: #86381b;
+  --terracotta-ink: #93401f;
+  --lapis: #2c5a86;
+  --lapis-ink: #2c5a86;
+  --olive: #6d7343;
+  --olive-ink: #545a2f;
+  --bronze: #7d5f2c;
+  --clay-text: #fbf4e4;
+
+  --ok: #3d6b4a;
+  --bad: #a8322a;
+
+  --tex-grain: var(--tex-b-grain);
+  --tex-grain-soft: var(--tex-b-grain-soft);
+  --tex-scratch: var(--tex-b-scratch);
+  --tex-mottle: var(--tex-b-mottle);
+
+  --shadow: 0 8px 20px rgba(58, 44, 24, 0.18);
+  --shadow-sm: 0 2px 6px rgba(58, 44, 24, 0.14);
+  --scrim: rgba(46, 36, 22, 0.5);
+  --card-stack: #e2d9c4;
+  --card-stack-line: #b3a58b;
   color-scheme: light;
 }
 
 /* Scoped away from the light scheme, which has its own high-contrast block
-   below: an unqualified white --ink here would win on any property the light
+   below: an unqualified pale --ink here would win on any property the light
    block does not happen to restate. */
 :root:not([data-theme='light'])[data-contrast='high'] {
-  --ink: #ffffff;
-  --ink-dim: #d6dbe4;
-  --line: #6b7688;
-  --he: #7fb0ff;
-  --ar: #ffc46b;
-  --ok: #5df0a6;
-  --bad: #ff9494;
+  --ink: #fff8ea;
+  --muted-ink: #ded2bd;
+  --sand-border: #8d7c62;
+  --card-muted-ink: #4a4235;
+  --lapis-ink: #a8ceef;
+  --terracotta-ink: #f0a97c;
+  --ok: #a9e0b8;
+  --bad: #ffb0a6;
+  --focus: #f0c98a;
 }
 
 :root[data-theme='light'][data-contrast='high'] {
-  --ink: #000000;
-  --ink-dim: #2b3240;
-  --line: #6b7688;
-  --he: #0a48c8;
-  --ar: #8a4a00;
-  --ok: #036b3c;
-  --bad: #b30015;
+  --ink: #17130d;
+  --muted-ink: #332c22;
+  --sand-border: #6d604a;
+  --card-muted-ink: #3a3327;
+  --lapis-ink: #123f68;
+  --terracotta-ink: #7a2c10;
+  --ok: #1f4d2e;
+  --bad: #86190f;
+  --focus: #4a3612;
 }
 
 :root[data-motion='reduced'] {
@@ -153,11 +269,13 @@ input, select, textarea {
   color: inherit;
 }
 
-/* Focus must stay obvious for keyboard users on desktop. */
+/* Focus must stay obvious for keyboard users on desktop. Bronze reads against
+   every one of the three stone levels and against fired clay, which a single
+   blue ring does not: on the terracotta button it would all but disappear. */
 :focus-visible {
-  outline: 3px solid var(--he);
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .visually-hidden {
@@ -956,12 +1074,13 @@ a.btn-primary:visited {
   min-height: 2.1rem;
 }
 
-/* The audio buttons sit inside the card, where the 48px tap target would
-   otherwise inflate every label row past what the card can afford. They stay
-   comfortably tappable at 38px because nothing crowds them horizontally. */
+/* The audio buttons sit inside the card, where the full 48px tap target would
+   inflate every label row past what the card can afford. 44px is the floor —
+   the smallest target still comfortable under a thumb — and the card absorbs
+   it because nothing crowds these buttons horizontally. */
 .screen.study .card .lang-label .btn {
-  min-height: 38px;
-  min-width: 38px;
+  min-height: 44px;
+  min-width: 44px;
   padding: 0;
 }
 
@@ -1494,4 +1613,649 @@ a.btn-primary:visited {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 4px 12px;
+}
+
+/* ==========================================================================
+ * Stone surfaces
+ * ==========================================================================
+ *
+ * Texture is applied as background layers, never as an overlay element. A
+ * pseudo-element sitting on top of a surface would have to be punched back
+ * out from under every glyph on it; a background cannot reach the text in
+ * the first place, so contrast is guaranteed by construction rather than by
+ * tuning. It also means no surface needs its own stacking context, and
+ * nothing here can overlap a label.
+ *
+ * Three intensities, matching the three stone levels:
+ *
+ *   --tex-ground   the app background — strongest
+ *   --tex-panel    dashboard sections and list rows — medium
+ *   --tex-card     study cards — lightest, and always ink-on-ivory
+ */
+
+:root {
+  --tex-ground: var(--tex-scratch), var(--tex-grain), var(--tex-mottle);
+  --tex-panel: var(--tex-scratch), var(--tex-grain-soft), var(--tex-mottle);
+  --tex-card: var(--tex-b-scratch), var(--tex-b-grain-soft), var(--tex-b-mottle);
+}
+
+body {
+  background-color: var(--stone-bg);
+  background-image: var(--tex-ground);
+  /* Fixed, so scrolling a long screen does not drag the quarry face with it —
+     the content moves over the stone rather than the stone moving too. */
+  background-attachment: fixed;
+}
+
+/*
+ * Every panel-level surface at once. Grouping them is the point: the texture
+ * recipe exists in exactly one place, and a new surface joins the system by
+ * adding its selector here rather than by copying a stack of gradients.
+ */
+.panel,
+.tile,
+.list-item,
+.mode-choice,
+.letter-tile,
+.feedback-sheet,
+.correction,
+.form-cell,
+.stone-panel {
+  background-color: var(--stone-panel);
+  background-image: var(--tex-panel);
+  border: 1px solid var(--sand-border);
+  border-radius: var(--radius);
+  /* A hairline of light along the top edge and a soft inner line all round:
+     the read of a block that has been cut, not printed. */
+  box-shadow:
+    inset 0 1px 0 var(--sand-border-soft),
+    var(--shadow-sm);
+}
+
+/* The deeper surfaces — inputs, wells, the second stone level — sit a shade
+   below the panel rather than above it, so a field reads as carved in. */
+.input,
+select.input,
+textarea.input,
+.correction,
+.form-cell {
+  background-color: var(--stone-panel-2);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.14);
+  border-radius: var(--radius-sm);
+}
+
+.panel {
+  padding: 14px;
+  gap: 12px;
+}
+
+/* A locked deck is weathered rather than dashed: the same rock, further gone.
+   It still has to be legible — a learner reads a locked deck to find out what
+   they have to master first. */
+.panel.locked {
+  background-color: var(--stone-panel-2);
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--sand-border) 70%, transparent);
+  color: var(--muted-ink);
+  box-shadow: inset 0 1px 0 var(--sand-border-soft);
+}
+
+/* ---- typography -------------------------------------------------------- */
+
+/*
+ * The serif is for the app talking about itself — headings, figures, the
+ * wordmark. It is deliberately kept off everything a learner has to read to
+ * study: the English on a card, both scripts, and every transliteration stay
+ * on the plain stack at full size.
+ */
+h1,
+h2,
+h3,
+.headline,
+.tile .value,
+.section-title {
+  font-family: var(--serif);
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+.screen-head h1 {
+  font-size: 1.55rem;
+  font-weight: 600;
+}
+
+/* Small caps spaced like a museum label. */
+.eyebrow {
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  font-size: 0.68rem;
+}
+
+/* ---- study card: a cut limestone tablet -------------------------------- */
+
+.card {
+  background-color: var(--stone-card);
+  background-image: var(--tex-card);
+  color: var(--card-ink);
+  border-radius: var(--radius-cut);
+  /* Thin sandstone edge, a bronze inner rule a hair inside it, and restrained
+     depth — a slab resting on the ground, not a card floating over it. */
+  border: 1px solid rgba(120, 96, 58, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 252, 244, 0.5),
+    inset 0 0 0 4px rgba(120, 96, 58, 0.11),
+    var(--shadow);
+  padding: 20px 16px;
+}
+
+.card .muted,
+.card .small.muted,
+.card .translit {
+  color: var(--card-muted-ink);
+}
+
+.card-stack-edge,
+.card-shadow {
+  border-radius: var(--radius-cut);
+  background: var(--card-stack);
+  border-color: var(--card-stack-line);
+}
+
+.answer-block {
+  border-top: 1px solid rgba(120, 96, 58, 0.28);
+}
+
+.lang-label.hebrew-label { color: var(--lapis); }
+.lang-label.arabic-label { color: var(--terracotta-dark); }
+
+.answer-input {
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(120, 96, 58, 0.45);
+  background: rgba(255, 253, 246, 0.7);
+  box-shadow: inset 0 1px 2px rgba(90, 72, 44, 0.16);
+}
+
+.answer-input:focus {
+  border-color: var(--lapis);
+  box-shadow: inset 0 1px 2px rgba(90, 72, 44, 0.16), 0 0 0 2px rgba(44, 90, 134, 0.3);
+}
+
+.answer-input.arabic-input:focus {
+  border-color: var(--terracotta);
+  box-shadow: inset 0 1px 2px rgba(90, 72, 44, 0.16), 0 0 0 2px rgba(169, 74, 38, 0.3);
+}
+
+.card-audio .btn,
+.card .btn {
+  background-color: rgba(255, 253, 246, 0.72);
+  background-image: none;
+  border-color: rgba(120, 96, 58, 0.4);
+  color: var(--card-ink);
+}
+
+.swipe-hint {
+  border-radius: var(--radius-sm);
+  background: rgba(255, 252, 244, 0.85);
+}
+
+/* ---- buttons: fired clay and ivory stone ------------------------------- */
+
+.btn {
+  border-radius: var(--radius-btn);
+  background-color: var(--stone-panel);
+  background-image: var(--tex-panel);
+  border: 1px solid var(--sand-border);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 1px 0 var(--sand-border-soft);
+}
+
+.btn:active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/*
+ * The one loud surface in the app. Terracotta carries the primary action on
+ * every screen — Choose a deck, Study this deck, Start Normal practice — and
+ * nothing else in the system is allowed to use it as a fill.
+ */
+.btn-primary,
+a.btn-primary,
+a.btn-primary:visited {
+  background-color: var(--terracotta);
+  background-image: var(--tex-clay);
+  color: var(--clay-text);
+  /* An engraved line around the rim rather than a stroke sitting on it. */
+  border: 1px solid var(--terracotta-dark);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 2px rgba(255, 240, 220, 0.1),
+    var(--shadow-sm);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.btn-primary:active,
+a.btn-primary:active {
+  background-color: var(--terracotta-dark);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.32);
+}
+
+.btn-primary:disabled {
+  background-image: none;
+}
+
+.btn-ghost {
+  background-color: transparent;
+  background-image: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.btn-danger {
+  background-color: transparent;
+  background-image: none;
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 55%, transparent);
+  box-shadow: none;
+}
+
+.btn.selected {
+  border-color: var(--terracotta);
+  color: var(--terracotta-ink);
+  background-color: color-mix(in srgb, var(--terracotta) 12%, var(--stone-panel));
+}
+
+/* ---- chips, tracks and tallies ----------------------------------------- */
+
+.chip {
+  border-radius: 4px;
+  background-color: var(--stone-panel-2);
+  border-color: var(--sand-border);
+  letter-spacing: 0.04em;
+}
+
+/*
+ * The Hebrew / Arabic comparison. The track is a groove cut into the panel and
+ * the fill is the inlay sitting in it — muted lapis for Hebrew, terracotta for
+ * Arabic, which is the pairing used everywhere else in the app.
+ */
+.bar {
+  height: 10px;
+  border-radius: 3px;
+  background: var(--stone-panel-2);
+  border: 1px solid var(--sand-border);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+.bar > span {
+  border-radius: 2px;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.bar.he > span { background: var(--lapis); }
+.bar.ar > span { background: var(--terracotta); }
+
+:root[data-theme='light'] .bar.he > span { background: var(--lapis); }
+:root[data-theme='light'] .bar.ar > span { background: var(--terracotta); }
+
+.runs .seg {
+  border-radius: 2px;
+  background: var(--stone-panel-2);
+  border-color: var(--sand-border);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.runs .seg.filled {
+  background: var(--olive);
+  border-color: var(--olive);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* ---- carved navigation strip ------------------------------------------- */
+
+.tabbar {
+  background-color: color-mix(in srgb, var(--stone-panel) 94%, transparent);
+  background-image: var(--tex-panel);
+  border-top: 1px solid var(--sand-border);
+  border-radius: 0;
+  padding-top: 4px;
+  gap: 2px;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.16);
+}
+
+.tabbar a {
+  border-radius: var(--radius-sm);
+  color: var(--muted-ink);
+  letter-spacing: 0.03em;
+  gap: 3px;
+  padding: 4px 2px;
+}
+
+/* Terracotta marks the section you are in — the same clay as the primary
+   button, so "where I am" and "what to press" read as one material. The
+   underline is a second, non-colour cue for the same state. */
+.tabbar a[aria-current='page'] {
+  color: var(--terracotta-ink);
+  background: color-mix(in srgb, var(--terracotta) 13%, transparent);
+  box-shadow: inset 0 -2px 0 var(--terracotta);
+}
+
+@media (min-width: 461px) {
+  .tabbar {
+    border-inline: 1px solid var(--sand-border);
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+}
+
+/* ---- engraved icons ---------------------------------------------------- */
+
+/*
+ * One icon system, drawn as line work at a single weight so a temple, a scroll
+ * and a pottery shard read as entries in the same catalogue. They inherit
+ * colour from their control, which is what keeps the active tab, a list row
+ * and a card button consistent without a per-icon rule.
+ */
+.ico {
+  width: 1.35em;
+  height: 1.35em;
+  display: block;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* The strokes are hairlines at tab-bar size; leaving them unscaled keeps
+     them from thinning to nothing on a high-density phone screen. */
+  vector-effect: non-scaling-stroke;
+}
+
+.tabbar .tab-icon {
+  font-size: 1rem;
+  display: flex;
+}
+
+.tabbar .ico {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+.list-item .icon,
+.mode-choice-icon {
+  color: var(--terracotta-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list-item .icon .ico {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.mode-choice-icon .ico {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
+/* ---- ornament ---------------------------------------------------------- */
+
+/*
+ * Section dividers and corner marks, taken from pottery banding rather than
+ * from anything architectural. They are decoration only: every one is
+ * aria-hidden, none carries information, and none of them sits where text
+ * could run into it.
+ */
+.engraved-divider {
+  display: block;
+  width: 100%;
+  height: 12px;
+  color: var(--sand-border);
+  opacity: 0.9;
+  flex: none;
+}
+
+.engraved-divider.on-card {
+  color: rgba(120, 96, 58, 0.55);
+}
+
+.engraved-divider.tight {
+  height: 9px;
+}
+
+.levant-motif {
+  display: block;
+  color: var(--bronze);
+  opacity: 0.55;
+  flex: none;
+}
+
+.empty .levant-motif {
+  width: 76px;
+  height: 76px;
+  opacity: 0.45;
+  margin-bottom: 2px;
+}
+
+.empty {
+  background-color: color-mix(in srgb, var(--stone-panel) 60%, transparent);
+  background-image: var(--tex-panel);
+  border: 1px solid var(--sand-border);
+  border-radius: var(--radius);
+  padding: 26px 16px;
+}
+
+/* ---- brand ------------------------------------------------------------- */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  color: var(--terracotta-ink);
+}
+
+.brand-text {
+  min-width: 0;
+}
+
+.brand-name {
+  font-family: var(--serif);
+  font-size: 1.9rem;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: 0.005em;
+  margin: 0;
+}
+
+/*
+ * The two languages under the name. Each script is isolated into its own
+ * inline box so the bidi algorithm cannot reorder them around the separator,
+ * and both keep their native face at a size that leaves niqqud and harakat
+ * room to sit above and below the line.
+ */
+.brand-langs {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 3px;
+  font-size: 0.95rem;
+  color: var(--muted-ink);
+  line-height: 1.5;
+}
+
+.brand-langs .brand-he {
+  font-family: var(--script-he);
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
+.brand-langs .brand-ar {
+  font-family: var(--script-ar);
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
+.brand-langs .sep {
+  color: var(--sand-border);
+}
+
+/* ---- dashboard statistic panels ---------------------------------------- */
+
+.tile {
+  padding: 14px;
+  gap: 3px;
+}
+
+.tile .value {
+  font-size: 2.1rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+/* A hairline rule under the label, like the ruled line on a catalogue card. */
+.tile .eyebrow {
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--sand-border);
+}
+
+/* ---- memorise: the tablet --------------------------------------------- */
+
+.memorise-card {
+  /* Fractionally paler and fractionally flatter than a test card: this is the
+     face the learner reads for minutes at a time. */
+  background-color: color-mix(in srgb, var(--stone-card) 88%, #ffffff);
+}
+
+.memorise-eyebrow {
+  text-align: center;
+  color: var(--card-muted-ink);
+  letter-spacing: 0.22em;
+}
+
+.memorise-card .card-prompt .word {
+  font-family: var(--serif);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.memorise-card .lang-label {
+  color: var(--card-muted-ink);
+}
+
+.memorise-card .lang-label.hebrew-label { color: var(--lapis); }
+.memorise-card .lang-label.arabic-label { color: var(--terracotta-dark); }
+
+.memorise-hint {
+  color: var(--card-muted-ink);
+  letter-spacing: 0.02em;
+}
+
+/* ---- feedback and dialog surfaces -------------------------------------- */
+
+.feedback-sheet {
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: none;
+}
+
+/* ---- dashboard header and rows ----------------------------------------- */
+
+/* The wordmark is two lines tall, so the theme control aligns to its top
+   rather than floating in the middle of the brand. */
+.brand-head {
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+.greeting {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  margin: 2px 0 0;
+}
+
+/* Row affordances are quiet marks, not arrows shouting at the label. */
+.chevron {
+  color: var(--muted-ink);
+  width: 1.05rem;
+  height: 1.05rem;
+  opacity: 0.75;
+}
+
+.mode-choice-go .ico {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/*
+ * Memorise is the first rung of the ladder, so it is the one option that reads
+ * as the recommended move — and it says so in clay, the same material as every
+ * other primary action.
+ */
+.mode-choice.lead {
+  border-color: var(--terracotta);
+  background-color: color-mix(in srgb, var(--terracotta) 9%, var(--stone-panel));
+}
+
+.mode-choice.lead .mode-choice-icon {
+  color: var(--terracotta-ink);
+}
+
+.list-item .chip .ico,
+.chip .ico {
+  width: 0.95em;
+  height: 0.95em;
+}
+
+/* ---- reduced motion ---------------------------------------------------- */
+
+/*
+ * Nothing in the stone system animates on its own, but the card lift and the
+ * button press both scale, and both are already bound to --motion. This keeps
+ * the texture from being animated by anything added later.
+ */
+@media (prefers-reduced-motion: reduce) {
+  body {
+    background-attachment: scroll;
+  }
+}
+
+/* ---- narrow phones ----------------------------------------------------- */
+
+/*
+ * At 320px the ornament is the first thing to go: the wordmark keeps its
+ * languages, the mark shrinks, and every tap target holds its 44px.
+ */
+@media (max-width: 359px) {
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .brand-name {
+    font-size: 1.6rem;
+  }
+
+  .brand-langs {
+    font-size: 0.86rem;
+    gap: 6px;
+  }
+
+  .tabbar a {
+    font-size: 0.6rem;
+  }
+
+  .tabbar .ico {
+    width: 1.35em;
+    height: 1.35em;
+  }
 }

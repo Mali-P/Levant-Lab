@@ -162,12 +162,12 @@ describe('refreshing starter cards over an existing install', () => {
   it('starts from a fifty-card install missing most of the official set', () => {
     expect(before.cards).toBe(54); // 50 old + 4 custom
     expect(before.official).toBe(40); // 5 categories × 8 official words
-    expect(OFFICIAL_CARD_COUNT).toBe(335);
+    expect(OFFICIAL_CARD_COUNT).toBe(355);
   });
 
   it('ends with the full official set present', async () => {
     const coverage = await starterCoverage();
-    expect(coverage.present).toBe(335);
+    expect(coverage.present).toBe(355);
     expect(coverage.missing).toBe(0);
     expect(coverage.emptyCategories).toEqual([]);
   });
@@ -223,7 +223,12 @@ describe('refreshing starter cards over an existing install', () => {
 
   it('keeps old removed seed words without counting them as official', async () => {
     const cards = await db.cards.toArray();
-    const leftovers = cards.filter((c) => RETIRED.includes(c.english));
+    // Scoped to the old decks: a word the first starter set dropped, such as
+    // "apple", may since have been taught again in a deck of its own, and that
+    // card is official rather than a leftover.
+    const leftovers = cards.filter(
+      (c) => RETIRED.includes(c.english) && c.deckId.startsWith('old_deck_'),
+    );
     expect(leftovers.length).toBe(10); // 5 categories × 2
 
     const retired = await retiredStarterCards();
@@ -232,8 +237,8 @@ describe('refreshing starter cards over an existing install', () => {
 
     // They sit in starter decks but are not part of the official count.
     const coverage = await starterCoverage();
-    expect(coverage.present).toBe(335);
-    expect(cards.length).toBe(335 + 10 + 4);
+    expect(coverage.present).toBe(355);
+    expect(cards.length).toBe(355 + 10 + 4);
   });
 
   it("does not list the learner's own deck as leftovers", async () => {

@@ -9,6 +9,7 @@ import type { Flashcard } from '../../types';
 import type { PromptPlan } from '../../features/study/prompts';
 import { wordForms } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
+import Icon from '../ornament/Icon';
 
 export type StudyCardProps = {
   card: Flashcard;
@@ -101,7 +102,7 @@ export default function StudyCard(props: StudyCardProps) {
               className="btn"
               onClick={() => props.onSpeak(plan.audio!)}
             >
-              🔊 Play the {plan.audio} word
+              <Icon name="speaker" /> Play the {plan.audio} word
             </button>
           ) : (
             <>

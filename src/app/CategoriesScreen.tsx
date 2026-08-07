@@ -3,6 +3,8 @@ import type { Category } from '../types';
 import { useData } from '../stores/dataStore';
 import { gateDecks, type DeckGate } from '../features/review/unlock';
 import ScreenHeader from '../components/controls/ScreenHeader';
+import Icon from '../components/ornament/Icon';
+import { categoryIcon } from '../components/ornament/Ornament';
 
 export default function CategoriesScreen() {
   const categories = useData((s) => s.categories);
@@ -43,10 +45,16 @@ type RowProps = {
  */
 function CategoryRow({ category, gates, cardCount }: RowProps) {
   const mastered = gates.filter((g) => g.mastered).length;
+  const mark = categoryIcon(category.name);
 
   return (
     <Link className="list-item" to={'/category/' + category.id}>
-      <span className="icon" aria-hidden="true">{category.icon}</span>
+      {/* The engraved mark where the category is one of the starter set; a
+          category the learner made or renamed keeps whatever icon is stored
+          on the record. */}
+      <span className="icon" aria-hidden="true">
+        {mark ? <Icon name={mark} /> : category.icon}
+      </span>
       <span className="grow">
         <strong>{category.name}</strong>
         <div className="small muted">
@@ -54,7 +62,7 @@ function CategoryRow({ category, gates, cardCount }: RowProps) {
           {gates.length === 1 ? 'deck' : 'decks'} mastered
         </div>
       </span>
-      <span className="chevron" aria-hidden="true">›</span>
+      <Icon name="forward" className="chevron" />
     </Link>
   );
 }

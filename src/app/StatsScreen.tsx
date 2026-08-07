@@ -5,6 +5,14 @@ import { useSettings } from '../stores/settingsStore';
 import { db } from '../services/database/db';
 import { accuracy, statusFor, STATUS_LABELS } from '../features/review/mastery';
 import ScreenHeader from '../components/controls/ScreenHeader';
+import Icon from '../components/ornament/Icon';
+import { LevantMotif, categoryIcon } from '../components/ornament/Ornament';
+
+/** The engraved mark for a category, falling back to its stored icon. */
+function CategoryMark({ category }: { category: { name: string; icon: string } }) {
+  const mark = categoryIcon(category.name);
+  return mark ? <Icon name={mark} /> : <>{category.icon}</>;
+}
 
 export default function StatsScreen() {
   const settings = useSettings((s) => s.settings);
@@ -109,7 +117,9 @@ export default function StatsScreen() {
           <div className="list">
             {hardestCategories.map(({ category, wrong }) => (
               <div className="list-item" key={category.id}>
-                <span className="icon" aria-hidden="true">{category.icon}</span>
+                <span className="icon" aria-hidden="true">
+                  <CategoryMark category={category} />
+                </span>
                 <span className="grow"><strong>{category.name}</strong></span>
                 <span className="chip chip-bad">{wrong} wrong</span>
               </div>
@@ -143,7 +153,10 @@ export default function StatsScreen() {
       )}
 
       {rows.length === 0 && (
-        <div className="empty"><p>Study a deck and the numbers will appear here.</p></div>
+        <div className="empty">
+          <LevantMotif name="rosette" />
+          <p>Study a deck and the numbers will appear here.</p>
+        </div>
       )}
     </div>
   );
