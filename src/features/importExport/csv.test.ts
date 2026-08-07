@@ -92,10 +92,11 @@ describe('import preview', () => {
       masculine: { script: 'טוב', transliteration: 'tov' },
     });
     expect(row.arabicForms?.feminine.script).toBe('منيحة');
-    // The masculine form stands in as the plain word when no `hebrew` column
-    // is given, so the row is importable rather than failing as empty.
-    expect(row.hebrew).toBe('טוב');
-    expect(row.arabic).toBe('منيح');
+    // The feminine form stands in as the plain word when no `hebrew` column
+    // is given, so the row is importable rather than failing as empty, and the
+    // headline matches the feminine-first rule the rest of the app follows.
+    expect(row.hebrew).toBe('טובה');
+    expect(row.arabic).toBe('منيحة');
   });
 
   it('leaves a word with no gendered columns unsplit', () => {

@@ -49,7 +49,7 @@ export type GenderedForms = {
 };
 
 export type LanguageSide = {
-  /** The headline form. Mirrors `forms.masculine` when a gendered pair is set. */
+  /** The headline form. Mirrors `forms.feminine` when a gendered pair is set. */
   script: string;
   transliteration?: string;
   /** Sent to TTS instead of `script` when present. Lets niqqud / respelling drive audio. */

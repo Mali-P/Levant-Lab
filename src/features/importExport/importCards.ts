@@ -153,15 +153,21 @@ export function previewCsvImport(text: string): ImportPreview {
     const raw = table[r];
     const line = r + 1;
 
-    // A file may carry only the gendered columns. The masculine form then
-    // stands in as the plain word rather than the row failing as empty.
-    const hebrew = cell(raw, 'hebrew') || cell(raw, 'hebrew_masculine');
-    const arabic = cell(raw, 'arabic') || cell(raw, 'arabic_masculine');
+    // A file may carry only the gendered columns. The feminine form — the
+    // headline form everywhere in this app — then stands in as the plain word
+    // rather than the row failing as empty, with the masculine one behind it
+    // for a file that lists only that.
+    const hebrew =
+      cell(raw, 'hebrew') || cell(raw, 'hebrew_feminine') || cell(raw, 'hebrew_masculine');
+    const arabic =
+      cell(raw, 'arabic') || cell(raw, 'arabic_feminine') || cell(raw, 'arabic_masculine');
     const hebrewTransliteration =
       cell(raw, 'hebrew_transliteration') ||
+      cell(raw, 'hebrew_feminine_transliteration') ||
       cell(raw, 'hebrew_masculine_transliteration');
     const arabicTransliteration =
       cell(raw, 'arabic_transliteration') ||
+      cell(raw, 'arabic_feminine_transliteration') ||
       cell(raw, 'arabic_masculine_transliteration');
 
     const row: ImportRow = {

@@ -37,10 +37,11 @@ function side(word: Word): SeedSide {
   if (word.length === 2) return { script: word[0], transliteration: word[1] };
   const [fScript, fTranslit, mScript, mTranslit] = word;
   return {
-    // The masculine form stays the headline so anything that reads only
-    // `script` keeps showing a complete, correct word.
-    script: mScript,
-    transliteration: mTranslit,
+    // The feminine form is the headline: this app is written for a woman, so
+    // the word she says — or is spoken to with — is the one shown first, and
+    // anything that reads only `script` still gets a complete, correct word.
+    script: fScript,
+    transliteration: fTranslit,
     forms: {
       feminine: { script: fScript, transliteration: fTranslit },
       masculine: { script: mScript, transliteration: mTranslit },
@@ -72,7 +73,8 @@ type PairedWord = [string, string, string, string];
  *
  * Hebrew keeps its feminine/masculine pair inside a compound. Spoken
  * Palestinian Arabic uses one counting form — the same one the masculine column
- * of "One to ten" shows — so the Arabic side carries a single word.
+ * of "One to ten" shows — so the Arabic side carries a single word, and it is
+ * the one place the headline is not a feminine form.
  */
 const COMPOUND_UNITS: {
   english: string;
@@ -195,8 +197,8 @@ const NUMBER_DECKS: SeedDeck[] = [
  * Where a card carries a feminine/masculine pair, the gender is the person
  * being *spoken to*, not the speaker — a greeting changes its ending to match
  * whoever it is aimed at — except "good / fine", where the ending is the
- * speaker's own. The masculine form stays the headline, as everywhere else in
- * the starter set.
+ * speaker's own. The feminine form is the headline, as everywhere else in the
+ * starter set.
  *
  * Several pairs are written identically because the ـك ending goes unvowelled
  * in everyday writing, so only the transliteration tells كيفِك from كيفَك.
@@ -259,6 +261,7 @@ const GREETING_DECKS: SeedDeck[] = [
  * In the pronoun deck the pair is again the person spoken to, or the owner in
  * the case of "hers / his". Spoken Palestinian Arabic collapses the plurals to
  * one form each, so إنتو and هُمّ carry no pair while Hebrew still splits them.
+ * Where a pair exists the feminine form is the headline.
  */
 const TITLE_DECKS: SeedDeck[] = [
   {

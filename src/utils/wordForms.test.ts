@@ -82,13 +82,13 @@ describe('starter cards', () => {
     }
   });
 
-  it('keeps the headline word in step with the masculine form', () => {
+  it('keeps the headline word in step with the feminine form', () => {
     for (const card of cards) {
       for (const side of [card.hebrew, card.arabic]) {
         if (!side.forms) continue;
-        expect(side.script, card.english).toBe(side.forms.masculine.script);
+        expect(side.script, card.english).toBe(side.forms.feminine.script);
         expect(side.transliteration, card.english).toBe(
-          side.forms.masculine.transliteration,
+          side.forms.feminine.transliteration,
         );
       }
     }
