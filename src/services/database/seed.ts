@@ -15,7 +15,7 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 18;
+export const STARTER_CONTENT_VERSION = 19;
 
 /**
  * How many cards the official starter set contains: every taught deck is a ten,
