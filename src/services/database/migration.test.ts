@@ -162,12 +162,12 @@ describe('refreshing starter cards over an existing install', () => {
   it('starts from a fifty-card install missing most of the official set', () => {
     expect(before.cards).toBe(54); // 50 old + 4 custom
     expect(before.official).toBe(40); // 5 categories × 8 official words
-    expect(OFFICIAL_CARD_COUNT).toBe(555);
+    expect(OFFICIAL_CARD_COUNT).toBe(575);
   });
 
   it('ends with the full official set present', async () => {
     const coverage = await starterCoverage();
-    expect(coverage.present).toBe(555);
+    expect(coverage.present).toBe(575);
     expect(coverage.missing).toBe(0);
     expect(coverage.emptyCategories).toEqual([]);
   });
@@ -237,8 +237,8 @@ describe('refreshing starter cards over an existing install', () => {
 
     // They sit in starter decks but are not part of the official count.
     const coverage = await starterCoverage();
-    expect(coverage.present).toBe(555);
-    expect(cards.length).toBe(555 + 10 + 4);
+    expect(coverage.present).toBe(575);
+    expect(cards.length).toBe(575 + 10 + 4);
   });
 
   it("does not list the learner's own deck as leftovers", async () => {
