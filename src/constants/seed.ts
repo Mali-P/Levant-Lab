@@ -250,8 +250,53 @@ const GREETING_DECKS: SeedDeck[] = [
 ];
 
 /**
- * Starter content: eighteen categories, one ten-card deck each except the
- * greetings, which take three, and the numbers, which run to a hundred. Words come
+ * How people are addressed, and the words that stand in for their names.
+ *
+ * The titles come in feminine/masculine pairs where the language marks one, and
+ * the gender is the person being addressed. Arabic uses several of these — دكتور,
+ * مهندس, أستاذ — in front of a first name where English would reach for "Mr".
+ *
+ * In the pronoun deck the pair is again the person spoken to, or the owner in
+ * the case of "hers / his". Spoken Palestinian Arabic collapses the plurals to
+ * one form each, so إنتو and هُمّ carry no pair while Hebrew still splits them.
+ */
+const TITLE_DECKS: SeedDeck[] = [
+  {
+    name: 'Titles and forms of address',
+    cards: [
+      c('Mrs / Mr', ['גברת', 'gveret', 'מר', 'mar'], ['مدام', 'madām', 'سيّد', 'sayyed'], { ar: 'مدام is the everyday address for a married woman; السيّد is the formal written title.' }),
+      c('Miss', ['גברת', 'gveret'], ['آنسة', 'ānise'], { he: 'Modern Hebrew uses גברת whether or not a woman is married.' }),
+      c('doctor (as a title)', ['ד"ר', 'doktor'], ['دكتورة', 'doktōra', 'دكتور', 'doktōr'], { he: 'Written as an abbreviation and said "doktor" for anyone.' }),
+      c('professor', ['פרופסור', 'profesor'], ['بروفيسور', 'brōfēsōr'], { ar: 'أستاذ دكتور is the formal academic version.' }),
+      c('teacher / sir', ['מורה', 'mora', 'מורה', 'more'], ['أستاذة', 'ustāze', 'أستاذ', 'ustāz'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'أستاذ doubles as a polite "sir" for a man you address by name.' }),
+      c('engineer', ['מהנדסת', 'mehandeset', 'מהנדס', 'mehandes'], ['مهندسة', 'muhandise', 'مهندس', 'muhandis'], { ar: 'Used as a title in front of a name, much like "doctor".' }),
+      c('madam / sir (polite address)', ['גברתי', 'gvirti', 'אדוני', 'adoni'], ['حضرتك', 'ḥaḍirtik', 'حضرتك', 'ḥaḍirtak'], { ar: 'Literally "your presence"; the ending follows the person spoken to and goes unvowelled in everyday writing.' }),
+      c('queen / king', ['מלכה', 'malka', 'מלך', 'melekh'], ['ملكة', 'malake', 'ملك', 'malik']),
+      c('princess / prince', ['נסיכה', 'nesikha', 'נסיך', 'nasikh'], ['أميرة', 'amīre', 'أمير', 'amīr']),
+      c('president', ['נשיאה', 'nesi\'a', 'נשיא', 'nasi'], ['رئيسة', 'raʾīse', 'رئيس', 'raʾīs']),
+    ],
+  },
+  {
+    name: 'Personal pronouns',
+    cards: [
+      c('I', ['אני', 'ani'], ['أنا', 'ana'], { ar: 'One word, whoever is speaking.' }),
+      c('you (one person)', ['את', 'at', 'אתה', 'ata'], ['إنتِ', 'inti', 'إنت', 'inte']),
+      c('she', ['היא', 'hi'], ['هيّ', 'hiyye']),
+      c('he', ['הוא', 'hu'], ['هوّ', 'huwwe']),
+      c('we', ['אנחנו', 'anakhnu'], ['إحنا', 'iḥna']),
+      c('you (more than one)', ['אתן', 'aten', 'אתם', 'atem'], ['إنتو', 'intu'], { ar: 'Spoken Palestinian Arabic uses one plural for a group of any gender.' }),
+      c('they', ['הן', 'hen', 'הם', 'hem'], ['هُمّ', 'humme'], { ar: 'Again one form; Hebrew keeps a feminine and a masculine plural.' }),
+      c('my', ['שלי', 'sheli'], ['تبعي', 'tabaʿi'], { ar: 'Possession is usually a suffix — بيتي "my house" — and تبعي is the form that stands on its own.' }),
+      c('your', ['שלך', 'shelakh', 'שלך', 'shelkha'], ['تبعك', 'tabaʿik', 'تبعك', 'tabaʿak'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'Written the same either way; only the ending is said differently.' }),
+      c('hers / his', ['שלה', 'shela', 'שלו', 'shelo'], ['تبعها', 'tabaʿha', 'تبعه', 'tabaʿo'], { ar: 'Here the ending follows the owner, not the person spoken to.' }),
+    ],
+  },
+];
+
+/**
+ * Starter content: nineteen categories, one ten-card deck each except the
+ * greetings, which take three, the titles and pronouns, which take two, and the
+ * numbers, which run to a hundred. Words come
  * from the Palestinian Arabic and Hebrew starter table, which lists a feminine
  * and a masculine form for every entry; where the two are identical the card
  * carries a single form.
@@ -310,6 +355,11 @@ export const SEED_CATEGORIES: SeedCategory[] = [
         ],
       },
     ],
+  },
+  {
+    name: 'Titles and pronouns',
+    icon: '🎩',
+    decks: TITLE_DECKS,
   },
   {
     name: 'Body parts',

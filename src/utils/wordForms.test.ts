@@ -29,7 +29,7 @@ describe('starter cards', () => {
   );
 
   it('ships every category with full decks', () => {
-    expect(SEED_CATEGORIES).toHaveLength(18);
+    expect(SEED_CATEGORIES).toHaveLength(19);
     for (const category of SEED_CATEGORIES) {
       expect(category.decks.length, category.name).toBeGreaterThan(0);
       for (const deck of category.decks) {
