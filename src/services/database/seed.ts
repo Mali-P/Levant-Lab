@@ -15,12 +15,11 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 7;
+export const STARTER_CONTENT_VERSION = 8;
 
 /**
- * How many cards the official starter set contains: sixteen categories of ten,
- * the three greeting decks, the two title and pronoun decks, the ten number
- * decks that run from one to a hundred, and the five sentences the Custom
+ * How many cards the official starter set contains: every taught deck is a ten,
+ * so this is ten times the number of decks, plus the five sentences the Custom
  * category opens with. Sentences added there afterwards are the learner's own
  * and are counted nowhere here.
  */

@@ -249,6 +249,36 @@ const GREETING_DECKS: SeedDeck[] = [
       c('excuse me / sorry', ['סליחה', 'slikha'], ['لو سمحتي', 'law samaḥti', 'لو سمحت', 'law samaḥt'], { ar: 'Getting someone\'s attention; آسف is the apology.' }),
     ],
   },
+  {
+    name: 'Meeting someone new',
+    cards: [
+      c('what is your name?', ['איך קוראים לך', 'ekh kor\'im lakh', 'איך קוראים לך', 'ekh kor\'im lekha'], ['شو اسمك', 'shū ismik', 'شو اسمك', 'shū ismak'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'Written the same either way; only the ending is said differently.' }),
+      c('my name is...', ['קוראים לי', 'kor\'im li'], ['اسمي', 'ismi'], { he: 'Literally "they call me", which is how the introduction is normally made.' }),
+      c('nice to meet you', ['נעים מאוד', 'na\'im me\'od'], ['تشرّفنا', 'tsharrafna'], { ar: 'Literally "we are honoured"; one form whoever is speaking.' }),
+      c('where are you from?', ['מאיפה את', 'me\'eifo at', 'מאיפה אתה', 'me\'eifo ata'], ['من وين إنتِ', 'min wēn inti', 'من وين إنت', 'min wēn inte']),
+      c('I am from...', ['אני מ', 'ani mi'], ['أنا من', 'ana min']),
+      c('how old are you?', ['בת כמה את', 'bat kama at', 'בן כמה אתה', 'ben kama ata'], ['قدّيش عمرك', 'addēsh ʿumrik', 'قدّيش عمرك', 'addēsh ʿumrak'], { ar: 'Written the same either way; only the ending is said differently.' }),
+      c('do you speak Arabic?', ['את מדברת ערבית', 'at medaberet aravit', 'אתה מדבר ערבית', 'ata medaber aravit'], ['بتحكي عربي', 'btiḥki ʿarabi'], { ar: 'The Arabic verb ends the same way whoever is asked.' }),
+      c('I do not understand', ['אני לא מבינה', 'ani lo mevina', 'אני לא מבין', 'ani lo mevin'], ['أنا مش فاهمة', 'ana mish fāhme', 'أنا مش فاهم', 'ana mish fāhem'], { ar: 'Here the ending follows the speaker.' }),
+      c('can you repeat that?', ['תוכלי לחזור', 'tukhli lakhzor', 'תוכל לחזור', 'tukhal lakhzor'], ['ممكن تعيدي', 'mumkin tʿīdi', 'ممكن تعيد', 'mumkin tʿīd']),
+      c('speak slowly, please', ['דברי לאט בבקשה', 'dabri le\'at bevakasha', 'דבר לאט בבקשה', 'daber le\'at bevakasha'], ['احكي شوي شوي', 'iḥki shwayy shwayy'], { ar: 'Literally "speak little by little"; the verb ends the same way for anyone.' }),
+    ],
+  },
+  {
+    name: 'Wishes and blessings',
+    cards: [
+      c('congratulations', ['מזל טוב', 'mazal tov'], ['مبروك', 'mabrūk']),
+      c('God bless you (reply)', ['תבורכי', 'tevorkhi', 'תבורך', 'tevorakh'], ['الله يبارك فيكي', 'allah ybārik fīki', 'الله يبارك فيك', 'allah ybārik fīk'], { ar: 'The set answer to مبروك.' }),
+      c('good luck', ['בהצלחה', 'behatslakha'], ['بالتوفيق', 'bit-tawfīq']),
+      c('happy birthday', ['יום הולדת שמח', 'yom huledet sameakh'], ['عيد ميلاد سعيد', 'ʿīd mīlād saʿīd']),
+      c('happy holiday', ['חג שמח', 'khag sameakh'], ['عيد مبارك', 'ʿīd mubārak']),
+      c('get well soon', ['רפואה שלמה', 'refu\'a shlema'], ['سلامتك', 'salāmtik', 'سلامتك', 'salāmtak'], { ar: 'Literally "your wellbeing"; written the same either way.' }),
+      c('God willing', ['בעזרת השם', 'be\'ezrat hashem'], ['إن شاء الله', 'in shāʾ allah'], { ar: 'Said of anything still to come, whether or not the speaker is religious.' }),
+      c('may God protect you', ['אלוהים ישמור עלייך', 'elohim yishmor alayikh', 'אלוהים ישמור עליך', 'elohim yishmor alekha'], ['الله يحميكي', 'allah yiḥmīki', 'الله يحميك', 'allah yiḥmīk']),
+      c('welcome back (safe return)', ['ברוכה השבה', 'brukha hashava', 'ברוך השב', 'barukh hashav'], ['الحمد لله عالسلامة', 'el-ḥamdulillah ʿas-salāme'], { ar: 'Said to someone home from a journey; the Arabic does not change.' }),
+      c('enjoy your meal', ['בתיאבון', 'beteavon'], ['صحتين', 'ṣaḥtēn'], { ar: 'Literally "two healths"; said to anyone eating.' }),
+    ],
+  },
 ];
 
 /**
