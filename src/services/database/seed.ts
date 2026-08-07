@@ -15,7 +15,7 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 24;
+export const STARTER_CONTENT_VERSION = 26;
 
 /**
  * How many cards the official starter set contains: every taught deck is a ten,
@@ -338,6 +338,137 @@ async function officialIndex(): Promise<{
   return { officialCardIds, cardsByCategory };
 }
 
+/**
+ * Categories that have been split or renamed since a device was seeded, and
+ * which deck moves out of the old one.
+ *
+ * `installStarterCards` finds a category by its name, so without this a device
+ * holding "Titles and pronouns" would be given a fresh "Pronouns" and a fresh
+ * "Titles" beside it, each with new ids and no progress, and the learner would
+ * see the same words three times over. Repointing the rows the device already
+ * has keeps every card id, and therefore every streak.
+ */
+const RESHAPED_CATEGORIES: {
+  from: string;
+  /** Left off where the old category keeps its name and only loses a deck. */
+  into?: { name: string; icon: string };
+  movingDeck: { name: string; into: { name: string; icon: string } };
+}[] = [
+  {
+    from: 'Titles and pronouns',
+    into: { name: 'Pronouns', icon: '🫵' },
+    movingDeck: {
+      name: 'Titles and forms of address',
+      into: { name: 'Titles', icon: '🎩' },
+    },
+  },
+  {
+    // Adjectives keeps its name; the colours it used to hold become a category
+    // of their own, and the deck the learner has already studied moves across.
+    from: 'Adjectives',
+    movingDeck: { name: 'Colours', into: { name: 'Colours', icon: '🌈' } },
+  },
+];
+
+/**
+ * Applies those splits. Runs before the top-up and writes nothing on a device
+ * that has already been through it, or on one seeded after the change.
+ */
+export async function reshapeRenamedCategories(): Promise<number> {
+  const [categories, decks] = await Promise.all([
+    db.categories.toArray(),
+    db.decks.toArray(),
+  ]);
+  const byName = new Map(categories.map((c) => [c.name.toLowerCase(), c]));
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  const now = new Date().toISOString();
+
+  const changedCategories: Category[] = [];
+  const newCategories: Category[] = [];
+  const changedDecks: Deck[] = [];
+  const changedCards: Flashcard[] = [];
+
+  for (const rule of RESHAPED_CATEGORIES) {
+    const old = byName.get(rule.from.toLowerCase());
+    if (!old) continue;
+
+    // Only worth a write the first time: a rule that renames nothing, on a
+    // device whose deck has already moved, must leave the row alone so the
+    // launch after this one has nothing to do.
+    if (rule.into && (old.name !== rule.into.name || old.icon !== rule.into.icon)) {
+      changedCategories.push({
+        ...old,
+        name: rule.into.name,
+        icon: rule.into.icon,
+        updatedAt: now,
+      });
+    }
+
+    const moving = decks.find(
+      (d) =>
+        d.categoryId === old.id &&
+        d.name.toLowerCase() === rule.movingDeck.name.toLowerCase(),
+    );
+    if (!moving) continue;
+
+    let target = byName.get(rule.movingDeck.into.name.toLowerCase());
+    if (!target) {
+      target = {
+        id: uid('cat'),
+        name: rule.movingDeck.into.name,
+        icon: rule.movingDeck.into.icon,
+        // Half a step behind the category it was split from, so it lands
+        // immediately after it. The renumbering below settles it to a whole
+        // step before the top-up runs and starts counting from the total.
+        order: old.order + 0.5,
+        createdAt: now,
+        updatedAt: now,
+      };
+      newCategories.push(target);
+      byName.set(target.name.toLowerCase(), target);
+    }
+
+    changedDecks.push({ ...moving, categoryId: target.id, order: 0, updatedAt: now });
+
+    const cards = await db.cards.where('deckId').equals(moving.id).toArray();
+    for (const card of cards) {
+      changedCards.push({ ...card, categoryId: target.id, updatedAt: now });
+    }
+  }
+
+  if (!changedCategories.length && !newCategories.length) return 0;
+
+  // The half-step above has to be spent before the top-up runs: that pass
+  // numbers each category it adds from the count of those already present, so
+  // a fractional order — or any gap — would put a newly installed category
+  // between the two halves of the split. Renumbering the whole list from zero
+  // leaves the next free number exactly where the top-up will start.
+  const renamed = new Map(changedCategories.map((c) => [c.id, c]));
+  const ordered = [...categories.map((c) => renamed.get(c.id) ?? c), ...newCategories]
+    .sort(
+      (a, b) =>
+        a.order - b.order ||
+        a.createdAt.localeCompare(b.createdAt) ||
+        a.id.localeCompare(b.id),
+    )
+    .map((c, i) => (c.order === i ? c : { ...c, order: i, updatedAt: now }));
+
+  const newIds = new Set(newCategories.map((c) => c.id));
+  const toAdd = ordered.filter((c) => newIds.has(c.id));
+  const toPut = ordered.filter(
+    (c) => !newIds.has(c.id) && (renamed.has(c.id) || c.order !== byId.get(c.id)!.order),
+  );
+
+  await db.transaction('rw', [db.categories, db.decks, db.cards], async () => {
+    if (toAdd.length) await db.categories.bulkAdd(toAdd);
+    if (toPut.length) await db.categories.bulkPut(toPut);
+    if (changedDecks.length) await db.decks.bulkPut(changedDecks);
+    if (changedCards.length) await db.cards.bulkPut(changedCards);
+  });
+
+  return changedCategories.length + newCategories.length;
+}
+
 export type StartupReport = InstallReport & { ran: boolean; merged: MergeReport };
 
 /**
@@ -373,6 +504,11 @@ async function runStarterContent(): Promise<StartupReport> {
   const settings = await db.settings.get('settings');
   const seeded = (await db.categories.count()) > 0;
   const current = settings?.starterContentVersion === STARTER_CONTENT_VERSION;
+
+  // Before the top-up, not after: the install matches categories by name, and
+  // a device still holding a since-split one would otherwise be given the new
+  // categories as duplicates rather than having its own rows moved across.
+  if (seeded) await reshapeRenamedCategories();
 
   const install =
     seeded && current

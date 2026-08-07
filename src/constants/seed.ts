@@ -282,33 +282,19 @@ const GREETING_DECKS: SeedDeck[] = [
 ];
 
 /**
- * How people are addressed, and the words that stand in for their names.
+ * The words that stand in for a name, and the ways of saying a thing is yours.
  *
- * The titles come in feminine/masculine pairs where the language marks one, and
- * the gender is the person being addressed. Arabic uses several of these — دكتور,
- * مهندس, أستاذ — in front of a first name where English would reach for "Mr".
+ * The pair is the person spoken to, or the owner in the case of "hers / his".
+ * Spoken Palestinian Arabic collapses the plurals to one form each, so إنتو and
+ * هُمّ carry no pair while Hebrew still splits them. Where a pair exists the
+ * feminine form is the headline.
  *
- * In the pronoun deck the pair is again the person spoken to, or the owner in
- * the case of "hers / his". Spoken Palestinian Arabic collapses the plurals to
- * one form each, so إنتو and هُمّ carry no pair while Hebrew still splits them.
- * Where a pair exists the feminine form is the headline.
+ * These sit before the titles and apart from them. A learner needs "I", "you"
+ * and "my" in the first week and needs مهندس in front of a name much later, so
+ * the two are separate categories rather than one deck ladder — neither waits
+ * on the other to unlock.
  */
-const TITLE_DECKS: SeedDeck[] = [
-  {
-    name: 'Titles and forms of address',
-    cards: [
-      c('Mrs / Mr', ['גברת', 'gveret', 'מר', 'mar'], ['مدام', 'madām', 'سيّد', 'sayyed'], { ar: 'مدام is the everyday address for a married woman; السيّد is the formal written title.' }),
-      c('Miss', ['גברת', 'gveret'], ['آنسة', 'ānise'], { he: 'Modern Hebrew uses גברת whether or not a woman is married.' }),
-      c('doctor (as a title)', ['ד"ר', 'doktor'], ['دكتورة', 'doktōra', 'دكتور', 'doktōr'], { he: 'Written as an abbreviation and said "doktor" for anyone.' }),
-      c('professor', ['פרופסור', 'profesor'], ['بروفيسور', 'brōfēsōr'], { ar: 'أستاذ دكتور is the formal academic version.' }),
-      c('teacher / sir', ['מורה', 'mora', 'מורה', 'more'], ['أستاذة', 'ustāze', 'أستاذ', 'ustāz'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'أستاذ doubles as a polite "sir" for a man you address by name.' }),
-      c('engineer', ['מהנדסת', 'mehandeset', 'מהנדס', 'mehandes'], ['مهندسة', 'muhandise', 'مهندس', 'muhandis'], { ar: 'Used as a title in front of a name, much like "doctor".' }),
-      c('madam / sir (polite address)', ['גברתי', 'gvirti', 'אדוני', 'adoni'], ['حضرتك', 'ḥaḍirtik', 'حضرتك', 'ḥaḍirtak'], { ar: 'Literally "your presence"; the ending follows the person spoken to and goes unvowelled in everyday writing.' }),
-      c('queen / king', ['מלכה', 'malka', 'מלך', 'melekh'], ['ملكة', 'malake', 'ملك', 'malik']),
-      c('princess / prince', ['נסיכה', 'nesikha', 'נסיך', 'nasikh'], ['أميرة', 'amīre', 'أمير', 'amīr']),
-      c('president', ['נשיאה', 'nesi\'a', 'נשיא', 'nasi'], ['رئيسة', 'raʾīse', 'رئيس', 'raʾīs']),
-    ],
-  },
+const PRONOUN_DECKS: SeedDeck[] = [
   {
     name: 'Personal pronouns',
     cards: [
@@ -352,6 +338,202 @@ const TITLE_DECKS: SeedDeck[] = [
       c('why?', ['למה', 'lama'], ['ليش', 'lēsh']),
       c('how?', ['איך', 'ekh'], ['كيف', 'kīf']),
       c('how much?', ['כמה', 'kama'], ['قدّيش', 'addēsh']),
+    ],
+  },
+];
+
+/**
+ * How people are addressed once you know how to talk to them at all.
+ *
+ * The titles come in feminine/masculine pairs where the language marks one, and
+ * the gender is the person being addressed. Arabic uses several of these —
+ * دكتور, مهندس, أستاذ — in front of a first name where English would reach for
+ * "Mr". A category of its own, met after the pronouns.
+ */
+const TITLE_DECKS: SeedDeck[] = [
+  {
+    name: 'Titles and forms of address',
+    cards: [
+      c('Mrs / Mr', ['גברת', 'gveret', 'מר', 'mar'], ['مدام', 'madām', 'سيّد', 'sayyed'], { ar: 'مدام is the everyday address for a married woman; السيّد is the formal written title.' }),
+      c('Miss', ['גברת', 'gveret'], ['آنسة', 'ānise'], { he: 'Modern Hebrew uses גברת whether or not a woman is married.' }),
+      c('doctor (as a title)', ['ד"ר', 'doktor'], ['دكتورة', 'doktōra', 'دكتور', 'doktōr'], { he: 'Written as an abbreviation and said "doktor" for anyone.' }),
+      c('professor', ['פרופסור', 'profesor'], ['بروفيسور', 'brōfēsōr'], { ar: 'أستاذ دكتور is the formal academic version.' }),
+      c('teacher / sir', ['מורה', 'mora', 'מורה', 'more'], ['أستاذة', 'ustāze', 'أستاذ', 'ustāz'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'أستاذ doubles as a polite "sir" for a man you address by name.' }),
+      c('engineer', ['מהנדסת', 'mehandeset', 'מהנדס', 'mehandes'], ['مهندسة', 'muhandise', 'مهندس', 'muhandis'], { ar: 'Used as a title in front of a name, much like "doctor".' }),
+      c('madam / sir (polite address)', ['גברתי', 'gvirti', 'אדוני', 'adoni'], ['حضرتك', 'ḥaḍirtik', 'حضرتك', 'ḥaḍirtak'], { ar: 'Literally "your presence"; the ending follows the person spoken to and goes unvowelled in everyday writing.' }),
+      c('queen / king', ['מלכה', 'malka', 'מלך', 'melekh'], ['ملكة', 'malake', 'ملك', 'malik']),
+      c('princess / prince', ['נסיכה', 'nesikha', 'נסיך', 'nasikh'], ['أميرة', 'amīre', 'أمير', 'amīr']),
+      c('president', ['נשיאה', 'nesi\'a', 'נשיא', 'nasi'], ['رئيسة', 'raʾīse', 'رئيس', 'raʾīs']),
+    ],
+  },
+];
+
+/**
+ * Animals, met in the order a learner actually needs them: the ones in the
+ * house first, then the ones down the road, then the ones in a picture book.
+ *
+ * These are nouns rather than words said about a speaker, so none of them
+ * carries a feminine/masculine pair — an Arabic noun has its own fixed gender,
+ * which is a property of the word and not of whoever says it.
+ */
+const ANIMAL_DECKS: SeedDeck[] = [
+  {
+    name: 'Pets',
+    cards: [
+      c('dog', ['כלב', 'kelev'], ['كلب', 'kalb']),
+      c('cat', ['חתול', 'khatul'], ['قطّة', 'quṭṭa'], { ar: 'بسّة (bisse) is just as common in Palestinian homes.' }),
+      c('puppy', ['גור כלבים', 'gur klavim'], ['جرو', 'jarw']),
+      c('kitten', ['חתלתול', 'khataltul'], ['قطّة صغيرة', 'quṭṭa zghīre'], { ar: 'Literally "small cat"; spoken Arabic rarely uses a separate word.' }),
+      c('bird', ['ציפור', 'tsipor'], ['عصفور', 'ʿaṣfūr']),
+      c('fish', ['דג', 'dag'], ['سمكة', 'samake'], { ar: 'One fish; سمك is fish in general.' }),
+      c('rabbit', ['ארנב', 'arnav'], ['أرنب', 'arnab']),
+      c('turtle', ['צב', 'tsav'], ['سلحفاة', 'sulaḥfa']),
+      c('parrot', ['תוכי', 'tuki'], ['ببغا', 'babaghā'], { ar: 'The spoken form; ببغاء is the written one.' }),
+      c('hamster', ['אוגר', 'oger'], ['هامستر', 'hāmster'], { ar: 'A borrowed word, said as it is in English.' }),
+    ],
+  },
+  {
+    name: 'Farm animals',
+    cards: [
+      c('cow', ['פרה', 'para'], ['بقرة', 'baqara']),
+      c('sheep', ['כבש', 'keves'], ['خروف', 'kharūf']),
+      c('goat', ['עז', 'ez'], ['عنزة', 'ʿanze']),
+      c('hen', ['תרנגולת', 'tarnegolet'], ['دجاجة', 'djāje'], { ar: 'The live bird; جاج on a menu is chicken to eat.' }),
+      c('rooster', ['תרנגול', 'tarnegol'], ['ديك', 'dīk']),
+      c('donkey', ['חמור', 'khamor'], ['حمار', 'ḥmār']),
+      c('horse', ['סוס', 'sus'], ['حصان', 'ḥṣān']),
+      c('duck', ['ברווז', 'barvaz'], ['بطّة', 'baṭṭa']),
+      c('camel', ['גמל', 'gamal'], ['جمل', 'jamal']),
+      c('pigeon', ['יונה', 'yona'], ['حمامة', 'ḥamāme'], { he: 'The same word covers a dove.' }),
+    ],
+  },
+  {
+    name: 'Wild animals',
+    cards: [
+      c('lion', ['אריה', 'arye'], ['أسد', 'asad']),
+      c('wolf', ['זאב', 'ze\'ev'], ['ذيب', 'dīb'], { ar: 'Said dīb in Palestinian Arabic; ذئب is the written spelling.' }),
+      c('fox', ['שועל', 'shu\'al'], ['ثعلب', 'taʿlab'], { ar: 'The ث is said as a t in most Palestinian speech.' }),
+      c('bear', ['דוב', 'dov'], ['دبّ', 'dubb']),
+      c('snake', ['נחש', 'nakhash'], ['حيّة', 'ḥayye'], { ar: 'The everyday word; ثعبان is the more formal one.' }),
+      c('monkey', ['קוף', 'kof'], ['قرد', 'qird']),
+      c('elephant', ['פיל', 'pil'], ['فيل', 'fīl']),
+      c('gazelle', ['צבי', 'tsvi'], ['غزال', 'ghazāl']),
+      c('giraffe', ['ג\'ירפה', 'jirafa'], ['زرافة', 'zarāfe']),
+      c('mouse', ['עכבר', 'akhbar'], ['فار', 'fār']),
+    ],
+  },
+];
+
+/**
+ * Colour, from the ten a learner needs first to the shades heard in a shop.
+ *
+ * The pair on a colour is the thing described, never the speaker: a red car is
+ * حمرا because سيّارة is a feminine word. The first deck was taught inside
+ * "Adjectives" until this category existed, and it keeps that name so a device
+ * already holding it moves the deck across rather than meeting it twice.
+ */
+const COLOUR_DECKS: SeedDeck[] = [
+  {
+    name: 'Colours',
+    cards: [
+      c('white', ['לבנה', 'levana', 'לבן', 'lavan'], ['بيضا', 'bēḍa', 'أبيض', 'abyaḍ'], { ar: 'The gender throughout this deck is the thing described, not a person.' }),
+      c('black', ['שחורה', 'shkhora', 'שחור', 'shakhor'], ['سودا', 'sōda', 'أسود', 'aswad']),
+      c('red', ['אדומה', 'aduma', 'אדום', 'adom'], ['حمرا', 'ḥamra', 'أحمر', 'aḥmar']),
+      c('blue', ['כחולה', 'kkhula', 'כחול', 'kakhol'], ['زرقا', 'zarqa', 'أزرق', 'azraq']),
+      c('green', ['ירוקה', 'yeruka', 'ירוק', 'yarok'], ['خضرا', 'khaḍra', 'أخضر', 'akhḍar']),
+      c('yellow', ['צהובה', 'tsehuba', 'צהוב', 'tsahov'], ['صفرا', 'ṣafra', 'أصفر', 'aṣfar']),
+      c('brown', ['חומה', 'khuma', 'חום', 'khum'], ['بنّيّة', 'bunniyye', 'بنّي', 'bunni']),
+      c('grey', ['אפורה', 'afora', 'אפור', 'afor'], ['رماديّة', 'ramādiyye', 'رمادي', 'ramādi']),
+      c('orange (colour)', ['כתומה', 'ktuma', 'כתום', 'katom'], ['برتقاليّة', 'burtuqāliyye', 'برتقالي', 'burtuqāli']),
+      c('pink', ['ורודה', 'vruda', 'ורוד', 'varod'], ['زهريّة', 'zahriyye', 'زهري', 'zahri']),
+    ],
+  },
+  {
+    name: 'More colours',
+    cards: [
+      c('purple', ['סגולה', 'sgula', 'סגול', 'sagol'], ['بنفسجيّة', 'banafsajiyye', 'بنفسجي', 'banafsaji']),
+      c('gold', ['זהובה', 'zehuba', 'זהוב', 'zahov'], ['دهبيّة', 'dahabiyye', 'دهبي', 'dahabi'], { ar: 'Written ذهبي; the ذ is said as a d in Palestinian speech.' }),
+      c('silver', ['כסופה', 'ksufa', 'כסוף', 'kasuf'], ['فضّيّة', 'faḍḍiyye', 'فضّي', 'faḍḍi']),
+      c('beige', ['בז\'', 'bezh'], ['بيج', 'bēj'], { ar: 'A borrowed word that does not change.' }),
+      c('turquoise', ['טורקיז', 'turkiz'], ['فيروزيّة', 'fērōziyye', 'فيروزي', 'fērōzi'], { he: 'The Hebrew word does not change.' }),
+      c('navy blue', ['כחולה כהה', 'kkhula keha', 'כחול כהה', 'kakhol kehe'], ['كحليّة', 'kuḥliyye', 'كحلي', 'kuḥli']),
+      c('light blue', ['תכלת', 'tkhelet'], ['سماويّة', 'samāwiyye', 'سماوي', 'samāwi'], { he: 'A colour of its own in Hebrew, not "light blue".', ar: 'Literally "sky-coloured".' }),
+      c('maroon', ['בורדו', 'bordo'], ['عنّابيّة', 'ʿunnābiyye', 'عنّابي', 'ʿunnābi'], { ar: 'Named after the عنّاب, the jujube fruit; very common in Palestinian speech.' }),
+      c('olive green', ['ירוקה זית', 'yeruka zayit', 'ירוק זית', 'yarok zayit'], ['زيتيّة', 'zētiyye', 'زيتي', 'zēti']),
+      c('colourful', ['צבעונית', 'tsiv\'onit', 'צבעוני', 'tsiv\'oni'], ['ملوّنة', 'mlawwane', 'ملوّن', 'mlawwan']),
+    ],
+  },
+  {
+    name: 'Colours in use',
+    cards: [
+      c('the colour', ['הצבע', 'hatseva'], ['اللون', 'el-lōn']),
+      c('what colour is it?', ['איזה צבע זה', 'eize tseva ze'], ['شو لونه', 'shū lōno']),
+      c('light (shade)', ['בהירה', 'behira', 'בהיר', 'bahir'], ['فاتحة', 'fātḥa', 'فاتح', 'fāteḥ'], { ar: 'Said after the colour: أزرق فاتح, "light blue".' }),
+      c('dark (shade)', ['כהה', 'keha', 'כהה', 'kehe'], ['غامقة', 'ghāmqa', 'غامق', 'ghāmeq'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+      c('a red car', ['מכונית אדומה', 'mekhonit aduma'], ['سيّارة حمرا', 'sayyāra ḥamra'], { ar: 'سيّارة is a feminine word, so the colour takes its feminine form.' }),
+      c('a white shirt', ['חולצה לבנה', 'khultsa levana'], ['قميص أبيض', 'qamīṣ abyaḍ'], { ar: 'قميص is masculine, so the colour follows it.' }),
+      c('green tea', ['תה ירוק', 'te yarok'], ['شاي أخضر', 'shāy akhḍar']),
+      c('the sky is blue', ['השמיים כחולים', 'hashamayim kkhulim'], ['السما زرقا', 'es-sama zarqa']),
+      c('green eyes', ['עיניים ירוקות', 'einayim yerukot'], ['عيون خضر', 'ʿyūn khuḍur']),
+      c('my favourite colour', ['הצבע האהוב עליי', 'hatseva ha\'ahuv alay'], ['لوني المفضّل', 'lōni el-mufaḍḍal']),
+    ],
+  },
+];
+
+/**
+ * Wanting, needing and feeling — the sentence frames a learner leans on before
+ * she has many words to put in them.
+ *
+ * The first deck is the learner speaking, so its pair is her own gender and the
+ * feminine form is the one she says. The second deck moves through the other
+ * people: there the pair is whoever is being spoken to, or whoever is doing the
+ * wanting. Palestinian Arabic carries all of this on بدّ plus an ending —
+ * بدّي, بدّك, بدّه — and بدّي itself does not change for a woman or a man.
+ */
+const WANT_DECKS: SeedDeck[] = [
+  {
+    name: 'I want and I need',
+    cards: [
+      c('I want', ['אני רוצה', 'ani rotsa', 'אני רוצה', 'ani rotse'], ['أنا بدّي', 'ana biddi'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'بدّي is said the same by a woman or a man.' }),
+      c('I need', ['אני צריכה', 'ani tsrikha', 'אני צריך', 'ani tsarikh'], ['أنا لازمني', 'ana lāzimni'], { ar: 'Literally "it is necessary for me".' }),
+      c('I have', ['יש לי', 'yesh li'], ['عندي', 'ʿindi'], { he: 'Literally "there is to me"; Hebrew has no verb for "have".' }),
+      c('I see', ['אני רואה', 'ani ro\'a', 'אני רואה', 'ani ro\'e'], ['أنا بشوف', 'ana bashūf'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+      c('I feel', ['אני מרגישה', 'ani margisha', 'אני מרגיש', 'ani margish'], ['أنا بحسّ', 'ana baḥiss']),
+      c('I miss', ['אני מתגעגעת', 'ani mitga\'aga\'at', 'אני מתגעגע', 'ani mitga\'age\'a'], ['أنا مشتاقة', 'ana mushtāqa', 'أنا مشتاق', 'ana mushtāq'], { ar: 'One of the few Arabic forms here that follows the speaker: a woman says مشتاقة.' }),
+      c('I know', ['אני יודעת', 'ani yoda\'at', 'אני יודע', 'ani yode\'a'], ['أنا بعرف', 'ana baʿref']),
+      c('I love', ['אני אוהבת', 'ani ohevet', 'אני אוהב', 'ani ohev'], ['أنا بحبّ', 'ana baḥibb'], { ar: 'The same verb covers loving a person and liking a thing.' }),
+      c('I can', ['אני יכולה', 'ani yekhola', 'אני יכול', 'ani yakhol'], ['أنا بقدر', 'ana baqdar']),
+      c('I don\'t want', ['אני לא רוצה', 'ani lo rotsa', 'אני לא רוצה', 'ani lo rotse'], ['أنا ما بدّي', 'ana ma biddi'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'ما is the everyday spoken negative in front of بدّي.' }),
+    ],
+  },
+  {
+    name: 'You, he and she',
+    cards: [
+      c('you want', ['את רוצה', 'at rotsa', 'אתה רוצה', 'ata rotse'], ['بدِّك', 'biddik', 'بدَّك', 'biddak'], { ar: 'Written بدك either way — only the transliteration tells the two endings apart.' }),
+      c('he wants', ['הוא רוצה', 'hu rotse'], ['هوّ بدّه', 'huwwe biddo']),
+      c('she wants', ['היא רוצה', 'hi rotsa'], ['هيّ بدّها', 'hiyye bidha']),
+      c('we want', ['אנחנו רוצות', 'anakhnu rotsot', 'אנחנו רוצים', 'anakhnu rotsim'], ['إحنا بدّنا', 'iḥna bidna'], { he: 'Hebrew splits the plural; a group with any man in it takes רוצים.' }),
+      c('they want', ['הן רוצות', 'hen rotsot', 'הם רוצים', 'hem rotsim'], ['هُمّ بدّهم', 'humme bidhom'], { ar: 'One plural form for a group of any gender.' }),
+      c('you need', ['את צריכה', 'at tsrikha', 'אתה צריך', 'ata tsarikh'], ['لازمك', 'lāzmik', 'لازمك', 'lāzmak'], { ar: 'Written the same either way; only the ending is said differently.' }),
+      c('he needs', ['הוא צריך', 'hu tsarikh'], ['لازمه', 'lāzmo']),
+      c('she needs', ['היא צריכה', 'hi tsrikha'], ['لازمها', 'lāzimha']),
+      c('she has / he has', ['יש לה', 'yesh la', 'יש לו', 'yesh lo'], ['عندها', 'ʿindha', 'عنده', 'ʿindo'], { ar: 'Here the ending follows the owner, not the person spoken to.' }),
+      c('what do you want?', ['מה את רוצה', 'ma at rotsa', 'מה אתה רוצה', 'ma ata rotse'], ['شو بدِّك', 'shū biddik', 'شو بدَّك', 'shū biddak']),
+    ],
+  },
+  {
+    name: 'Saying what you want',
+    cards: [
+      c('I want water', ['אני רוצה מים', 'ani rotsa mayim', 'אני רוצה מים', 'ani rotse mayim'], ['بدّي ميّة', 'biddi mayye'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'أنا can be left off — بدّي already says who wants.' }),
+      c('I need help', ['אני צריכה עזרה', 'ani tsrikha ezra', 'אני צריך עזרה', 'ani tsarikh ezra'], ['لازمني مساعدة', 'lāzimni musāʿade']),
+      c('I want to eat', ['אני רוצה לאכול', 'ani rotsa le\'ekhol', 'אני רוצה לאכול', 'ani rotse le\'ekhol'], ['بدّي آكل', 'biddi ākol'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+      c('I want to go home', ['אני רוצה ללכת הביתה', 'ani rotsa lalekhet habayta', 'אני רוצה ללכת הביתה', 'ani rotse lalekhet habayta'], ['بدّي أروح عالبيت', 'biddi arūḥ ʿal-bēt'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'عالبيت is عَ الْبيت run together, the way it is actually said.' }),
+      c('I miss you', ['אני מתגעגעת אלייך', 'ani mitga\'aga\'at elayikh', 'אני מתגעגעת אליך', 'ani mitga\'aga\'at elekha'], ['اشتقتلك', 'ishtaqtillik', 'اشتقتلك', 'ishtaqtillak'], { he: 'A woman speaking; the pair here is the person she says it to.', ar: 'Written the same either way; only the ending is said differently.' }),
+      c('I feel tired', ['אני מרגישה עייפה', 'ani margisha ayefa', 'אני מרגיש עייף', 'ani margish ayef'], ['أنا تعبانة', 'ana taʿbāne', 'أنا تعبان', 'ana taʿbān'], { ar: 'Arabic simply says "I am tired"; here the pair is the speaker.' }),
+      c('I have time', ['יש לי זמן', 'yesh li zman'], ['عندي وقت', 'ʿindi waqt']),
+      c('I have a question', ['יש לי שאלה', 'yesh li she\'ela'], ['عندي سؤال', 'ʿindi suʾāl']),
+      c('do you want tea?', ['את רוצה תה', 'at rotsa te', 'אתה רוצה תה', 'ata rotse te'], ['بدِّك شاي', 'biddik shāy', 'بدَّك شاي', 'biddak shāy']),
+      c('what do you need?', ['מה את צריכה', 'ma at tsrikha', 'מה אתה צריך', 'ma ata tsarikh'], ['شو لازمك', 'shū lāzmik', 'شو لازمك', 'shū lāzmak'], { ar: 'Written the same either way; only the ending is said differently.' }),
     ],
   },
 ];
@@ -445,9 +627,9 @@ const CUSTOM_DECKS: SeedDeck[] = [
 ];
 
 /**
- * Starter content: twenty categories, one ten-card deck each except the
- * greetings, which take three, the titles and pronouns, which take two, and the
- * numbers, which run to a hundred. Words come
+ * Starter content: twenty-four categories, one ten-card deck each except the
+ * greetings and the pronouns, which take three each, and the numbers, which
+ * run to a hundred. Words come
  * from the Palestinian Arabic and Hebrew starter table, which lists a feminine
  * and a masculine form for every entry; where the two are identical the card
  * carries a single form.
@@ -568,7 +750,12 @@ export const SEED_CATEGORIES: SeedCategory[] = [
     ],
   },
   {
-    name: 'Titles and pronouns',
+    name: 'Pronouns',
+    icon: '🫵',
+    decks: PRONOUN_DECKS,
+  },
+  {
+    name: 'Titles',
     icon: '🎩',
     decks: TITLE_DECKS,
   },
@@ -1000,18 +1187,21 @@ export const SEED_CATEGORIES: SeedCategory[] = [
         ],
       },
       {
-        name: 'Colours',
+        // The colours were taught here until they grew into a category of their
+        // own; an install that still holds them has the deck moved across
+        // rather than duplicated. See `RESHAPED_CATEGORIES`.
+        name: 'More descriptions',
         cards: [
-          c('white', ['לבנה', 'levana', 'לבן', 'lavan'], ['بيضا', 'bēḍa', 'أبيض', 'abyaḍ'], { ar: 'The gender throughout this deck is the thing described, not a person.' }),
-          c('black', ['שחורה', 'shkhora', 'שחור', 'shakhor'], ['سودا', 'sōda', 'أسود', 'aswad']),
-          c('red', ['אדומה', 'aduma', 'אדום', 'adom'], ['حمرا', 'ḥamra', 'أحمر', 'aḥmar']),
-          c('blue', ['כחולה', 'kkhula', 'כחול', 'kakhol'], ['زرقا', 'zarqa', 'أزرق', 'azraq']),
-          c('green', ['ירוקה', 'yeruka', 'ירוק', 'yarok'], ['خضرا', 'khaḍra', 'أخضر', 'akhḍar']),
-          c('yellow', ['צהובה', 'tsehuba', 'צהוב', 'tsahov'], ['صفرا', 'ṣafra', 'أصفر', 'aṣfar']),
-          c('brown', ['חומה', 'khuma', 'חום', 'khum'], ['بنّيّة', 'bunniyye', 'بنّي', 'bunni']),
-          c('grey', ['אפורה', 'afora', 'אפור', 'afor'], ['رماديّة', 'ramādiyye', 'رمادي', 'ramādi']),
-          c('orange (colour)', ['כתומה', 'ktuma', 'כתום', 'katom'], ['برتقاليّة', 'burtuqāliyye', 'برتقالي', 'burtuqāli']),
-          c('pink', ['ורודה', 'vruda', 'ורוד', 'varod'], ['زهريّة', 'zahriyye', 'زهري', 'zahri']),
+          c('clean', ['נקייה', 'nekiya', 'נקי', 'naki'], ['نضيفة', 'nḍīfe', 'نضيف', 'nḍīf']),
+          c('dirty', ['מלוכלכת', 'melukhlekhet', 'מלוכלך', 'melukhlakh'], ['وسخة', 'wiskhe', 'وسخ', 'wisikh']),
+          c('expensive', ['יקרה', 'yekara', 'יקר', 'yakar'], ['غالية', 'ghālye', 'غالي', 'ghāli']),
+          c('cheap', ['זולה', 'zola', 'זול', 'zol'], ['رخيصة', 'rkhīṣa', 'رخيص', 'rkhīṣ']),
+          c('fast', ['מהירה', 'mehira', 'מהיר', 'mahir'], ['سريعة', 'sarīʿa', 'سريع', 'sarīʿ']),
+          c('slow', ['איטית', 'itit', 'איטי', 'iti'], ['بطيئة', 'baṭīʾa', 'بطيء', 'baṭīʾ']),
+          c('strong', ['חזקה', 'khazaka', 'חזק', 'khazak'], ['قويّة', 'qawiyye', 'قوي', 'qawi']),
+          c('weak', ['חלשה', 'khalasha', 'חלש', 'khalash'], ['ضعيفة', 'ḍaʿīfe', 'ضعيف', 'ḍaʿīf']),
+          c('heavy', ['כבדה', 'kveda', 'כבד', 'kaved'], ['تقيلة', 'tqīle', 'تقيل', 'tqīl'], { ar: 'Written ثقيل; the ث is said as a t in Palestinian speech.' }),
+          c('quiet', ['שקטה', 'shketa', 'שקט', 'shaket'], ['هادية', 'hādye', 'هادي', 'hādi']),
         ],
       },
       {
@@ -1030,6 +1220,11 @@ export const SEED_CATEGORIES: SeedCategory[] = [
         ],
       },
     ],
+  },
+  {
+    name: 'Colours',
+    icon: '🌈',
+    decks: COLOUR_DECKS,
   },
   {
     name: 'Verbs',
@@ -1285,6 +1480,16 @@ export const SEED_CATEGORIES: SeedCategory[] = [
         ],
       },
     ],
+  },
+  {
+    name: 'Animals',
+    icon: '🐾',
+    decks: ANIMAL_DECKS,
+  },
+  {
+    name: 'Wants and feelings',
+    icon: '💭',
+    decks: WANT_DECKS,
   },
   // Last, so the learner's own sentences sit at the end of the ladder rather
   // than in front of the words the starter set teaches first.

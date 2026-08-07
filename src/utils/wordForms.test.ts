@@ -29,7 +29,7 @@ describe('starter cards', () => {
   );
 
   it('ships every taught category with full decks', () => {
-    expect(SEED_CATEGORIES).toHaveLength(20);
+    expect(SEED_CATEGORIES).toHaveLength(24);
     // Custom is the learner's own and grows from inside the app, so it is the
     // one category not held to a full ten.
     for (const category of SEED_CATEGORIES.filter((c) => c.name !== CUSTOM_CATEGORY)) {
