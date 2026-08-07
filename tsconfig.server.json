@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The server is plain Node, and it imports the shared protocol straight out
+    // of `src` by its real `.ts` path — tsx resolves that at runtime, and this
+    // flag is what lets `tsc` check it without a build step in between.
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "lib": ["ES2023"]
+  },
+  "include": ["server", "src/services/sync/protocol.ts"]
+}

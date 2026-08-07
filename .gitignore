@@ -17,5 +17,9 @@ google-credentials*.json
 # Written by `npm run generate-audio`.
 audio-report.json
 
+# The sync server's own copy of the vocabulary, and the shared token that
+# guards it. Personal data and a secret — neither belongs in the repository.
+server/data/
+
 # TypeScript incremental build cache
 *.tsbuildinfo
