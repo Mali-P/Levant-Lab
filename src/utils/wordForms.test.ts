@@ -49,6 +49,10 @@ describe('starter cards', () => {
       'my name is Mali',
       'I want to help you at your home, mom',
       'do you want?',
+      'may I ask — are you Jewish or Arab?',
+      'do you speak Hebrew?',
+      'do you speak Arabic?',
+      'do you speak English?',
     ]);
   });
 
