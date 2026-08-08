@@ -8,6 +8,7 @@ import { uid } from '../utils/random';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import WordForms from '../components/cards/WordForms';
 import { wordForms } from '../utils/wordForms';
+import { sortCards } from '../utils/cardOrder';
 
 type Filter =
   | 'none'
@@ -53,7 +54,9 @@ export default function ManageScreen() {
     // the whole collection.
     if (filter === 'none' && !needle && deckFilter === 'all') return [];
 
-    let rows = cards.filter((card) => {
+    // Deck order first; the weakest / most-missed filters below re-sort what
+    // they keep, and the rest are left reading the way the deck teaches.
+    let rows = sortCards(cards).filter((card) => {
       if (deckFilter !== 'all' && card.deckId !== deckFilter) return false;
       if (!needle) return true;
       // Both gendered forms are searchable: typing the feminine word found

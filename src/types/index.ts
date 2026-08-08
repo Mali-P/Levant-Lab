@@ -190,6 +190,13 @@ export type Flashcard = {
   icon?: string;
 
   /**
+   * Position within the deck — the order the words are meant to be met, which
+   * for a counting deck is the only order that makes sense. Absent on cards the
+   * learner added themselves; `sortCards` puts those after the starter words.
+   */
+  order?: number;
+
+  /**
    * Stable key for this word's bundled pronunciation clips, independent of the
    * per-device `id` and of the Hebrew/Arabic spelling. Only starter words have
    * one; cards the learner adds fall back to device speech synthesis.

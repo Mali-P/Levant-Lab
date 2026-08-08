@@ -15,7 +15,7 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 26;
+export const STARTER_CONTENT_VERSION = 28;
 
 /**
  * How many cards the official starter set contains: every taught deck is a ten,
@@ -58,6 +58,7 @@ function sidesFor(
   card: SeedCard,
   categoryName: string,
   deckName: string,
+  order: number,
   now: string,
 ): Omit<Flashcard, 'id' | 'categoryId' | 'deckId' | 'createdAt'> {
   // Keyed off the same category / deck / English identity the merge below uses
@@ -67,12 +68,20 @@ function sidesFor(
   return {
     english: card.english,
     icon: card.icon,
+    // The position this word holds in its seed deck. Rewritten on every
+    // top-up, so a device seeded before ordering existed stops reading its
+    // counting decks in whatever order IndexedDB returned them.
+    order,
     audioId,
     hebrew: withClipPaths(
       {
         script: card.hebrew.script,
         transliteration: card.hebrew.transliteration,
         forms: card.hebrew.forms,
+        // Carried across explicitly: a card whose variants were dropped here
+        // would fall back to `script` alone, which is one perspective's
+        // wording presented as if it were everybody's.
+        speechForms: card.hebrew.speechForms,
         notes: card.hebrew.notes,
       },
       audioId,
@@ -83,6 +92,7 @@ function sidesFor(
         script: card.arabic.script,
         transliteration: card.arabic.transliteration,
         forms: card.arabic.forms,
+        speechForms: card.arabic.speechForms,
         dialect: card.arabic.dialect,
         notes: card.arabic.notes,
       },
@@ -161,27 +171,33 @@ export async function installStarterCards(): Promise<InstallReport> {
         deckByKey.set(deckKey, deck);
       }
 
-      for (const seedCard of seedDeck.cards) {
+      // A card's position in the seed deck is the order its words are meant to
+      // be read in — one to ten, not "three, nine, one".
+      seedDeck.cards.forEach((seedCard, cardOrder) => {
+        const sides = sidesFor(
+          seedCard,
+          seedCategory.name,
+          seedDeck.name,
+          cardOrder,
+          now,
+        );
         const existing = cardByKey.get(
-          deck.id + '|' + seedCard.english.toLowerCase(),
+          deck!.id + '|' + seedCard.english.toLowerCase(),
         );
         if (existing) {
-          changedCards.push({
-            ...existing,
-            ...sidesFor(seedCard, seedCategory.name, seedDeck.name, now),
-          });
+          changedCards.push({ ...existing, ...sides });
           report.updated++;
         } else {
           newCards.push({
             id: uid('card'),
             categoryId: category!.id,
-            deckId: deck.id,
+            deckId: deck!.id,
             createdAt: now,
-            ...sidesFor(seedCard, seedCategory.name, seedDeck.name, now),
+            ...sides,
           });
           report.added++;
         }
-      }
+      });
     });
   });
 
