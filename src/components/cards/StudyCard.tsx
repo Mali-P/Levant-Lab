@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   motion,
   useMotionValue,
@@ -7,6 +7,7 @@ import {
 } from 'framer-motion';
 import type { Flashcard, SpeechPerspective } from '../../types';
 import type { PromptPlan } from '../../features/study/prompts';
+import { useFitToBox } from '../../hooks/useFitToBox';
 import { wordForms, type WordForm } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
 import Transliteration from './Transliteration';
@@ -52,45 +53,17 @@ const SWIPE_VELOCITY = 480;
 export default function StudyCard(props: StudyCardProps) {
   const { card, plan, revealed, typed, values, reducedMotion } = props;
   const firstField = useRef<HTMLInputElement>(null);
-  const face = useRef<HTMLElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
   /**
-   * Whether the card is holding back content below its own bottom edge.
-   *
-   * A long sentence with both languages, both forms and both transliterations
-   * is simply taller than a short phone can give it, and the transliteration is
-   * the last thing on the card — so the one line the learner most needs is the
-   * first one to go over the edge. The card has always scrolled; what it never
-   * did was say so, and on a phone it could not even be scrolled (see the drag
-   * axis below). This drives the fade at the card's foot, which is the only
-   * thing telling her there is more.
+   * The card never scrolls. A long sentence in two languages, each with two
+   * forms and a transliteration under it, used to run over the card's bottom
+   * edge — and what fell off was the last line of the last block, which is the
+   * Arabic transliteration the learner most needs. So the face sets itself
+   * smaller until it fits instead of hiding the end of itself.
    */
-  const [clipped, setClipped] = useState(false);
-
-  const measure = useCallback(() => {
-    const el = face.current;
-    if (!el) return;
-    // A pixel of slack: sub-pixel layout rounding otherwise reports a card that
-    // fits exactly as one with more to see, and the fade never goes away.
-    setClipped(el.scrollHeight - el.scrollTop - el.clientHeight > 1);
-  }, []);
-
-  useEffect(() => {
-    const el = face.current;
-    if (!el) return;
-
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    // Revealing an answer changes the card's content, not its box, so the
-    // children are watched too — a ResizeObserver on the scroller alone never
-    // fires when what grew is inside it.
-    for (const child of Array.from(el.children)) observer.observe(child);
-
-    return () => observer.disconnect();
-  }, [measure, card.id, revealed, typed]);
+  const face = useFitToBox<HTMLElement>([card.id, revealed, typed, plan.promptText]);
 
   const tilt = reducedMotion ? 0 : 9 * props.animationIntensity;
   const rotate = useTransform(x, [-220, 0, 220], [-tilt, 0, tilt]);
@@ -140,7 +113,7 @@ export default function StudyCard(props: StudyCardProps) {
         : '';
 
   return (
-    <div className={'card-stage' + (clipped ? ' has-more' : '')}>
+    <div className="card-stage">
       <div className="card-shadow deep" aria-hidden="true" />
       <div className="card-shadow" aria-hidden="true" />
 
@@ -148,18 +121,14 @@ export default function StudyCard(props: StudyCardProps) {
         ref={face}
         className="card"
         style={{ x, y, rotate }}
-        onScroll={measure}
         /*
-         * Dragging on both axes makes framer set `touch-action: none`, which
-         * takes the card's own vertical scrolling away from every touch device
-         * — the content below the fold became literally unreachable rather than
-         * merely hidden. Once the answer is showing there is nothing left to
-         * swipe up for, so the card drops to the horizontal axis and the
-         * browser gives scrolling back. Before the reveal it still drags both
-         * ways, because that is the swipe-up gesture, and an unrevealed card
-         * has nothing worth scrolling to.
+         * Both axes throughout. Dragging on both makes framer set
+         * `touch-action: none`, which used to matter because it took the card's
+         * own scrolling away — but the card has no scrolling to lose now, so
+         * the swipe-up reveal stays available on a revealed card too rather
+         * than the gesture changing under the learner's finger mid-card.
          */
-        drag={reducedMotion ? false : revealed || typed ? 'x' : true}
+        drag={!reducedMotion}
         dragElastic={0.5}
         dragSnapToOrigin
         onDragEnd={handleDragEnd}
@@ -190,7 +159,7 @@ export default function StudyCard(props: StudyCardProps) {
           {plan.audio ? (
             <button
               type="button"
-              className="btn"
+              className="btn btn-compact"
               onClick={() => props.onSpeak(plan.audio!)}
             >
               <Icon name="speaker" /> Play the {plan.audio} word

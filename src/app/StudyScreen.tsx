@@ -644,13 +644,6 @@ export default function StudyScreen() {
           </button>
         </div>
 
-        {!session.introduceFlipped && (
-          <p className="small muted" style={{ textAlign: 'center' }}>
-            Tap the card to flip. Swipe left for the next one
-            {session.introduceIndex > 0 ? ', right to go back' : ''}.
-          </p>
-        )}
-
         {/* The answer that cleared the stage is graded against the session it
             was given in, but the session has already moved on to the words it
             unlocked. Without this the sheet reporting "Stage cleared" would be
@@ -751,17 +744,12 @@ export default function StudyScreen() {
           the gesture itself is offered, so the two never disagree about
           whether going back is possible. */}
       {canStepBack && (
-        <button className="btn btn-ghost btn-block" onClick={() => void goBack()}>
+        <button
+          className="btn btn-ghost btn-block btn-compact"
+          onClick={() => void goBack()}
+        >
           ← Back to the last card
         </button>
-      )}
-
-      {!revealed && (
-        <p className="small muted" style={{ textAlign: 'center' }}>
-          {canStepBack
-            ? 'Swipe right for correct, up to reveal, left to go back and change your last answer.'
-            : 'Swipe right for correct, up to reveal.'}
-        </p>
       )}
 
       <Confetti active={celebrate} />

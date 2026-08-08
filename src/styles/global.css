@@ -117,6 +117,14 @@
   --radius-btn: 8px;
   --radius-cut: 11px 9px 12px 8px;
   --tap: 48px;
+  /*
+   * How far the card has had to set itself down to fit its face on one screen,
+   * written by `useFitToBox`. Declared here as well as on `.card` because rules
+   * like `.translit-lines` and `.engraved-divider` are used outside a card too,
+   * and a `calc()` on an undefined custom property is invalid at computed-value
+   * time — the whole declaration would be thrown away rather than fall back.
+   */
+  --fit: 1;
   /* One column width for the whole app. This is a phone-shaped study tool, so
      on a desktop it stays a narrow centred column rather than stretching a
      card of three words across a monitor. */
@@ -395,7 +403,7 @@ input, select, textarea {
 .translit-lines {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 14px;
+  gap: calc(1px * var(--fit)) 12px;
   direction: ltr;
 }
 
@@ -557,6 +565,19 @@ input, select, textarea {
 .btn-icon {
   min-width: var(--tap);
   padding: 0 12px;
+}
+
+/*
+ * A secondary action that must not spend a full 48px row on itself — the step
+ * back to the last card, the reveal of forms she is not studying. Above the
+ * 24px WCAG 2.5.8 target floor with room to spare, and these sit alone on their
+ * line with nothing to mis-hit beside them.
+ */
+.btn-compact {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 /*
@@ -738,55 +759,34 @@ textarea.input {
   color: var(--card-ink);
   border-radius: 26px;
   box-shadow: var(--shadow);
-  padding: 18px 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   user-select: none;
-  overflow-y: auto;
-  /* A card scrolled to its end must not hand the rest of the gesture to the
-     screen behind it, which on a locked study screen only shows the rubber
-     band and reads as the card coming loose. */
-  overscroll-behavior: contain;
-}
-
-/*
- * The card is holding content below its own edge.
- *
- * A long sentence in two languages, each with two forms and a transliteration
- * under them, is taller than a short phone can give the card — and what falls
- * over the edge is the last line of the last block, which is the Arabic
- * transliteration. The card scrolls to it, but a clean cut looks like the end
- * of the card rather than the middle of it, so the foot fades while there is
- * more below and stops the moment there is not.
- *
- * It sits on the stage rather than inside the card because the card is the
- * scroller: an ::after within it would be pinned to the top of the scrolled
- * content and slide away with the very thing it is advertising.
- */
-.card-stage.has-more::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 46px;
-  border-radius: 0 0 26px 26px;
-  background: linear-gradient(to bottom, transparent, var(--card));
-  pointer-events: none;
+  /*
+   * A card never scrolls. It is one face read at a glance: a form the learner
+   * has to scroll to find is a form she skips, and on a touch device the card's
+   * own drag gestures and its scrolling compete for the same finger. What used
+   * to overflow now sets itself smaller instead — see `useFitToBox`, which
+   * drives the `--fit` multiplier every size inside the card is written
+   * against. The default of 1 is what a face that fits is left at.
+   */
+  overflow: hidden;
+  --fit: 1;
 }
 
 .card-prompt {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 18px 0 8px;
+  gap: calc(4px * var(--fit));
+  padding: calc(6px * var(--fit)) 0 calc(2px * var(--fit));
   text-align: center;
 }
 
 .card-prompt .word {
-  font-size: clamp(2rem, 9vw, 2.9rem);
+  font-size: calc(clamp(1.5rem, 6.5vw, 2.1rem) * var(--fit));
   font-weight: 800;
   letter-spacing: -0.03em;
   text-transform: uppercase;
@@ -794,20 +794,20 @@ textarea.input {
 
 .card-prompt .word.script-prompt {
   text-transform: none;
-  font-size: clamp(2.2rem, 10vw, 3.2rem);
+  font-size: calc(clamp(1.65rem, 7vw, 2.3rem) * var(--fit));
 }
 
 .card-prompt .glyph {
-  font-size: 3rem;
+  font-size: calc(1.9rem * var(--fit));
   line-height: 1;
 }
 
 .answer-block {
   border-top: 1px solid rgba(0, 0, 0, 0.1);
-  padding-top: 14px;
+  padding-top: calc(8px * var(--fit));
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: calc(4px * var(--fit));
 }
 
 .answer-block .lang-label {
@@ -815,9 +815,11 @@ textarea.input {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 0.72rem;
+  /* Small caps at 0.64rem are already at the edge of legible; the label is
+     allowed to tighten with the card but not to become a texture. */
+  font-size: max(0.58rem, calc(0.64rem * var(--fit)));
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -826,13 +828,15 @@ textarea.input {
 
 .answer-input {
   width: 100%;
-  min-height: 56px;
-  padding: 10px 14px;
+  /* Stays a comfortable target as the face tightens: 44px is the floor a thumb
+     still finds, and nothing crowds these fields horizontally. */
+  min-height: max(44px, calc(50px * var(--fit)));
+  padding: calc(6px * var(--fit)) 12px;
   border-radius: 14px;
   border: 2px solid rgba(0, 0, 0, 0.14);
   background: rgba(0, 0, 0, 0.03);
   color: var(--card-ink);
-  font-size: 1.5rem;
+  font-size: calc(1.25rem * var(--fit));
   font-family: var(--script);
 }
 
@@ -846,10 +850,10 @@ textarea.input {
 }
 
 .answer-reveal {
-  font-size: 2rem;
+  font-size: calc(1.55rem * var(--fit));
   font-weight: 650;
   font-family: var(--script);
-  min-height: 2.4rem;
+  min-height: 1.2em;
 }
 
 .card-audio {
@@ -866,18 +870,18 @@ textarea.input {
 
 .swipe-hint {
   position: absolute;
-  top: 18px;
-  padding: 6px 14px;
+  top: 10px;
+  padding: 4px 10px;
   border-radius: 999px;
   font-weight: 800;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   pointer-events: none;
 }
 
-.swipe-hint.right { right: 18px; color: var(--ok); border: 2px solid var(--ok); }
-.swipe-hint.left { left: 18px; color: var(--bad); border: 2px solid var(--bad); }
+.swipe-hint.right { right: 12px; color: var(--ok); border: 2px solid var(--ok); }
+.swipe-hint.left { left: 12px; color: var(--bad); border: 2px solid var(--bad); }
 
 /* Navigation, not a verdict. "Back", and Memorise's "Next", move through the
    deck without judging the card, so they must not borrow the green and red
@@ -1191,8 +1195,10 @@ a.btn-primary:visited {
 .screen.study {
   height: 100dvh;
   overflow: hidden;
-  padding-bottom: 84px;
-  gap: 10px;
+  /* The tab bar's own height plus the clearance a thumb still needs under the
+     lowest button, and nothing spare. */
+  padding-bottom: 78px;
+  gap: 8px;
 }
 
 .screen.study .card-stage {
@@ -1233,42 +1239,48 @@ a.btn-primary:visited {
   gap: 8px;
 }
 
-/* Four buttons in two rows is 112px of the screen the card is competing for,
-   so on a short phone they come down to the 44px tap floor rather than taking
-   the answer with them. */
+/* Four buttons in two rows is the screen's largest single expense after the
+   card itself, so they sit at the 44px tap floor and stay there — there is no
+   screen tall enough that a grading button is worth 52px of it. */
 .grade-grid .btn {
-  min-height: clamp(44px, 7vh, 52px);
-  padding: 0 10px;
-  font-size: 0.92rem;
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 0.84rem;
 }
 
 /*
- * Tighter card internals on the study screen so a revealed card shows the
- * prompt and both answers without scrolling on a normal phone.
+ * Tighter card internals on the study screen, and every one of them multiplied
+ * by `--fit`.
  *
- * Measured against the viewport's height rather than fixed, because what has
- * to fit is the same on every phone and the room to fit it in is not: a 640px
- * screen gives the card barely half what an 844px one does once the header,
- * the stage banner and the grading buttons have taken their fixed share. Each
- * clamp tops out at the size the card had before, so a tall screen is left
- * exactly as it was and a short one tightens instead of scrolling.
+ * Two things are at work and they do different jobs. The clamps are the
+ * viewport's share: what has to fit is the same on every phone and the room to
+ * fit it in is not, so a 640px screen sets the card smaller than an 844px one
+ * before a single word has been measured. `--fit` is the card's own share,
+ * measured after the fact — the one long sentence that still does not fit the
+ * box the clamps left it. Neither alone is enough: a clamp cannot know how many
+ * lines a sentence wrapped to, and a measurement cannot be made before there is
+ * a size to measure.
+ *
+ * The ceilings are deliberately low. The old ones were the sizes the card had
+ * when it was allowed to scroll, which is why a short word came out set like a
+ * poster.
  */
 .screen.study .card {
-  gap: clamp(6px, 1.2vh, 10px);
-  padding-block: clamp(9px, 1.5vh, 14px);
+  gap: calc(clamp(4px, 0.9vh, 8px) * var(--fit));
+  padding-block: calc(clamp(7px, 1.1vh, 11px) * var(--fit));
 }
 
 .screen.study .card-prompt {
-  padding: 4px 0 2px;
-  gap: 4px;
+  padding: calc(2px * var(--fit)) 0;
+  gap: calc(3px * var(--fit));
 }
 
 .screen.study .card-prompt .glyph {
-  font-size: clamp(1.4rem, 3.4vh, 2.1rem);
+  font-size: calc(clamp(1.2rem, 2.6vh, 1.6rem) * var(--fit));
 }
 
 .screen.study .card-prompt .word {
-  font-size: clamp(1.35rem, 3.6vh, 2.5rem);
+  font-size: calc(clamp(1.2rem, 2.9vh, 1.8rem) * var(--fit));
 }
 
 /* A phrase, and then a whole sentence. Set down in two steps rather than one
@@ -1276,24 +1288,28 @@ a.btn-primary:visited {
    above the size the answers are set at, because a prompt smaller than its own
    answer reads as a caption. */
 .screen.study .card-prompt .word.word-long {
-  font-size: clamp(1.15rem, 2.9vh, 1.9rem);
+  font-size: calc(clamp(1.05rem, 2.4vh, 1.45rem) * var(--fit));
 }
 
 .screen.study .card-prompt .word.word-longer {
-  font-size: clamp(1rem, 2.4vh, 1.55rem);
+  font-size: calc(clamp(0.95rem, 2vh, 1.2rem) * var(--fit));
   letter-spacing: -0.01em;
 }
 
 .screen.study .answer-block {
-  padding-top: clamp(5px, 1.2vh, 10px);
-  gap: 4px;
+  padding-top: calc(clamp(4px, 0.9vh, 7px) * var(--fit));
+  gap: calc(3px * var(--fit));
 }
 
 /* The floor is where a pointed script is still read rather than decoded; the
    min-height goes with it, so an unrevealed card's row of dots does not hold
    open a line sized for a word twice as tall. */
+/* The floor is absolute, not proportional: `--fit` runs lower than any script
+   survives, and this is the line it stops at. Everything else on the card keeps
+   shrinking past this point, which is the whole reason the scripts can stand
+   still. */
 .screen.study .answer-reveal {
-  font-size: clamp(1.25rem, 3.4vh, 1.8rem);
+  font-size: max(0.95rem, calc(clamp(1.1rem, 2.7vh, 1.45rem) * var(--fit)));
   min-height: 1.2em;
 }
 
@@ -1322,43 +1338,76 @@ a.btn-primary:visited {
     direction: ltr;
   }
 
-  /* The bands of air around the card. Halved rather than removed: the card
-     still has to read as an object standing off the text above it. The bottom
-     padding is the tab bar's own height plus its clearance, and it keeps the
-     clearance a card's width of thumb still needs. */
+  /* The last bands of air around the card. Not removed: the card still has to
+     read as an object standing off the text above it. */
   .screen.study {
-    gap: 8px;
-    padding-bottom: 76px;
+    gap: 6px;
   }
 
   .screen.study .stage-banner {
-    gap: 4px;
+    gap: 2px;
   }
 
   .screen.study .card-stage,
   .screen.study .card-stage + .row,
   .screen.study .card-stage + .btn,
   .screen.study .card-stage + .grade-grid {
-    margin-top: 8px;
+    margin-top: 6px;
   }
 }
 
-/* The audio buttons sit inside the card, where the full 48px tap target would
-   inflate every label row past what the card can afford. 44px is the floor —
-   the smallest target still comfortable under a thumb — and the card absorbs
-   it because nothing crowds these buttons horizontally. */
-.screen.study .card .lang-label .btn {
-  min-height: 44px;
-  min-width: 44px;
+/*
+ * The audio buttons sit inside the card, where a full 48px pill turned every
+ * language label into the tallest row on the face — two of them cost more
+ * height than either answer they belonged to. A 30px square holds the speaker
+ * mark at a size it still reads at, and it shrinks with the rest of the card
+ * down to the 24px WCAG 2.5.8 floor, no further. Nothing crowds these
+ * horizontally, and the label row beside them is a wide miss-free target.
+ */
+.card .lang-label .btn,
+.card .btn.speaker {
+  min-height: max(24px, calc(30px * var(--fit)));
+  min-width: max(24px, calc(30px * var(--fit)));
   padding: 0;
-}
-
-.screen.study .card-prompt .glyph {
-  font-size: 1.8rem;
+  font-size: calc(0.78rem * var(--fit));
+  border-radius: 999px;
 }
 
 .screen.study .translit {
-  font-size: 0.78rem;
+  font-size: calc(0.72rem * var(--fit));
+}
+
+/*
+ * The romanisation's own wrapper, not just the romanisation.
+ *
+ * `.translit-line` is a flex row holding the gender marker and the `.translit`
+ * span. Left at the inherited 16px it kept a line box taller than the script it
+ * stands under — four rows of a two-language card set at 23px each to hold 8px
+ * of type — which is the single largest thing that used to push a long sentence
+ * over the card's edge.
+ */
+.card .translit-line {
+  font-size: calc(0.72rem * var(--fit));
+}
+
+/*
+ * Set solid, or near enough. Default leading is generous for prose read by the
+ * paragraph; every line on this card is one word or one sentence read on its
+ * own, and at ten lines a face the difference between 1.45 and 1.2 is a whole
+ * form's worth of height. The scripts keep the most of it, because Hebrew
+ * pointing and Arabic diacritics sit outside the em box and collide first.
+ */
+.card .form-line {
+  line-height: 1.25;
+}
+
+.card .translit-line,
+.card .translit {
+  line-height: 1.2;
+}
+
+.card .lang-label {
+  line-height: 1.1;
 }
 
 /* --- Pronunciation ---------------------------------------------------- */
@@ -1882,7 +1931,7 @@ a.btn-primary:visited {
   /* The meta row above is text about the card, not part of it. Standing the
      card off it by the same distance the buttons stand off below keeps the
      card floating in the screen rather than hanging from the line of text. */
-  margin-top: 14px;
+  margin-top: 8px;
 }
 
 /* The screen's own 10px gap reads as a crack between two things that touch.
@@ -1891,7 +1940,7 @@ a.btn-primary:visited {
 .screen.study .card-stage + .row,
 .screen.study .card-stage + .btn,
 .screen.study .card-stage + .grade-grid {
-  margin-top: 14px;
+  margin-top: 8px;
 }
 
 /* The front of the card holds one word. Centring it turns the space the card
@@ -1903,7 +1952,7 @@ a.btn-primary:visited {
 .memorise-forms {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: calc(4px * var(--fit));
 }
 
 /*
@@ -1930,29 +1979,20 @@ a.btn-primary:visited {
 }
 
 .screen.study .memorise-card.flipped .card-prompt .word {
-  font-size: clamp(1.15rem, 4.5vw, 1.7rem);
+  font-size: calc(clamp(1rem, 4vw, 1.35rem) * var(--fit));
 }
 
 .screen.study .memorise-card.flipped .card-prompt .glyph {
-  font-size: clamp(1.2rem, 3vh, 1.8rem);
+  font-size: calc(clamp(1.05rem, 2.4vh, 1.4rem) * var(--fit));
 }
 
 .screen.study .memorise-card.flipped .answer-block {
-  padding-top: clamp(4px, 1.2vh, 8px);
-  gap: 2px;
+  padding-top: calc(clamp(3px, 0.9vh, 6px) * var(--fit));
+  gap: calc(2px * var(--fit));
 }
 
 .screen.study .memorise-card.flipped .memorise-forms {
-  gap: 2px;
-}
-
-/* The same 44px the study card already gives the buttons inside its own face,
-   and for the same reason: four of these rows are stacked, so the 4px each one
-   gives up is 16px the scripts get back, and 44px is still comfortable under a
-   thumb with nothing crowding it horizontally. */
-.screen.study .memorise-card.flipped .memorise-form .btn.speaker {
-  min-height: 44px;
-  min-width: 44px;
+  gap: calc(2px * var(--fit));
 }
 
 /*
@@ -1963,7 +2003,7 @@ a.btn-primary:visited {
 .memorise-form {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   direction: ltr;
 }
 
@@ -1979,14 +2019,14 @@ a.btn-primary:visited {
 
 .memorise-form .form-line {
   font-family: var(--script);
-  font-size: 1.9rem;
+  font-size: calc(1.4rem * var(--fit));
   font-weight: 650;
 }
 
 /* Fluid for the same reason the spacing above it is, and floored at a size the
    pointed Hebrew and Arabic scripts are still read at rather than decoded. */
 .screen.study .memorise-form .form-line {
-  font-size: clamp(1.25rem, 3.4vh, 1.5rem);
+  font-size: max(0.95rem, calc(clamp(1.05rem, 2.6vh, 1.3rem) * var(--fit)));
 }
 
 /*
@@ -1998,7 +2038,7 @@ a.btn-primary:visited {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: calc(2px * var(--fit)) 10px;
 }
 
 /* ==========================================================================
@@ -2131,20 +2171,13 @@ h3,
     inset 0 0 0 1px rgba(255, 252, 244, 0.5),
     inset 0 0 0 4px rgba(120, 96, 58, 0.11),
     var(--shadow);
-  padding: 20px 16px;
+  padding: 12px 12px;
 }
 
 .card .muted,
 .card .small.muted,
 .card .translit {
   color: var(--card-muted-ink);
-}
-
-/* The limestone face, so the fade dissolves into the card rather than into the
-   flat colour the base rule used. */
-.card-stage.has-more::after {
-  border-radius: 0 0 var(--radius-cut) var(--radius-cut);
-  background: linear-gradient(to bottom, transparent, var(--stone-card));
 }
 
 .card-stack-edge,
@@ -2417,6 +2450,17 @@ a.btn-primary:active {
   height: 9px;
 }
 
+/* Three of these stack on a turned-over memorise card — under the prompt and
+   between the two languages. Ornament is the first thing that should give way
+   when the scripts need the height, so they shrink with the rest of the face. */
+.card .engraved-divider {
+  height: calc(10px * var(--fit));
+}
+
+.card .engraved-divider.tight {
+  height: calc(7px * var(--fit));
+}
+
 .levant-motif {
   display: block;
   color: var(--bronze);
@@ -2544,6 +2588,7 @@ a.btn-primary:active {
   font-weight: 600;
   letter-spacing: 0.01em;
   text-transform: none;
+  font-size: calc(clamp(1.3rem, 5.5vw, 1.8rem) * var(--fit));
 }
 
 .memorise-card .lang-label {

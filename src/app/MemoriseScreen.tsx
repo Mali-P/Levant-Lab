@@ -407,15 +407,6 @@ export default function MemoriseScreen() {
         </button>
       </div>
 
-      {/* The hint gives up its line once the card is open: four forms and two
-          labels need the height more than a reminder does, and the Flip and
-          Next buttons are right there saying the same thing. */}
-      {!session.flipped && (
-        <p className="small muted" style={{ textAlign: 'center' }}>
-          Tap the card to flip. Swipe left for the next one
-          {session.index > 0 ? ', right to go back' : ''}.
-        </p>
-      )}
     </div>
   );
 }

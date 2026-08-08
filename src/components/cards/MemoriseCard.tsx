@@ -11,6 +11,7 @@ import {
   type LanguageSide,
   type SpeechPerspective,
 } from '../../types';
+import { useFitToBox } from '../../hooks/useFitToBox';
 import { wordForms, type WordForm } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
 import Transliteration from './Transliteration';
@@ -122,6 +123,10 @@ export default function MemoriseCard(props: MemoriseCardProps) {
   const [showOthers, setShowOthers] = useState(false);
   useEffect(() => setShowOthers(false), [card.id]);
 
+  /* Four forms and two labels turned over always fit one face, because the face
+     sets itself smaller until they do rather than scrolling to them. */
+  const face = useFitToBox<HTMLElement>([card.id, flipped, showOthers, perspectives]);
+
   /**
    * Whether the gesture in progress has turned into a drag.
    *
@@ -171,6 +176,7 @@ export default function MemoriseCard(props: MemoriseCardProps) {
       <div className="card-shadow" aria-hidden="true" />
 
       <motion.article
+        ref={face}
         className={'card memorise-card' + (flipped ? ' flipped' : '')}
         style={{ x, rotate }}
         drag={reducedMotion ? false : 'x'}
@@ -276,7 +282,7 @@ export default function MemoriseCard(props: MemoriseCardProps) {
               {otherForms(side, perspectives).length > 0 && (
                 <button
                   type="button"
-                  className="btn btn-ghost small"
+                  className="btn btn-ghost btn-compact"
                   aria-expanded={showOthers}
                   onClick={(event) => {
                     // The card flips on tap; this press must not reach it.
