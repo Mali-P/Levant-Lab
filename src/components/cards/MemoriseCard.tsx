@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   motion,
   useMotionValue,
@@ -32,8 +32,14 @@ export type MemoriseCardProps = {
   canGoBack: boolean;
 };
 
-const SWIPE_DISTANCE = 110;
-const SWIPE_VELOCITY = 480;
+/**
+ * Looser than the study card's thresholds on purpose. There a swipe grades an
+ * answer, so it has to be meant; here it only walks the deck, and a swipe that
+ * has clearly been made should move the card rather than fall short and be
+ * mistaken for a tap.
+ */
+const SWIPE_DISTANCE = 70;
+const SWIPE_VELOCITY = 300;
 
 /**
  * One card in Memorise mode: English on the front, every Hebrew and Arabic
@@ -110,10 +116,24 @@ export default function MemoriseCard(props: MemoriseCardProps) {
   const [showOthers, setShowOthers] = useState(false);
   useEffect(() => setShowOthers(false), [card.id]);
 
+  /**
+   * Whether the gesture in progress has turned into a drag.
+   *
+   * The browser fires a click at the end of a drag as well as at the end of a
+   * tap, so without this the card would flip on every swipe — and a swipe that
+   * fell short of the threshold would flip and nothing else, which is exactly
+   * what "swiping only shows and hides the answer" was. Cleared on the way down
+   * so each new gesture starts as a tap and one swallowed click cannot eat the
+   * tap after it.
+   */
+  const dragged = useRef(false);
+
   const tilt = reducedMotion ? 0 : 9 * props.animationIntensity;
   const rotate = useTransform(x, [-220, 0, 220], [-tilt, 0, tilt]);
-  const nextOpacity = useTransform(x, [40, 130], [0, 1]);
-  const backOpacity = useTransform(x, [-130, -40], [1, 0]);
+  // Left is forward, so the badges follow the hand: dragging left brings "Next"
+  // in on the left edge, dragging right brings "Back" in on the right.
+  const nextOpacity = useTransform(x, [-130, -40], [1, 0]);
+  const backOpacity = useTransform(x, [40, 130], [0, 1]);
 
   useEffect(() => {
     x.set(0);
@@ -122,11 +142,11 @@ export default function MemoriseCard(props: MemoriseCardProps) {
   function handleDragEnd(_event: unknown, info: PanInfo) {
     const { offset, velocity } = info;
 
-    if (offset.x > SWIPE_DISTANCE || velocity.x > SWIPE_VELOCITY) {
+    if (offset.x < -SWIPE_DISTANCE || velocity.x < -SWIPE_VELOCITY) {
       props.onNext();
     } else if (
       props.canGoBack &&
-      (offset.x < -SWIPE_DISTANCE || velocity.x < -SWIPE_VELOCITY)
+      (offset.x > SWIPE_DISTANCE || velocity.x > SWIPE_VELOCITY)
     ) {
       props.onPrevious();
     }
@@ -150,18 +170,28 @@ export default function MemoriseCard(props: MemoriseCardProps) {
         drag={reducedMotion ? false : 'x'}
         dragElastic={0.5}
         dragSnapToOrigin
+        onDragStart={() => {
+          dragged.current = true;
+        }}
         onDragEnd={handleDragEnd}
         transition={{ type: 'spring', stiffness: 460, damping: 36 }}
-        // Tapping the card is the quick way to turn it over. The Flip button
-        // below it is the same action for anyone on a keyboard or a screen
-        // reader, so this stays a plain surface rather than a control.
-        onClick={props.onFlip}
+        onPointerDown={() => {
+          dragged.current = false;
+        }}
+        // Tapping the card is the quick way to turn it over — a tap only, never
+        // the tail of a swipe. The Flip button below it is the same action for
+        // anyone on a keyboard or a screen reader, so this stays a plain
+        // surface rather than a control.
+        onClick={() => {
+          if (dragged.current) return;
+          props.onFlip();
+        }}
         aria-label={'Card: ' + card.english}
       >
         {/* Both hints are neutral: neither direction grades anything, so
             neither should borrow the study card's green and red. */}
         <motion.span
-          className="swipe-hint right neutral"
+          className="swipe-hint left neutral"
           style={{ opacity: nextOpacity }}
           aria-hidden="true"
         >
@@ -170,7 +200,7 @@ export default function MemoriseCard(props: MemoriseCardProps) {
 
         {props.canGoBack && (
           <motion.span
-            className="swipe-hint left neutral"
+            className="swipe-hint right neutral"
             style={{ opacity: backOpacity }}
             aria-hidden="true"
           >

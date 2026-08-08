@@ -163,8 +163,9 @@ export default function MemoriseScreen() {
     play,
   ]);
 
-  // Desktop keyboard support: space turns the card over, enter and the right
-  // arrow move on, the left arrow steps back. Nothing here can grade, so there
+  // Desktop keyboard support: space turns the card over, enter and the left
+  // arrow move on, the right arrow steps back — the arrows point the same way
+  // the swipes do, so the two never disagree. Nothing here can grade, so there
   // is no destructive key and no key worth confirming.
   useEffect(() => {
     if (!session || session.completedAt) return;
@@ -173,10 +174,10 @@ export default function MemoriseScreen() {
       if (event.key === ' ') {
         event.preventDefault();
         flip();
-      } else if (event.key === 'Enter' || event.key === 'ArrowRight') {
+      } else if (event.key === 'Enter' || event.key === 'ArrowLeft') {
         event.preventDefault();
         advance();
-      } else if (event.key === 'ArrowLeft') {
+      } else if (event.key === 'ArrowRight') {
         event.preventDefault();
         goBack();
       }
@@ -400,8 +401,8 @@ export default function MemoriseScreen() {
           Next buttons are right there saying the same thing. */}
       {!session.flipped && (
         <p className="small muted" style={{ textAlign: 'center' }}>
-          Tap the card to flip. Swipe right for the next one
-          {session.index > 0 ? ', left to go back' : ''}.
+          Tap the card to flip. Swipe left for the next one
+          {session.index > 0 ? ', right to go back' : ''}.
         </p>
       )}
     </div>
