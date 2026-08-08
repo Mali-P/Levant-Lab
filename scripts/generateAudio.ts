@@ -23,7 +23,50 @@ const MANIFEST_MARKER =
   'export const AUDIO_CLIPS: Record<string, AudioClipRecord> = ';
 const REPORT_FILE = 'audio-report.json';
 
-type Options = { language?: AudioLanguage; force: boolean; dryRun: boolean };
+type Options = {
+  language?: AudioLanguage;
+  /** Case-insensitive deck name, e.g. `One to ten`. Absent means every deck. */
+  deck?: string;
+  force: boolean;
+  dryRun: boolean;
+};
+
+/**
+ * The romanisation handed to the provider as a pronunciation guide.
+ *
+ * Arabic only, and deliberately so. Levantine is written here without harakat,
+ * so the script alone leaves the vowels open and the model invents them; the
+ * pronunciation Levantry teaches closes that gap. It comes off the resolved
+ * plan rather than straight off the card, so where the dictionary and the card
+ * disagree the recording is held to the one actually used. Hebrew goes to
+ * Google, which takes no prose direction and would only have its fingerprint
+ * disturbed.
+ */
+function speechGuide(job: ClipJob): string | undefined {
+  return job.language === 'arabic' ? job.transliteration : undefined;
+}
+
+/**
+ * The jobs for one deck, matched on its name.
+ *
+ * One deck at a time is the only practical unit on a rate-limited key, and a
+ * name is what the person running this has in front of them. An unknown name is
+ * fatal rather than empty: recording nothing looks exactly like "everything was
+ * already up to date", and the run would report success.
+ */
+function selectDeck(jobs: ClipJob[], deck?: string): ClipJob[] {
+  if (!deck) return jobs;
+
+  const wanted = deck.toLowerCase();
+  const selected = jobs.filter((job) => job.deckName.toLowerCase() === wanted);
+  if (selected.length === 0) {
+    const names = [...new Set(jobs.map((job) => job.deckName))].sort();
+    throw new Error(
+      'No deck named "' + deck + '". Known decks:\n  ' + names.join('\n  '),
+    );
+  }
+  return selected;
+}
 
 function parseArgs(argv: string[]): Options {
   const options: Options = { force: false, dryRun: false };
@@ -39,6 +82,11 @@ function parseArgs(argv: string[]): Options {
         throw new Error('--language must be hebrew or arabic, got: ' + value);
       }
       options.language = value;
+    } else if (arg.startsWith('--deck=')) {
+      // One deck at a time is the only practical unit on a rate-limited key:
+      // the free tier allows three requests a minute, so "everything" is hours.
+      options.deck = arg.slice('--deck='.length).trim();
+      if (!options.deck) throw new Error('--deck needs a deck name.');
     } else if (arg.startsWith('--')) {
       throw new Error('Unknown option: ' + arg);
     }
@@ -92,7 +140,9 @@ type Failure = { key: string; english: string; reason: string };
 async function main(): Promise<number> {
   const options = parseArgs(process.argv.slice(2));
   const config = loadConfig();
-  const { jobs, missingText, duplicatePaths } = buildJobs(options.language);
+  const all = buildJobs(options.language);
+  const { missingText, duplicatePaths } = all;
+  const jobs = selectDeck(all.jobs, options.deck);
 
   const previous = readExistingManifest();
   const manifest: Record<string, AudioClipRecord> = { ...previous };
@@ -112,7 +162,7 @@ async function main(): Promise<number> {
     const unchanged =
       !options.force &&
       existsSync(file) &&
-      previous[job.key]?.sourceHash === sourceHash(job.spoken, voice);
+      previous[job.key]?.sourceHash === sourceHash(job.spoken, voice, speechGuide(job));
 
     if (unchanged) {
       skipped++;
@@ -205,7 +255,7 @@ async function main(): Promise<number> {
 
     for (const job of list) {
       try {
-        const raw = await voice.synthesize(job.spoken);
+        const raw = await voice.synthesize(job.spoken, speechGuide(job));
         const audio = trimming ? await normalise(raw, config) : raw;
 
         const file = resolve(config.outputRoot, job.path);
@@ -222,7 +272,7 @@ async function main(): Promise<number> {
           text: job.text,
           spoken: job.spoken,
           transliteration: job.transliteration,
-          sourceHash: sourceHash(job.spoken, voice.voice),
+          sourceHash: sourceHash(job.spoken, voice.voice, speechGuide(job)),
           bytes: audio.length,
           generatedAt: new Date().toISOString(),
         };

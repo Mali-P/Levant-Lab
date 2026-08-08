@@ -1,5 +1,63 @@
 import { describe, expect, it } from 'vitest';
-import { geminiAudioPart, pcmSampleRate, TtsError, wavFromPcm } from './providers';
+import {
+  geminiAudioPart,
+  geminiPrompt,
+  pcmSampleRate,
+  retryDelayMs,
+  TtsError,
+  wavFromPcm,
+} from './providers';
+
+describe('geminiPrompt', () => {
+  const style = 'Say it in Palestinian Arabic. Read only the words themselves:';
+
+  it('keeps the word last so nothing trails it to be read aloud', () => {
+    expect(geminiPrompt(style, 'تنين', 'tnēn').endsWith('تنين')).toBe(true);
+  });
+
+  // The whole reason the romanisation is sent: undiacritized تنين leaves the
+  // vowels open, and the model was closing them with a syllable that is not
+  // there — "tantina" for tnēn.
+  it('constrains the vowels to the romanisation the deck already knows', () => {
+    const prompt = geminiPrompt(style, 'تنين', 'tnēn');
+    expect(prompt).toContain('"tnēn"');
+    expect(prompt).toContain('add no vowel or syllable');
+  });
+
+  it('leaves exactly one colon between the direction and the word', () => {
+    expect(geminiPrompt(style, 'تنين', 'tnēn')).toContain('word.:\n\nتنين');
+    expect(geminiPrompt(style, 'تنين')).toBe(
+      'Say it in Palestinian Arabic. Read only the words themselves:\n\nتنين',
+    );
+  });
+
+  it('adds no guidance when the deck has no romanisation to give', () => {
+    for (const missing of [undefined, '', '   ']) {
+      expect(geminiPrompt(style, 'تنين', missing)).not.toContain('romanisation');
+    }
+  });
+});
+
+describe('retryDelayMs', () => {
+  // Google says when the per-minute window reopens; guessing means either
+  // hammering the quota or idling past it.
+  it('waits as long as the 429 body asks, plus slack for the boundary', () => {
+    expect(retryDelayMs('{"retryDelay": "49s"}', 0)).toBe(50_000);
+    expect(retryDelayMs('{"retryDelay":"49.501396553s"}', 0)).toBeCloseTo(50_501.4, 0);
+  });
+
+  it('backs off exponentially when the body carries no hint', () => {
+    expect(retryDelayMs('{}', 0)).toBe(5000);
+    expect(retryDelayMs('{}', 1)).toBe(10_000);
+    expect(retryDelayMs('{}', 2)).toBe(20_000);
+  });
+
+  // A bad or hostile retryDelay must not park the run for an hour.
+  it('never waits longer than the ceiling', () => {
+    expect(retryDelayMs('{"retryDelay": "3600s"}', 0)).toBe(90_000);
+    expect(retryDelayMs('{}', 99)).toBe(90_000);
+  });
+});
 
 describe('pcmSampleRate', () => {
   it('reads the rate Gemini declares', () => {

@@ -22,7 +22,12 @@ export interface Synthesizer {
    * an improvement.
    */
   readonly format: 'mp3' | 'wav';
-  synthesize(text: string): Promise<Buffer>;
+  /**
+   * `transliteration` is the deck's own romanisation of this exact form. It is
+   * a pronunciation guide, never something to read aloud, and a provider that
+   * cannot use one is free to ignore it — only Gemini takes direction in prose.
+   */
+  synthesize(text: string, transliteration?: string): Promise<Buffer>;
 }
 
 /**
@@ -141,6 +146,31 @@ const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models
 /** Fallback for a `mimeType` that names no rate. Gemini's TTS output rate. */
 const GEMINI_PCM_RATE = 24000;
 
+/** How many times one clip waits out a 429 before the run gives up on it. */
+const GEMINI_MAX_RETRIES = 5;
+
+/** Ceiling on a single wait, so a bad `retryDelay` cannot park the run. */
+const GEMINI_MAX_BACKOFF_MS = 90_000;
+
+/**
+ * How long to wait after a 429, from Google's own `RetryInfo.retryDelay`.
+ *
+ * The server knows when the per-minute window reopens and says so ("49s");
+ * guessing instead means either hammering the quota or idling past it. Plain
+ * exponential backoff is the fallback for a body that carries no such hint.
+ */
+export function retryDelayMs(body: string, attempt: number): number {
+  const match = /"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/.exec(body);
+  const seconds = match ? Number(match[1]) : NaN;
+
+  const wait = Number.isFinite(seconds)
+    ? // A second of slack: retrying on the exact boundary races the window.
+      seconds * 1000 + 1000
+    : Math.min(2 ** attempt * 5000, GEMINI_MAX_BACKOFF_MS);
+
+  return Math.min(wait, GEMINI_MAX_BACKOFF_MS);
+}
+
 /**
  * The rate out of `audio/L16;codec=pcm;rate=24000`.
  *
@@ -235,6 +265,38 @@ export function geminiAudioPart(payload: GeminiResponse): {
 }
 
 /**
+ * The prompt for one clip: the dialect direction, the romanisation when the
+ * deck has one, then the word.
+ *
+ * The romanisation is the point of this function. Levantine is written here
+ * without harakat, so the script alone underdetermines the vowels and the model
+ * fills them in — which is how `تنين` (tnēn) comes back with a syllable it does
+ * not have. The deck already knows the answer: every form carries the
+ * transliteration a learner reads. Handing that to the model turns a guess into
+ * a constraint.
+ *
+ * The guide goes *inside* the direction, ahead of the closing colon, because
+ * anything after the word is liable to be read aloud as part of it.
+ */
+export function geminiPrompt(
+  styleDirection: string,
+  text: string,
+  transliteration?: string,
+): string {
+  let direction = styleDirection.replace(/\s*:\s*$/, '');
+
+  if (transliteration?.trim()) {
+    direction +=
+      ' Pronounce it exactly as this romanisation shows — "' +
+      transliteration.trim() +
+      '" — and add no vowel or syllable the romanisation does not contain, ' +
+      'especially at the end of the word.';
+  }
+
+  return direction + ':\n\n' + text;
+}
+
+/**
  * Palestinian Levantine Arabic through Gemini TTS.
  *
  * The accent comes from `styleDirection`, not from a locale code: Gemini's
@@ -263,23 +325,45 @@ export async function geminiArabic(config: AudioConfig): Promise<Synthesizer> {
     // and clip fingerprint both read it.
     voice: arabicVoiceTag(config),
     format: 'wav',
-    async synthesize(text: string): Promise<Buffer> {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'x-goog-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: styleDirection + '\n\n' + text }] }],
-          generationConfig: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-              voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
-            },
+    async synthesize(text: string, transliteration?: string): Promise<Buffer> {
+      const body = JSON.stringify({
+        contents: [
+          { parts: [{ text: geminiPrompt(styleDirection, text, transliteration) }] },
+        ],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
           },
-        }),
+        },
       });
+
+      let response!: Response;
+
+      // The free tier allows three TTS requests a minute, so a 429 is the
+      // normal state of a long run rather than an error in it. Google says how
+      // long to wait in RetryInfo; waiting that out is the difference between
+      // a batch that finishes and one that fails on its fourth word.
+      for (let attempt = 0; ; attempt++) {
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'x-goog-api-key': apiKey,
+            'Content-Type': 'application/json',
+          },
+          body,
+        });
+
+        if (response.status !== 429 || attempt >= GEMINI_MAX_RETRIES) break;
+
+        const detail = await response.text().catch(() => '');
+        const wait = retryDelayMs(detail, attempt);
+        console.log(
+          '    rate limited, waiting ' + Math.round(wait / 1000) + 's (attempt ' +
+            (attempt + 1) + '/' + GEMINI_MAX_RETRIES + ')',
+        );
+        await new Promise((r) => setTimeout(r, wait));
+      }
 
       if (!response.ok) {
         const detail = await response.text().catch(() => '');

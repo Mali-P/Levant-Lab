@@ -47,10 +47,17 @@ export function buildJobs(language?: AudioLanguage): JobReport {
           if (language && side !== language) continue;
 
           for (const clip of clipsForSide(audioId, side, content)) {
+            // The per-clip reviewer override is the one tier above the card's
+            // own: it names a single recording rather than a word, which is how
+            // a fix for "two" in the counting deck stays out of "twenty-two".
+            // It is course data like any other, so it counts as a card-level
+            // pronunciation and is never re-derived from the spelling.
             const override = pronunciationOverride(clip.key);
             jobs.push({
               ...clip,
               spoken: override ?? clip.spoken,
+              ttsSource: override ? 'card' : clip.ttsSource,
+              locked: override ? true : clip.locked,
               overridden: Boolean(override),
               english: card.english,
               categoryName: category.name,
@@ -85,9 +92,22 @@ export function buildJobs(language?: AudioLanguage): JobReport {
  * clip whose file exists and whose fingerprint still matches, so editing one
  * word does not re-bill every other recording.
  */
-export function sourceHash(spoken: string, voice: string): string {
+export function sourceHash(
+  spoken: string,
+  voice: string,
+  transliteration?: string,
+): string {
+  // The romanisation is part of the prompt now, so it is part of what decides
+  // the sound: leave it out and a corrected transliteration would be written to
+  // the manifest while the clip kept the old mispronunciation for ever.
+  //
+  // Absent and empty hash alike, so the Hebrew and alphabet clips — which send
+  // no romanisation — keep the fingerprints they already have.
+  const guide = transliteration?.trim() ?? '';
+  const suffix = guide ? '::' + guide : '';
+
   return createHash('sha256')
-    .update(voice + '::' + spoken)
+    .update(voice + '::' + spoken + suffix)
     .digest('hex')
     .slice(0, 16);
 }
