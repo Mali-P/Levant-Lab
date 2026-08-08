@@ -9,6 +9,7 @@ import type { Flashcard, SpeechPerspective } from '../../types';
 import type { PromptPlan } from '../../features/study/prompts';
 import { wordForms, type WordForm } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
+import Transliteration from './Transliteration';
 import Icon from '../ornament/Icon';
 
 export type StudyCardProps = {
@@ -209,14 +210,25 @@ export default function StudyCard(props: StudyCardProps) {
             )}
 
             {revealed && props.showTransliteration && (
-              <div className="translit">
+              // One element per form rather than one joined string, so every
+              // word stays its own thing to hover. They sit on one line while
+              // they fit and wrap onto a second when they do not.
+              <div className="translit-lines">
                 {translitForms
-                  .map((form) =>
-                    (form.marker ? form.marker + ' ' : '') +
-                    (form.transliteration ?? ''),
-                  )
-                  .filter((line) => line.trim().length > 0)
-                  .join('   ')}
+                  .filter((form) => form.transliteration)
+                  .map((form) => (
+                    <span className="translit-line" key={form.key}>
+                      {form.marker && (
+                        <span className="form-marker" aria-label={form.label}>
+                          {form.marker}
+                        </span>
+                      )}
+                      <Transliteration
+                        text={form.transliteration!}
+                        language={field.scores}
+                      />
+                    </span>
+                  ))}
               </div>
             )}
           </div>

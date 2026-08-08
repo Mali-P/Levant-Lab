@@ -13,6 +13,7 @@ import {
 } from '../../types';
 import { wordForms, type WordForm } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
+import Transliteration from './Transliteration';
 import { EngravedDivider } from '../ornament/Ornament';
 
 export type MemoriseCardProps = {
@@ -81,7 +82,7 @@ function FormRow({
         </div>
 
         {showTransliteration && form.transliteration && (
-          <div className="translit">{form.transliteration}</div>
+          <Transliteration block text={form.transliteration} language={language} />
         )}
       </div>
 

@@ -78,6 +78,12 @@
   --bronze: #a8834a;
   --clay-text: #fbf4e4;
 
+  /* A tooltip is a chip of dark stone in both schemes. It is read against the
+     ivory card as often as against night stone, so it does not follow the
+     panel colour — a pale tip on a pale card would say the meaning quietly. */
+  --tip-stone: #2b2318;
+  --tip-line: #574834;
+
   --ok: #8fc9a0;
   --bad: #ef948a;
 
@@ -316,6 +322,87 @@ input, select, textarea {
   letter-spacing: 0.02em;
   direction: ltr;
   text-align: inherit;
+}
+
+/*
+ * A transliterated word that knows what it means.
+ *
+ * It is a button because it answers a press as well as a hover — a phone has
+ * no hover at all — and because that puts every word on the tab order for
+ * anyone reading by keyboard. Everything a button brings with it is stripped
+ * back to plain text apart from a hairline underline, so a line of them still
+ * reads as one romanised phrase rather than a row of controls.
+ */
+.translit-word {
+  position: relative;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 32%, transparent);
+  text-underline-offset: 3px;
+}
+
+.translit-word:hover,
+.translit-word:focus-visible,
+.translit-word.showing {
+  color: var(--card-ink);
+  text-decoration-color: currentColor;
+}
+
+/*
+ * The meaning itself: a chip of dark stone against the word.
+ *
+ * Fixed and drawn into the body, because the cards scroll and clip their own
+ * contents and a gloss cut in half by the card it explains would be worse than
+ * none. `Transliteration` sets `left` and `top` once it has measured both the
+ * word and this; everything here is the look, not the placement.
+ */
+.translit-gloss {
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 40;
+  width: max-content;
+  max-width: 210px;
+  padding: 6px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--tip-stone);
+  border: 1px solid var(--tip-line);
+  box-shadow: var(--shadow);
+  color: var(--clay-text);
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-align: center;
+  text-decoration: none;
+  white-space: normal;
+  direction: ltr;
+  /* The word underneath owns the pointer: a gloss that could be hovered would
+     keep itself open under a mouse that has already moved on. */
+  pointer-events: none;
+}
+
+/*
+ * The forms of one answer, romanised. They sit side by side while they fit and
+ * wrap when they do not, which is how a ♀ / ♂ pair reads on a phone.
+ */
+.translit-lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  direction: ltr;
+}
+
+.translit-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
 }
 
 /* ---------- shell ---------- */

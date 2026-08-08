@@ -2,6 +2,7 @@ import type { Flashcard, LanguageSide } from '../../types';
 import type { AnswerOutcome } from '../../features/study/engine';
 import { wordForms } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
+import Transliteration from '../cards/Transliteration';
 
 type Props = {
   outcome: AnswerOutcome;
@@ -31,7 +32,7 @@ function Correction({
           )}
           <span className={language + ' script-lg'}>{form.script}</span>
           {form.transliteration && (
-            <span className="translit">{form.transliteration}</span>
+            <Transliteration text={form.transliteration} language={language} />
           )}
           <SpeakerButton form={form} language={language} />
         </span>
