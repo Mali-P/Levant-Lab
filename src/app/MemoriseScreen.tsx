@@ -16,11 +16,16 @@ import {
   restartMemorise,
   type MemoriseSession,
 } from '../features/memorise/session';
+import { memoriseCategories, memorisePool } from '../features/memorise/selection';
 import MemoriseCard from '../components/cards/MemoriseCard';
 import ScreenHeader from '../components/controls/ScreenHeader';
 
 /**
- * Memorise mode: read the deck once, one card at a time.
+ * Memorise mode: read the cards once, one at a time.
+ *
+ * Two ways in, one screen. `/memorise/:deckId` reads a single deck, opened from
+ * its mode picker. `/memorise` is the middle tab, and reads whichever categories
+ * the learner ticked in Study — the first category until she ticks anything.
  *
  * Nothing on this screen grades anything. There is no answer to give, no
  * correct / incorrect pair, no retry pile, and not a single write to
@@ -30,7 +35,7 @@ import ScreenHeader from '../components/controls/ScreenHeader';
  * when the screen closes.
  */
 export default function MemoriseScreen() {
-  const { deckId = '' } = useParams();
+  const { deckId } = useParams();
   const navigate = useNavigate();
 
   const settings = useSettings((s) => s.settings);
@@ -48,11 +53,21 @@ export default function MemoriseScreen() {
   // shuffling on here once the order itself has become the thing they remember.
   const [shuffle, setShuffle] = useState(false);
 
-  const deck = decks.find((d) => d.id === deckId);
+  const deck = deckId ? decks.find((d) => d.id === deckId) : undefined;
   const category = categories.find((c) => c.id === deck?.categoryId);
 
+  // The tab's pile: the categories ticked in Study, the first category until
+  // she ticks any. Deliberately not consulted in deck mode, where the deck the
+  // learner opened is the pile and her tab selection has nothing to say.
+  const chosen = useMemo(
+    () =>
+      deckId ? [] : memoriseCategories(categories, settings.memoriseCategoryIds),
+    [deckId, categories, settings.memoriseCategoryIds],
+  );
+
   // A bookmark can point straight at a deck the learner has not earned yet, so
-  // the ladder is enforced here as well as in the UI that hides the button.
+  // the ladder is enforced here as well as in the UI that hides the button. The
+  // pile has no gate of its own — `memorisePool` simply leaves locked decks out.
   const gate = deck
     ? gateDecks(
         decks.filter((d) => d.categoryId === deck.categoryId),
@@ -64,9 +79,18 @@ export default function MemoriseScreen() {
   // Sorted, not merely filtered: IndexedDB returns rows by id, so an unsorted
   // "shuffle off" pass would still deal a counting deck out of sequence.
   const deckCards = useMemo(
-    () => sortCards(cards.filter((c) => c.deckId === deckId)),
-    [cards, deckId],
+    () =>
+      deckId
+        ? sortCards(cards.filter((c) => c.deckId === deckId))
+        : memorisePool({ categories: chosen, decks, cards, deckProgress }),
+    [deckId, chosen, cards, decks, deckProgress],
   );
+
+  // What the pass is dealt from, as one string: a deck id, or the categories
+  // she has chosen. Reticking a box in Study therefore deals a fresh pass, and
+  // a selection that happens to hold the same number of cards is not mistaken
+  // for the one before it.
+  const sourceKey = deckId ?? chosen.map((c) => c.id).join(',');
 
   useEffect(() => {
     if (locked || deckCards.length === 0) {
@@ -75,7 +99,7 @@ export default function MemoriseScreen() {
     }
     setSession(
       createMemoriseSession({
-        deckId,
+        deckId: deckId ?? 'selection',
         cardIds: deckCards.map((c) => c.id),
         now: new Date().toISOString(),
         shuffleCards: shuffle,
@@ -85,7 +109,7 @@ export default function MemoriseScreen() {
     // re-ordering the cards under a half-finished pass would leave the learner
     // with a "card 4 of 10" that means nothing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckId, deckCards.length, locked, shuffle]);
+  }, [sourceKey, deckCards.length, locked, shuffle]);
 
   const currentCard = session
     ? deckCards.find((c) => c.id === currentMemoriseCardId(session))
@@ -162,7 +186,7 @@ export default function MemoriseScreen() {
     return () => window.removeEventListener('keydown', onKey);
   }, [session, flip, advance, goBack]);
 
-  if (!deck) {
+  if (deckId && !deck) {
     return (
       <div className="screen">
         <ScreenHeader title="Deck not found" back />
@@ -170,7 +194,19 @@ export default function MemoriseScreen() {
     );
   }
 
-  if (locked) {
+  // One deck names itself and says which category it came from; the tab names
+  // the mode and lists what she chose, so it is always clear which pile is
+  // being dealt without leaving the screen to check.
+  const title = deck ? deck.name : 'Memorise';
+  const eyebrow = deck
+    ? (category?.name ?? '') + ' · Memorise'
+    : chosen.map((c) => c.name).join(' · ') || 'Nothing to memorise yet';
+  // The tab is a root: there is nothing behind it to go back to.
+  const back = Boolean(deckId);
+
+  // `locked` is only ever true with a deck in hand; naming it here keeps that
+  // obvious to the reader as well as to the type checker.
+  if (locked && deck) {
     return (
       <div className="screen">
         <ScreenHeader title={deck.name} eyebrow={category?.name} back />
@@ -194,12 +230,36 @@ export default function MemoriseScreen() {
   if (deckCards.length === 0) {
     return (
       <div className="screen">
-        <ScreenHeader title={deck.name} eyebrow={category?.name} back />
+        <ScreenHeader title={title} eyebrow={eyebrow} back={back} />
         <div className="empty">
-          <p>This deck has no cards yet.</p>
-          <button className="btn btn-primary" onClick={() => navigate('/manage')}>
-            Add cards
-          </button>
+          {deck ? (
+            <>
+              <p>This deck has no cards yet.</p>
+              <button
+                className="btn btn-primary"
+                onClick={() => navigate('/manage')}
+              >
+                Add cards
+              </button>
+            </>
+          ) : (
+            <>
+              {/* The pile can be empty without anything being wrong: a brand
+                  new install, or every deck of the chosen categories still
+                  locked. Both are answered in Study, so that is where the
+                  button goes. */}
+              <p>
+                Nothing to read here yet. Pick the categories you want to
+                memorise in Study.
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={() => navigate('/categories')}
+              >
+                Choose categories
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -211,13 +271,15 @@ export default function MemoriseScreen() {
 
     return (
       <div className="screen">
-        <ScreenHeader title={deck.name} eyebrow={category?.name} back />
+        <ScreenHeader title={title} eyebrow={eyebrow} back={back} />
         <div className="panel">
-          <div className="headline">Deck reviewed</div>
+          <div className="headline">{deck ? 'Deck reviewed' : 'Pass finished'}</div>
           <p className="muted">
             {seen === total
               ? 'You’ve seen all ' + total + (total === 1 ? ' card.' : ' cards.')
-              : 'You went through the deck — ' +
+              : 'You went through ' +
+                (deck ? 'the deck' : 'the cards') +
+                ' — ' +
                 seen +
                 ' of ' +
                 total +
@@ -234,18 +296,32 @@ export default function MemoriseScreen() {
             <button className="btn btn-block" onClick={again}>
               Review again
             </button>
-            <button
-              className="btn btn-primary btn-block"
-              onClick={() => navigate('/study/' + deck.id + '?mode=normal')}
-            >
-              Start Normal practice
-            </button>
-            <button
-              className="btn btn-block"
-              onClick={() => navigate('/category/' + deck.categoryId)}
-            >
-              Choose another deck
-            </button>
+            {deck ? (
+              <>
+                <button
+                  className="btn btn-primary btn-block"
+                  onClick={() => navigate('/study/' + deck.id + '?mode=normal')}
+                >
+                  Start Normal practice
+                </button>
+                <button
+                  className="btn btn-block"
+                  onClick={() => navigate('/category/' + deck.categoryId)}
+                >
+                  Choose another deck
+                </button>
+              </>
+            ) : (
+              // A pile drawn from several categories has no single deck to be
+              // tested on, so it offers the choosing screen instead of picking
+              // a deck on the learner's behalf.
+              <button
+                className="btn btn-primary btn-block"
+                onClick={() => navigate('/categories')}
+              >
+                Go to Study
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -255,7 +331,7 @@ export default function MemoriseScreen() {
   if (!session || !currentCard) {
     return (
       <div className="screen">
-        <ScreenHeader title={deck.name} eyebrow={category?.name} back />
+        <ScreenHeader title={title} eyebrow={eyebrow} back={back} />
         <p className="muted">Laying the cards out…</p>
       </div>
     );
@@ -263,11 +339,7 @@ export default function MemoriseScreen() {
 
   return (
     <div className="screen study">
-      <ScreenHeader
-        title={deck.name}
-        eyebrow={(category?.name ?? '') + ' · Memorise'}
-        back
-      />
+      <ScreenHeader title={title} eyebrow={eyebrow} back={back} />
 
       <div className="study-meta small">
         <span>

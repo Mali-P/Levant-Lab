@@ -365,6 +365,17 @@ export type Settings = {
    */
   speechPerspectives: SpeechPerspective[];
 
+  /**
+   * The categories the Memorise tab reads from, chosen in Study.
+   *
+   * Empty means "the first category" rather than "nothing": Memorise is the
+   * middle tab and must always open on something, so a learner who has never
+   * chosen — or who has just unticked the last box — still gets the category
+   * she is meant to start with. Ids of categories that no longer exist are
+   * ignored on read, so deleting a category cannot empty the tab either.
+   */
+  memoriseCategoryIds: string[];
+
   // Study
   defaultMode: StudyMode;
   defaultAnswerMode: AnswerMode;

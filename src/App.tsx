@@ -30,14 +30,19 @@ import Icon, { type IconName } from './components/ornament/Icon';
 
 /*
  * The destinations, each with its engraved mark: a temple front for home, a
- * scroll for the decks, an inscribed stele for the letters, carved columns
- * for the figures, and a rosette for the settings. The label stays under
- * every one of them — the icons are a second cue, never the only one.
+ * scroll for the decks, a codex for the flip-through, carved columns for the
+ * figures, and a rosette for the settings. The label stays under every one of
+ * them — the icons are a second cue, never the only one.
+ *
+ * Memorise holds the middle because it is what a learner does most, and does
+ * first: meeting the words. The letters moved inside Study, where the rest of
+ * the choosing happens — they are optional and gate nothing, so they do not
+ * need a permanent seat in the bar.
  */
 const TABS: { to: string; icon: IconName; label: string }[] = [
   { to: '/', icon: 'temple', label: 'Home' },
   { to: '/categories', icon: 'scroll', label: 'Study' },
-  { to: '/alphabets', icon: 'stele', label: 'Letters' },
+  { to: '/memorise', icon: 'codex', label: 'Memorise' },
   { to: '/stats', icon: 'columns', label: 'Stats' },
   { to: '/settings', icon: 'rosette', label: 'Settings' },
 ];
@@ -98,6 +103,9 @@ export default function App() {
         {/* A deck opens on its mode picker, so Memorise comes before the
             testing modes rather than after a failed run. */}
         <Route path="/deck/:deckId" element={<DeckScreen />} />
+        {/* Without a deck, Memorise reads the categories chosen in Study —
+            the same screen, dealt from a wider pile. */}
+        <Route path="/memorise" element={<MemoriseScreen />} />
         <Route path="/memorise/:deckId" element={<MemoriseScreen />} />
         <Route path="/study/:deckId" element={<StudyScreen />} />
         {/* The alphabets sit beside the decks, never in front of them: nothing

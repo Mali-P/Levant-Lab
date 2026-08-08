@@ -15,6 +15,9 @@ export const DEFAULT_SETTINGS: Settings = {
    */
   speechPerspectives: ['femaleToMale', 'femaleToFemale'],
 
+  // Nothing chosen yet, which `memoriseCategories` reads as the first category.
+  memoriseCategoryIds: [],
+
   defaultMode: 'normal',
   defaultAnswerMode: 'self',
   defaultDeckSize: 10,

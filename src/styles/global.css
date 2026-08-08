@@ -1015,6 +1015,26 @@ textarea.input {
   gap: 8px;
 }
 
+/* A category row and its Memorise tick. The tick is a sibling of the link
+   rather than a child of it: an anchor may not hold a button, and pressing it
+   must change the tab's pile, never navigate. */
+.category-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.category-row .list-item {
+  width: auto;
+  min-width: 0;
+}
+
+.category-row .chip-toggle {
+  flex-shrink: 0;
+  min-height: var(--tap);
+  padding-inline: 12px;
+}
+
 .list-item {
   display: flex;
   align-items: center;
