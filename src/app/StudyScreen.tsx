@@ -12,6 +12,7 @@ import {
   currentIntroCardId,
   introRemaining,
   isLadderSession,
+  type StudyEvent,
 } from '../features/study/engine';
 import { gateDecks, nextDeck } from '../features/review/unlock';
 import { db } from '../services/database/db';
@@ -24,6 +25,24 @@ import StageBanner from '../components/progress/StageBanner';
 import ScreenHeader from '../components/controls/ScreenHeader';
 
 const EMPTY_VALUES = { hebrew: '', arabic: '' };
+
+/**
+ * Outcomes the run passes over without stopping.
+ *
+ * These are the marks on a single card — recalled, missed, missed inside a
+ * mastery round. The score is written before anything renders, so there is
+ * nothing for a sheet to add beyond making her tap Continue to be told what she
+ * just graded herself. Every other event changes the shape of the run and keeps
+ * its sheet.
+ *
+ * Which outcomes are worth stopping for is a question about this screen, not
+ * about the ladder, so the list lives here rather than in the engine.
+ */
+const QUIET_EVENTS: readonly StudyEvent[] = [
+  'continue',
+  'retry-queued',
+  'round-missed',
+];
 
 export default function StudyScreen() {
   const { deckId = '' } = useParams();
@@ -252,6 +271,14 @@ export default function StudyScreen() {
   // alignment with the snapshots it is indexed against.
   const rewindable = mode === 'normal' && !drillCardId;
 
+  const continueNext = useCallback(() => {
+    setValues(EMPTY_VALUES);
+    setRevealed(false);
+    setCelebrate(false);
+    setGradedCardId(null);
+    advance();
+  }, [advance]);
+
   const grade = useCallback(
     async (result: { hebrew: boolean; arabic: boolean }) => {
       setGradedCardId(useSession.getState().session?.currentCardId ?? null);
@@ -277,8 +304,20 @@ export default function StudyScreen() {
       } else {
         fireFeedback(outcome.fullyCorrect ? 'accept' : 'reject', settings);
       }
+
+      // An ordinary answer is recorded and left at that. The sheet used to stop
+      // her on every card to say "Perfect." or "Not yet." over an answer she had
+      // just graded herself, and to print the word back at her — a verdict she
+      // had already reached and a correction she had already read off the
+      // revealed card. The score was written before any of it rendered, so
+      // stepping straight to the next card loses nothing but the interruption.
+      //
+      // Milestones keep their sheet. Clearing a stage, mastering the deck or
+      // having a round dealt again are things the run does *to* her rather than
+      // marks on one card, and each of them changes what happens next.
+      if (QUIET_EVENTS.includes(outcome.event)) continueNext();
     },
-    [submitAnswer, settings, rewindable, values],
+    [submitAnswer, settings, rewindable, values, continueNext],
   );
 
   const submitTyped = useCallback(() => {
@@ -292,14 +331,6 @@ export default function StudyScreen() {
       }),
     );
   }, [plan, currentCard, values, awaitingAdvance, grade, settings, perspectives]);
-
-  const continueNext = useCallback(() => {
-    setValues(EMPTY_VALUES);
-    setRevealed(false);
-    setCelebrate(false);
-    setGradedCardId(null);
-    advance();
-  }, [advance]);
 
   /**
    * Swipe left: take back the last answer and stand on that card again.

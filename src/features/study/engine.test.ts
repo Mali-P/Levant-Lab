@@ -511,21 +511,23 @@ describe('purity and resumability', () => {
 describe('describeStage', () => {
   const rng = () => mulberry32(12);
 
-  it('names the first stage by its size, never as a fraction of the deck', () => {
+  it('names the first stage without counting it', () => {
     const { label } = describeStage(start());
-    expect(label).toBe('Learning 3 words');
-    expect(label).not.toContain('10');
+    expect(label).toBe('Learning');
+    expect(label).not.toMatch(/\d/);
   });
 
-  it('credits what is already held when the next words arrive', () => {
+  it('says the set has grown without saying by how much', () => {
     const out = clearStage(readIntroduction(start(), rng()), rng());
-    expect(describeStage(out.session).label).toBe('Mastered 3 — learning 2 more');
+    expect(describeStage(out.session).label).toBe('Learning more words');
   });
 
-  it('says how many words are being tested', () => {
-    expect(describeStage(readIntroduction(start(), rng())).label).toBe(
-      'Testing 3 words',
-    );
+  it('names the testing stage without its size', () => {
+    const { label, detail } = describeStage(readIntroduction(start(), rng()));
+    expect(label).toBe('Testing');
+    // The count is still kept and still shown under the headline, as progress
+    // through the set rather than as the size of a test.
+    expect(detail).toBe('0 of 3 recalled');
   });
 
   it('calls the last stage the full deck', () => {
@@ -534,9 +536,7 @@ describe('describeStage', () => {
     while (s.activeCardCount < 10) {
       s = clearStage(readIntroduction(s, r), r).session;
     }
-    expect(describeStage(readIntroduction(s, r)).label).toBe(
-      'Full deck — 10 words',
-    );
+    expect(describeStage(readIntroduction(s, r)).label).toBe('Full deck');
   });
 
   it('counts perfect rounds once mastery begins', () => {

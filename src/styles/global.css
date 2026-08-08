@@ -744,6 +744,36 @@ textarea.input {
   gap: 16px;
   user-select: none;
   overflow-y: auto;
+  /* A card scrolled to its end must not hand the rest of the gesture to the
+     screen behind it, which on a locked study screen only shows the rubber
+     band and reads as the card coming loose. */
+  overscroll-behavior: contain;
+}
+
+/*
+ * The card is holding content below its own edge.
+ *
+ * A long sentence in two languages, each with two forms and a transliteration
+ * under them, is taller than a short phone can give the card — and what falls
+ * over the edge is the last line of the last block, which is the Arabic
+ * transliteration. The card scrolls to it, but a clean cut looks like the end
+ * of the card rather than the middle of it, so the foot fades while there is
+ * more below and stops the moment there is not.
+ *
+ * It sits on the stage rather than inside the card because the card is the
+ * scroller: an ::after within it would be pinned to the top of the scrolled
+ * content and slide away with the very thing it is advertising.
+ */
+.card-stage.has-more::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 46px;
+  border-radius: 0 0 26px 26px;
+  background: linear-gradient(to bottom, transparent, var(--card));
+  pointer-events: none;
 }
 
 .card-prompt {
@@ -1239,6 +1269,19 @@ a.btn-primary:visited {
 
 .screen.study .card-prompt .word {
   font-size: clamp(1.35rem, 3.6vh, 2.5rem);
+}
+
+/* A phrase, and then a whole sentence. Set down in two steps rather than one
+   so a three-word prompt is not punished for a ten-word one; the floors stay
+   above the size the answers are set at, because a prompt smaller than its own
+   answer reads as a caption. */
+.screen.study .card-prompt .word.word-long {
+  font-size: clamp(1.15rem, 2.9vh, 1.9rem);
+}
+
+.screen.study .card-prompt .word.word-longer {
+  font-size: clamp(1rem, 2.4vh, 1.55rem);
+  letter-spacing: -0.01em;
 }
 
 .screen.study .answer-block {
@@ -2095,6 +2138,13 @@ h3,
 .card .small.muted,
 .card .translit {
   color: var(--card-muted-ink);
+}
+
+/* The limestone face, so the fade dissolves into the card rather than into the
+   flat colour the base rule used. */
+.card-stage.has-more::after {
+  border-radius: 0 0 var(--radius-cut) var(--radius-cut);
+  background: linear-gradient(to bottom, transparent, var(--stone-card));
 }
 
 .card-stack-edge,

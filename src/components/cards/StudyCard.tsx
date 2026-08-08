@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   motion,
   useMotionValue,
@@ -52,8 +52,45 @@ const SWIPE_VELOCITY = 480;
 export default function StudyCard(props: StudyCardProps) {
   const { card, plan, revealed, typed, values, reducedMotion } = props;
   const firstField = useRef<HTMLInputElement>(null);
+  const face = useRef<HTMLElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
+
+  /**
+   * Whether the card is holding back content below its own bottom edge.
+   *
+   * A long sentence with both languages, both forms and both transliterations
+   * is simply taller than a short phone can give it, and the transliteration is
+   * the last thing on the card — so the one line the learner most needs is the
+   * first one to go over the edge. The card has always scrolled; what it never
+   * did was say so, and on a phone it could not even be scrolled (see the drag
+   * axis below). This drives the fade at the card's foot, which is the only
+   * thing telling her there is more.
+   */
+  const [clipped, setClipped] = useState(false);
+
+  const measure = useCallback(() => {
+    const el = face.current;
+    if (!el) return;
+    // A pixel of slack: sub-pixel layout rounding otherwise reports a card that
+    // fits exactly as one with more to see, and the fade never goes away.
+    setClipped(el.scrollHeight - el.scrollTop - el.clientHeight > 1);
+  }, []);
+
+  useEffect(() => {
+    const el = face.current;
+    if (!el) return;
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    // Revealing an answer changes the card's content, not its box, so the
+    // children are watched too — a ResizeObserver on the scroller alone never
+    // fires when what grew is inside it.
+    for (const child of Array.from(el.children)) observer.observe(child);
+
+    return () => observer.disconnect();
+  }, [measure, card.id, revealed, typed]);
 
   const tilt = reducedMotion ? 0 : 9 * props.animationIntensity;
   const rotate = useTransform(x, [-220, 0, 220], [-tilt, 0, tilt]);
@@ -87,15 +124,42 @@ export default function StudyCard(props: StudyCardProps) {
   const promptClass =
     plan.promptLanguage === 'english' ? 'english' : plan.promptLanguage;
 
+  /*
+   * A whole sentence set at the size of the word "one" takes three lines of a
+   * card that has four to give, and every one of them comes out of the answer
+   * it is asking for. The prompt is the part the learner already understands,
+   * so it is the part that gives way: the longer it is, the smaller it is set.
+   * The thresholds are lengths, not line counts, because the line count depends
+   * on a width this component does not know.
+   */
+  const promptSize =
+    plan.promptText.length > 34
+      ? ' word-longer'
+      : plan.promptText.length > 18
+        ? ' word-long'
+        : '';
+
   return (
-    <div className="card-stage">
+    <div className={'card-stage' + (clipped ? ' has-more' : '')}>
       <div className="card-shadow deep" aria-hidden="true" />
       <div className="card-shadow" aria-hidden="true" />
 
       <motion.article
+        ref={face}
         className="card"
         style={{ x, y, rotate }}
-        drag={reducedMotion ? false : true}
+        onScroll={measure}
+        /*
+         * Dragging on both axes makes framer set `touch-action: none`, which
+         * takes the card's own vertical scrolling away from every touch device
+         * — the content below the fold became literally unreachable rather than
+         * merely hidden. Once the answer is showing there is nothing left to
+         * swipe up for, so the card drops to the horizontal axis and the
+         * browser gives scrolling back. Before the reveal it still drags both
+         * ways, because that is the swipe-up gesture, and an unrevealed card
+         * has nothing worth scrolling to.
+         */
+        drag={reducedMotion ? false : revealed || typed ? 'x' : true}
         dragElastic={0.5}
         dragSnapToOrigin
         onDragEnd={handleDragEnd}
@@ -142,7 +206,8 @@ export default function StudyCard(props: StudyCardProps) {
                 className={
                   'word ' +
                   promptClass +
-                  (plan.promptLanguage === 'english' ? '' : ' script-prompt')
+                  (plan.promptLanguage === 'english' ? '' : ' script-prompt') +
+                  promptSize
                 }
               >
                 {plan.promptText}

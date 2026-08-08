@@ -475,7 +475,7 @@ export function stageProgress(s: StudySession): {
 }
 
 export type StageDescription = {
-  /** The headline: "Testing 5 words", "Full deck — 10 words". */
+  /** The headline: "Testing", "Full deck", "Perfect rounds: 3 / 10". */
   label: string;
   /** The line under it, or null where the headline says everything. */
   detail: string | null;
@@ -485,10 +485,13 @@ export type StageDescription = {
 /**
  * What to call the phase the learner is in.
  *
- * Deliberately never "3 of 10". Early progress is not a failed ten-card test,
- * and a counter that reads like one tells her she is behind at the exact moment
- * she is doing this correctly. The smaller set is the design, so the wording
- * says so.
+ * The size of the set is not in the headline. It was — "Testing 3 words", said
+ * so that a small set could not be misread as a ten-card test she was three
+ * cards into — but naming the number at all invites the comparison it was
+ * trying to head off, and the ladder's set size is bookkeeping rather than
+ * something she chose. It is still counted, still shown as pips and as
+ * "2 of 3 recalled" underneath, where it reads as progress through what is in
+ * front of her rather than as the size of a test.
  */
 export function describeStage(s: StudySession): StageDescription {
   const total = s.activeCardIds.length;
@@ -504,10 +507,7 @@ export function describeStage(s: StudySession): StageDescription {
       const adding = s.introduceCardIds.length;
       const held = total - adding;
       return {
-        label:
-          held === 0
-            ? 'Learning ' + words(adding)
-            : 'Mastered ' + held + ' — learning ' + adding + ' more',
+        label: held === 0 ? 'Learning' : 'Learning more words',
         detail:
           'Card ' +
           (s.introduceIndex + 1) +
@@ -521,7 +521,7 @@ export function describeStage(s: StudySession): StageDescription {
     case 'testing': {
       const { recalled } = stageProgress(s);
       return {
-        label: full ? 'Full deck — ' + words(total) : 'Testing ' + words(total),
+        label: full ? 'Full deck' : 'Testing',
         detail: recalled + ' of ' + total + ' recalled',
         phase: s.phase,
       };
@@ -550,10 +550,6 @@ export function describeStage(s: StudySession): StageDescription {
         phase: s.phase,
       };
   }
-}
-
-function words(n: number): string {
-  return n + (n === 1 ? ' word' : ' words');
 }
 
 export function isComplete(s: StudySession): boolean {
