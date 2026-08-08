@@ -73,6 +73,20 @@ export class FlashcardDatabase extends Dexie {
       tombstones: '[collection+key], deletedAt',
       syncState: 'id',
     });
+
+    // v4 changes no schema. Study became a ladder — three words, then five,
+    // then seven, then the deck — and a session from before it has no phase and
+    // no active set to resume into. There is nothing to map those onto, so the
+    // unfinished ones are dropped and the deck is begun again from its first
+    // three cards. Nothing scored is lost: card accuracy and the deck's banked
+    // perfect rounds live in their own tables and are left alone. Completed
+    // sessions are history and stay.
+    this.version(4).upgrade(async (tx) => {
+      await tx
+        .table('sessions')
+        .filter((s) => !s.completedAt && typeof s.phase !== 'string')
+        .delete();
+    });
   }
 }
 

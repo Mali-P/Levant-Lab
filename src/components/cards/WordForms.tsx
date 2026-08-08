@@ -13,15 +13,17 @@ type Props = {
  *
  * Where the phrase changes with who is speaking, the learner's own
  * perspectives are shown in female-first order and nobody else's. Otherwise
- * the grammatical pair reads feminine-first with its ♀ / ♂ markers, and a word
- * everyone says the same way renders as one unmarked line.
+ * the grammatical pair reads with her own form first — feminine unless she has
+ * said she is a man — with its ♀ / ♂ markers, and a word everyone says the same
+ * way renders as one unmarked line.
  *
  * Every list surface uses this rather than reading `script`, which mirrors
  * only the leading form and would quietly teach half the card.
  */
 export default function WordForms({ side, language }: Props) {
-  const perspectives = useSettings((s) => s.settings.speechPerspectives);
-  const forms = wordForms(side as LanguageSide, perspectives);
+  const perspectives = useSettings((s) => s.perspectives);
+  const lead = useSettings((s) => s.lead);
+  const forms = wordForms(side as LanguageSide, perspectives, lead);
 
   return (
     <span className={'forms-inline ' + language}>

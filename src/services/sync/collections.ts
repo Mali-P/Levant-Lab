@@ -13,6 +13,7 @@ import { db } from '../database/db';
 import type { Settings } from '../../types';
 import type { AlphabetProgress } from '../../types/alphabet';
 import { EPOCH, stamp, type SyncCollection } from './protocol';
+import { migrateSettings } from '../../stores/settingsStore';
 
 /** The latest of several optional stamps, or epoch when a row has none. */
 function latest(...values: Array<string | undefined>): string {
@@ -127,8 +128,12 @@ export const COLLECTIONS: Record<SyncCollection, CollectionSpec> = {
     write: async (value) => {
       // The incoming row has had its voices stripped, so a plain put would
       // silence this device. Keep whatever it had chosen for itself.
+      //
+      // Migrated on the way in, because the sending device may be on a build
+      // that still stores a perspective list rather than an identity, and a
+      // row this one cannot read is worse than one that arrives converted.
       const current = await db.settings.get('settings');
-      const next = { ...(value as Settings), id: 'settings' as const };
+      const next = migrateSettings(value as Partial<Settings>);
       for (const field of DEVICE_LOCAL_SETTINGS) {
         if (current?.[field] !== undefined) next[field] = current[field];
       }

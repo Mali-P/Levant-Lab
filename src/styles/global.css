@@ -559,6 +559,32 @@ input, select, textarea {
   padding: 0 12px;
 }
 
+/*
+ * A control that reads as prose, for actions belonging inside the sentence that
+ * explains them — "you're practising ♀→♂ ♂→♂; use my usual perspectives". A
+ * pill button there would break the line it is meant to complete.
+ */
+.link-button {
+  min-height: 0;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* A secondary answer, folded under the primary one that should be given first. */
+.disclosure {
+  margin-top: 12px;
+}
+
+.disclosure > summary {
+  cursor: pointer;
+  padding: 8px 0;
+}
+
 .btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -644,6 +670,28 @@ textarea.input {
   align-items: baseline;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+/*
+ * The stage strip: what she is being asked for, and how far into it she is.
+ *
+ * Given a little more weight than the card counter it replaces, because it is
+ * now the only thing on the screen saying that three words is the whole of this
+ * stage rather than three out of a ten she is failing.
+ */
+.stage-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stage-label {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.stage-detail {
+  margin: 0;
 }
 
 .card-stage {

@@ -24,6 +24,12 @@ export type StudyCardProps = {
    * perspective she has not enabled.
    */
   perspectives: readonly SpeechPerspective[];
+  /**
+   * Which half of a grammatical pair to reveal first, from the learner's
+   * identity rather than from the perspective being asked for. Display only:
+   * both halves are revealed either way, and grading never sees it.
+   */
+  lead?: 'feminine' | 'masculine';
   showTransliteration: boolean;
   animationIntensity: number;
   reducedMotion: boolean;
@@ -153,10 +159,11 @@ export default function StudyCard(props: StudyCardProps) {
           const revealForms: WordForm[] =
             field.input === 'english'
               ? [{ script: card.english, key: 'only' }]
-              : wordForms(answerSide, props.perspectives);
+              : wordForms(answerSide, props.perspectives, props.lead);
           const translitForms = wordForms(
             field.scores === 'hebrew' ? card.hebrew : card.arabic,
             props.perspectives,
+            props.lead,
           );
 
           return (

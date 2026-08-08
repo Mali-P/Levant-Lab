@@ -16,6 +16,16 @@ const HOW_ARE_YOU: LanguageSide = {
   },
 };
 
+/** "good" — a grammatical pair, decided by whoever the word describes. */
+const GOOD: LanguageSide = {
+  script: 'טוב',
+  transliteration: 'tov',
+  forms: {
+    feminine: { script: 'טובה', transliteration: 'tova' },
+    masculine: { script: 'טוב', transliteration: 'tov' },
+  },
+};
+
 describe('speaker and listener perspectives', () => {
   it('leads with the female-speaker form whatever order the setting is in', () => {
     const forms = wordForms(HOW_ARE_YOU, ['maleToMale', 'femaleToFemale', 'femaleToMale']);
@@ -88,17 +98,45 @@ describe('wordForms', () => {
   });
 
   it('returns the feminine form first, then the masculine', () => {
-    const forms = wordForms({
-      script: 'טוב',
-      transliteration: 'tov',
-      forms: {
-        feminine: { script: 'טובה', transliteration: 'tova' },
-        masculine: { script: 'טוב', transliteration: 'tov' },
-      },
-    });
+    const forms = wordForms(GOOD);
     expect(forms.map((f) => f.gender)).toEqual(['feminine', 'masculine']);
     expect(forms.map((f) => f.script)).toEqual(['טובה', 'טוב']);
     expect(forms.map((f) => f.marker)).toEqual(['♀', '♂']);
+  });
+});
+
+describe('which half of a pair a learner reads first', () => {
+  it('leads a male learner with the form he would actually say', () => {
+    const forms = wordForms(GOOD, undefined, 'masculine');
+    expect(forms.map((f) => f.gender)).toEqual(['masculine', 'feminine']);
+    expect(forms.map((f) => f.script)).toEqual(['טוב', 'טובה']);
+  });
+
+  it('still shows both halves, so ordering never hides a form', () => {
+    expect(wordForms(GOOD, undefined, 'masculine')).toHaveLength(2);
+  });
+
+  it('keeps each form its own marker and key whichever way round they come', () => {
+    const [first] = wordForms(GOOD, undefined, 'masculine');
+    expect(first.marker).toBe('♂');
+    expect(first.key).toBe('masculine');
+  });
+
+  it('is ignored where the side has speech forms, which order by perspective', () => {
+    const forms = wordForms(
+      HOW_ARE_YOU,
+      ['femaleToMale', 'femaleToFemale'],
+      'masculine',
+    );
+    expect(forms.map((f) => f.transliteration)).toEqual(['kīfak', 'kīfik']);
+  });
+
+  it('never reaches grading: both halves stay expected either way', () => {
+    // `lead` is a display preference. What is accepted is decided by the card
+    // and by the perspectives she studies, so it cannot narrow with ordering.
+    const accepted = expectedAnswers(GOOD, {});
+    expect(accepted).toContain('טובה');
+    expect(accepted).toContain('טוב');
   });
 });
 

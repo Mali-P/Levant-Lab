@@ -1,25 +1,31 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  SPEECH_PERSPECTIVES,
   SPEECH_PERSPECTIVE_LABELS,
   SPEECH_PERSPECTIVE_MARKERS,
+  SPEECH_PERSPECTIVE_SHORT,
   type AnswerMode,
+  type PersonGender,
+  type SpeechPerspective,
   type StudyMode,
   type ThemeMode,
 } from '../types';
 import { useSettings } from '../stores/settingsStore';
-import {
-  derivePerspectives,
-  listenersOf,
-  speakerOf,
-  type ListenerChoice,
-  type SpeakerGender,
-} from '../utils/speechIdentity';
+import { derivePerspectives } from '../utils/speechIdentity';
 import { speechService, rankVoices, type SpeechVoice } from '../services/speech';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Toggle from '../components/controls/Toggle';
 import Choice from '../components/controls/Choice';
 import Slider from '../components/controls/Slider';
+
+/**
+ * How the listener question is put, which is not how it is stored. "Both" is
+ * one answer to a person and two entries in `listenerGenders`; keeping the
+ * phrasing here rather than in the type stops the stored field from having to
+ * carry a word that is really a piece of copy.
+ */
+type ListenerChoice = PersonGender | 'both';
 
 export default function SettingsScreen() {
   const settings = useSettings((s) => s.settings);
@@ -38,30 +44,59 @@ export default function SettingsScreen() {
     ...list.map((v) => ({ value: v.id, label: v.name + ' (' + v.lang + ')' })),
   ];
 
-  const perspectives = settings.speechPerspectives;
+  const perspectives = useSettings((s) => s.perspectives);
 
   /**
-   * The two questions behind the four perspectives: who she is, and who she is
-   * speaking to. `speechPerspectives` stays the stored, canonical field —
-   * these controls read it and write it back derived, so grading, audio and
-   * every card keep reading exactly what they read before.
+   * The two questions this app is written around: who she is, and who she is
+   * speaking to. They now write the fields they are asking about, rather than a
+   * perspective list that would later have to be read backwards into a person.
    *
    * Neither answer can empty the list: every combination derives at least one
    * perspective, and an empty set would leave a gendered card with nothing to
-   * show and nothing to grade. Nothing here touches progress — the setting only
-   * decides which forms are taught, so it can be changed at any point without
-   * losing a score.
+   * show and nothing to grade. Nothing here touches progress — identity decides
+   * which forms are taught, not what has been learned, so it can be changed at
+   * any point without losing a score.
+   *
+   * Answering either question also settles `identityConfirmed`: the defaults
+   * are the app's assumption until she says otherwise, and it is worth knowing
+   * which of the two she is looking at.
    */
-  const speaker = speakerOf(perspectives);
-  const listeners = listenersOf(perspectives);
+  const speaker = settings.learnerGender;
+  const listeners: ListenerChoice =
+    settings.listenerGenders.length > 1 ? 'both' : settings.listenerGenders[0];
 
-  function setIdentity(next: { speaker?: SpeakerGender; listeners?: ListenerChoice }) {
+  function setIdentity(next: { speaker?: PersonGender; listeners?: ListenerChoice }) {
+    const chosen = next.listeners ?? listeners;
     void update({
-      speechPerspectives: derivePerspectives(
-        next.speaker ?? speaker,
-        next.listeners ?? listeners,
-      ),
+      learnerGender: next.speaker ?? speaker,
+      listenerGenders: chosen === 'both' ? ['male', 'female'] : [chosen],
+      identityConfirmed: true,
     });
+  }
+
+  /**
+   * The four checkboxes, behind a disclosure and writing nothing but the
+   * override.
+   *
+   * They start from whatever is in force, so unticking from her derived pair is
+   * how an override begins; unticking the last one ends it, which is the same
+   * thing the clear control does. Identity is never touched here — that is the
+   * whole point of the field being separate — so clearing always returns her to
+   * the person she said she was.
+   */
+  const override = settings.practicePerspectiveOverride;
+
+  function togglePerspective(p: SpeechPerspective, on: boolean) {
+    const next = SPEECH_PERSPECTIVES.filter((candidate) =>
+      candidate === p ? on : perspectives.includes(candidate),
+    );
+    // Ticking back to exactly what her identity implies is not an override, it
+    // is the absence of one, and storing it as an override would leave her with
+    // a banner about a difference she cannot see.
+    const usual = derivePerspectives(speaker, settings.listenerGenders);
+    const same =
+      next.length === usual.length && next.every((q) => usual.includes(q));
+    void update({ practicePerspectiveOverride: same ? undefined : next });
   }
 
   return (
@@ -78,7 +113,18 @@ export default function SettingsScreen() {
           for what you pick here, and changing it later keeps every score.
         </p>
 
-        <Choice<SpeakerGender>
+        {/* The one consumer of `identityConfirmed`, and the reason it exists:
+            until she answers, these two are what the app assumed, and saying so
+            is the difference between asking her a question and presenting her
+            with a decision she never made. Either answer settles it. */}
+        {!settings.identityConfirmed && (
+          <p className="small">
+            These are what this app assumed — it is written for a woman
+            speaking to anyone. Answer either question to make them yours.
+          </p>
+        )}
+
+        <Choice<PersonGender>
           label="I am…"
           value={speaker}
           onChange={(v) => setIdentity({ speaker: v })}
@@ -108,6 +154,44 @@ export default function SettingsScreen() {
               SPEECH_PERSPECTIVE_LABELS[perspectives[0]] +
               '.'}
         </p>
+
+        {/* Never invisible state: an override is a different answer from the
+            one the two questions above are showing, so it says so, and the way
+            back is next to it rather than buried in the disclosure. */}
+        {override && (
+          <p className="small">
+            You're practising{' '}
+            {override.map((p) => SPEECH_PERSPECTIVE_MARKERS[p]).join(' ')} —
+            not what the answers above imply.{' '}
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => update({ practicePerspectiveOverride: undefined })}
+            >
+              Use my usual perspectives
+            </button>
+          </p>
+        )}
+
+        {/* Folded away because the two questions are the honest ones and this
+            is the escape hatch: picking perspectives directly is useful, but
+            offering it first invites her to describe herself as a checklist. */}
+        <details className="disclosure" open={Boolean(override)}>
+          <summary className="small muted">Choose perspectives directly</summary>
+          <p className="small muted">
+            Overrides the two answers above without changing them. Editing who
+            you are while this is set changes what you would return to, not what
+            you see now.
+          </p>
+          {SPEECH_PERSPECTIVES.map((p) => (
+            <Toggle
+              key={p}
+              label={SPEECH_PERSPECTIVE_MARKERS[p] + '  ' + SPEECH_PERSPECTIVE_SHORT[p]}
+              checked={perspectives.includes(p)}
+              onChange={(on) => togglePerspective(p, on)}
+            />
+          ))}
+        </details>
       </section>
 
       <section className="panel">
@@ -138,15 +222,16 @@ export default function SettingsScreen() {
           onChange={(v) => update({ defaultDeckSize: v })}
         />
         <Slider
-          label="Required perfect runs"
+          label="Required perfect rounds"
           value={settings.defaultPerfectRunsRequired}
           min={1} max={20} step={1}
           onChange={(v) => update({ defaultPerfectRunsRequired: v })}
         />
-        <Toggle label="Shuffle cards" checked={settings.shuffleCards}
-          onChange={(v) => update({ shuffleCards: v })} />
-        <Toggle label="Shuffle after a failed run" checked={settings.shuffleAfterFailure}
-          onChange={(v) => update({ shuffleAfterFailure: v })} />
+        {/* No shuffle toggles here any more. Testing is always drawn at
+            random — a stage whose order the learner could fix would be recall
+            of the order — and every mastery round reshuffles. The one place
+            order is still a choice is the Memorise tab, which carries its own
+            toggle beside the cards it applies to. */}
         <Toggle label="Show transliteration" checked={settings.showTransliteration}
           onChange={(v) => update({ showTransliteration: v })} />
         <Toggle label="Show hints" checked={settings.showHints}
@@ -166,10 +251,12 @@ export default function SettingsScreen() {
           onChange={(v) => update({ lenientArabicLetters: v })} />
         <Toggle label="Mastery decays over time" checked={settings.enableMasteryDecay}
           onChange={(v) => update({ enableMasteryDecay: v })} />
-        <Toggle label="Start the retry pile automatically" checked={settings.autoStartRetryPile}
-          onChange={(v) => update({ autoStartRetryPile: v })} />
+        {/* The retry pile is gone. A missed card is not set aside for the end
+            of a pass any more — it is put back into the draw, weighted to
+            return sooner, which is the whole difference between practising
+            retrieval and working through a queue. */}
         <Toggle label="Brutal reset in hard mode"
-          hint="A hard-mode mistake also wipes completed perfect runs."
+          hint="A hard-mode mistake also wipes completed perfect rounds."
           checked={settings.brutalResetOnHardFailure}
           onChange={(v) => update({ brutalResetOnHardFailure: v })} />
       </section>

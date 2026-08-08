@@ -68,6 +68,16 @@ export type SpeechPerspective =
   | 'maleToFemale'
   | 'maleToMale';
 
+/**
+ * A person's gender, on the speaker/listener axis.
+ *
+ * Deliberately not the same type as the feminine/masculine of `GenderedForms`,
+ * which is a grammatical property of a word. A person speaks or is spoken to; a
+ * word has a gender. One shared union would invite reading either as the other,
+ * which is the confusion this axis exists to prevent.
+ */
+export type PersonGender = 'female' | 'male';
+
 /** The canonical order: ♀→♂ · ♀→♀ · ♂→♀ · ♂→♂. */
 export const SPEECH_PERSPECTIVES: readonly SpeechPerspective[] = [
   'femaleToMale',
@@ -280,6 +290,25 @@ export type SessionAnswer = {
   at: string;
 };
 
+/**
+ * Where a deck's run has got to.
+ *
+ * A deck is not ten words handed over at once. It is met three at a time and
+ * grown: `introducing` reads the new words, `testing` asks for the whole active
+ * set back, and the two alternate until that set is the deck. Only then does
+ * `fullDeckMastery` begin, and only repeated flawless rounds of it reach
+ * `completed`.
+ *
+ * Stored rather than inferred. Nothing about the phase can be read off the
+ * screen or recomputed from a score, so it travels on the session row and
+ * survives a reload, a closed tab, and a walk to another category.
+ */
+export type StudyPhase =
+  | 'introducing'
+  | 'testing'
+  | 'fullDeckMastery'
+  | 'completed';
+
 export type StudySession = {
   id: string;
   deckId: string;
@@ -288,6 +317,9 @@ export type StudySession = {
    * A one-card drill on a weak word rather than a run through the deck. It is
    * kept out of the "Continue" panel and out of every resume query, and it
    * never stamps the deck as completed — only the card's own progress moves.
+   *
+   * A drill has no ladder: there is nothing to introduce and nothing to grow
+   * to, so it opens straight in `testing` and one correct answer ends it.
    */
   drill?: boolean;
 
@@ -295,18 +327,66 @@ export type StudySession = {
   promptDirection: PromptDirection;
   answerMode: AnswerMode;
 
+  phase: StudyPhase;
+
+  /**
+   * The whole deck in the order it is meant to be met, which is the order the
+   * ladder deals from — cards 1-3 first, then 4-5, and so on. Fixed for the
+   * life of the session, so a card added to the deck mid-run cannot quietly
+   * change which words the stage in progress is about.
+   */
+  deckCardIds: string[];
+
+  /** How many of `deckCardIds` are in play: 3, then 5, then 7, then the deck. */
+  activeCardCount: number;
+
+  /** `deckCardIds.slice(0, activeCardCount)` — the set being recalled. */
   activeCardIds: string[];
-  retryCardIds: string[];
-  completedCardIds: string[];
+
+  /** Every card whose back has been read, across all stages. A tally, not a score. */
+  introducedCardIds: string[];
+
+  /** The cards this `introducing` phase is showing. Empty in every other phase. */
+  introduceCardIds: string[];
+  introduceIndex: number;
+  introduceFlipped: boolean;
 
   currentCardId?: string;
-  currentIndex: number;
 
-  currentRunCorrect: number;
-  currentRunFailed: boolean;
+  /**
+   * The card just asked. Read only by the picker, to keep one word from being
+   * put twice running where anything else could be asked instead.
+   */
+  lastAskedCardId?: string;
 
-  perfectRunsCompleted: number;
+  /**
+   * Cards recalled correctly since this stage — or this mastery round — began,
+   * each at most once. A card missed afterwards leaves again: a stage is
+   * cleared by holding the whole set at once, not by having once been right
+   * about each of them separately.
+   */
+  stageCorrect: string[];
+
+  /**
+   * Cards missed at least once in the stage or round in progress. Kept after
+   * they are put right, because that is the point: a word that has slipped is
+   * weighted to come back sooner than one that never did.
+   */
+  stageIncorrect: string[];
+
+  /** The shuffled full-deck pass being worked through. `fullDeckMastery` only. */
+  roundQueue: string[];
+  roundIndex: number;
+  /** False the moment a card is missed. A round only counts while this holds. */
+  roundPerfect: boolean;
+  /** 1-based, and it counts every round, perfect or not. */
+  currentRound: number;
+
+  /** Flawless full-deck rounds banked. Mirrored onto `DeckProgress`. */
+  perfectRounds: number;
   perfectRunsRequired: number;
+
+  deckMastered: boolean;
 
   answers: SessionAnswer[];
 
@@ -353,17 +433,50 @@ export type Settings = {
    */
   starterContentVersion?: number;
 
-  /**
-   * Which conversation perspectives the learner is studying, in the order they
-   * should be met. Never empty: the settings screen refuses to clear the last
-   * one, because an empty set would leave gendered cards with nothing to show
-   * and nothing to grade.
+  /*
+   * Identity, then practice selection. Three lifetimes, three homes: who she
+   * is, what she has chosen to drill, and — on `PracticeContext`, never here —
+   * what a single prompt is asking for. Storing any of them in another is how
+   * a drill ends up rewriting a person.
    *
-   * Changing it is purely a display and grading filter. No progress row is
-   * keyed by perspective, so a learner can widen or narrow this at any point
-   * without losing a single score.
+   * Nothing derived is stored alongside them. The perspective list every
+   * consumer reads comes from `effectivePerspectives`, computed on load, so a
+   * stale mirror of an identity cannot exist on disk.
    */
-  speechPerspectives: SpeechPerspective[];
+
+  /** Who the learner is. Female is the default this app is written for. */
+  learnerGender: PersonGender;
+
+  /**
+   * Who she is practising speaking to. Never empty — an empty set would leave
+   * gendered cards with nothing to show and nothing to grade — and normalised
+   * to ♂-first order, matching `SPEECH_PERSPECTIVES`.
+   */
+  listenerGenders: PersonGender[];
+
+  /**
+   * Whether she has actually answered the two questions above, as opposed to
+   * having been handed the defaults. Lets Settings ask once rather than assert
+   * a guess back at her. It never changes what is rendered or graded.
+   */
+  identityConfirmed?: boolean;
+
+  /**
+   * Perspectives to render and grade *instead of* the ones her identity
+   * implies. Written by exactly two things: the advanced disclosure in
+   * Settings, and the migration off the legacy `speechPerspectives` list where
+   * that list cannot be read as an identity. Clearing it returns her to
+   * herself; it is never written back into identity.
+   *
+   * Not written by a study session. A prompt's current framing lives on the
+   * session, so both writers here are deliberate persistent choices and an
+   * override found on disk always means one of them.
+   *
+   * Changing it, like changing identity, is purely a display and grading
+   * filter. No progress row is keyed by perspective, so a learner can widen or
+   * narrow at any point without losing a single score.
+   */
+  practicePerspectiveOverride?: SpeechPerspective[];
 
   /**
    * The categories the Memorise tab reads from, chosen in Study.
@@ -381,8 +494,11 @@ export type Settings = {
   defaultAnswerMode: AnswerMode;
   defaultDeckSize: number;
   defaultPerfectRunsRequired: number;
-  shuffleCards: boolean;
-  shuffleAfterFailure: boolean;
+  /*
+   * No shuffle preference: the ladder draws every question at random, and
+   * every mastery round reshuffles. Memorise keeps its own per-pass toggle,
+   * which is the only place reading order is still the learner's to choose.
+   */
   showTransliteration: boolean;
   showHints: boolean;
   requireTyping: boolean;
@@ -390,7 +506,6 @@ export type Settings = {
   acceptAlternateAnswers: boolean;
   lenientArabicLetters: boolean;
   enableMasteryDecay: boolean;
-  autoStartRetryPile: boolean;
   brutalResetOnHardFailure: boolean;
 
   // Audio

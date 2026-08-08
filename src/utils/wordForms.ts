@@ -160,8 +160,20 @@ export function speechWordForms(
  *
  * Speaker/listener variants win where a side has them, filtered to the
  * perspectives the learner is studying and ordered female-speaker first. Where
- * a side has none, this falls back to the grammatical pair — feminine first,
- * matching how the starter table is written — or to a single unmarked form.
+ * a side has none, this falls back to the grammatical pair — or to a single
+ * unmarked form.
+ *
+ * `lead` orders that grammatical pair, and comes from the learner's *identity*
+ * rather than from the perspective being rendered: which of her own forms she
+ * should read first is a fact about her, and it must not flip mid-drill when a
+ * prompt asks her to say something to a man. It is a display preference only —
+ * both forms are returned either way, and grading never sees it.
+ *
+ * Honest for pairs the speaker controls, which is most of them and all the ones
+ * the ordering is visibly wrong on today. A noun-controlled pair is ordered by
+ * the same rule for want of a declared controller; `LanguageSide.agreement`
+ * (Phase 1) is what makes it exact, and until a side declares one this ordering
+ * never reaches grading or a flip step.
  *
  * Every surface goes through here rather than reading `script`, which mirrors
  * only the leading form and would quietly teach half the card.
@@ -169,6 +181,7 @@ export function speechWordForms(
 export function wordForms(
   side: LanguageSide,
   selected?: readonly SpeechPerspective[],
+  lead: 'feminine' | 'masculine' = 'feminine',
 ): WordForm[] {
   if (side.speechForms && selected && selected.length > 0) {
     const speech = speechWordForms(side, selected);
@@ -189,26 +202,26 @@ export function wordForms(
     ];
   }
 
-  return [
-    {
-      script: side.forms.feminine.script,
-      transliteration: side.forms.feminine.transliteration,
-      key: 'feminine',
-      gender: 'feminine',
-      marker: '♀',
-      label: 'feminine',
-      audioPath: side.forms.feminine.audioPath,
-      pronunciationText: side.forms.feminine.pronunciationText,
-    },
-    {
-      script: side.forms.masculine.script,
-      transliteration: side.forms.masculine.transliteration,
-      key: 'masculine',
-      gender: 'masculine',
-      marker: '♂',
-      label: 'masculine',
-      audioPath: side.forms.masculine.audioPath,
-      pronunciationText: side.forms.masculine.pronunciationText,
-    },
-  ];
+  const feminine: WordForm = {
+    script: side.forms.feminine.script,
+    transliteration: side.forms.feminine.transliteration,
+    key: 'feminine',
+    gender: 'feminine',
+    marker: '♀',
+    label: 'feminine',
+    audioPath: side.forms.feminine.audioPath,
+    pronunciationText: side.forms.feminine.pronunciationText,
+  };
+  const masculine: WordForm = {
+    script: side.forms.masculine.script,
+    transliteration: side.forms.masculine.transliteration,
+    key: 'masculine',
+    gender: 'masculine',
+    marker: '♂',
+    label: 'masculine',
+    audioPath: side.forms.masculine.audioPath,
+    pronunciationText: side.forms.masculine.pronunciationText,
+  };
+
+  return lead === 'masculine' ? [masculine, feminine] : [feminine, masculine];
 }

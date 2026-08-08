@@ -19,26 +19,26 @@ const CHOICES = [
   {
     href: (deckId: string) => '/memorise/' + deckId,
     name: 'Memorise',
-    blurb: 'Learn the cards by flipping them. Nothing is scored.',
+    blurb: 'Read the whole deck through. Nothing is scored.',
     icon: 'codex' as const,
     lead: true,
   },
   {
     href: (deckId: string) => '/study/' + deckId + '?mode=normal',
     name: 'Normal',
-    blurb: 'Incorrect cards return at the end.',
+    blurb: 'Three words, then five, then seven, then the deck.',
     icon: 'target' as const,
   },
   {
     href: (deckId: string) => '/study/' + deckId + '?mode=hard',
     name: 'Hard',
-    blurb: 'Repeat the deck until you get 100%.',
+    blurb: 'The same climb, but a slip ends the mastery round.',
     icon: 'flame' as const,
   },
   {
     href: (deckId: string) => '/study/' + deckId + '?mode=brutal',
     name: 'Brutal',
-    blurb: 'Typed answers, no hints, and one slip wipes your runs.',
+    blurb: 'Typed answers, no hints, and one slip wipes your rounds.',
     icon: 'chisel' as const,
   },
 ];

@@ -22,6 +22,12 @@ export type MemoriseCardProps = {
   flipped: boolean;
   /** The perspectives the learner is studying, female-speaker first. */
   perspectives: readonly SpeechPerspective[];
+  /**
+   * Which half of a grammatical pair to read first, from her identity. Display
+   * only, and `otherForms` is unaffected: a variant she is not studying is
+   * found by wording rather than by position.
+   */
+  lead?: 'feminine' | 'masculine';
   showTransliteration: boolean;
   animationIntensity: number;
   reducedMotion: boolean;
@@ -108,7 +114,7 @@ function FormRow({
 }
 
 export default function MemoriseCard(props: MemoriseCardProps) {
-  const { card, flipped, perspectives, reducedMotion } = props;
+  const { card, flipped, perspectives, lead, reducedMotion } = props;
   const x = useMotionValue(0);
 
   // Collapsed again on every new card: the learner asked to see the other
@@ -243,7 +249,7 @@ export default function MemoriseCard(props: MemoriseCardProps) {
                     where the phrase has no speaker/listener variants, the
                     grammatical pair feminine-first. A word with one form for
                     everyone comes back as a single unmarked line. */}
-                {wordForms(side, perspectives).map((form) => (
+                {wordForms(side, perspectives, lead).map((form) => (
                   <FormRow
                     key={form.key}
                     form={form}

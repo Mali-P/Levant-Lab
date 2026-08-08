@@ -10,6 +10,7 @@ import type {
   StudySession,
 } from '../../types';
 import { backupSchema } from './schema';
+import { migrateSettings } from '../../stores/settingsStore';
 
 const MAX_SNAPSHOTS = 10;
 
@@ -128,7 +129,12 @@ export async function restoreBackup(
       await db.deckProgress.bulkPut(backup.deckProgress as DeckProgress[]);
       await db.sessions.bulkPut(backup.sessions as StudySession[]);
       if (backup.settings) {
-        await db.settings.put({ ...(backup.settings as Settings), id: 'settings' });
+        // Through the same migration the store uses, so a file written before
+        // identity was recorded restores who its learner was rather than
+        // leaving behind a legacy list nothing reads.
+        await db.settings.put(
+          migrateSettings(backup.settings as Partial<Settings>),
+        );
       }
     },
   );

@@ -5,6 +5,7 @@ import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { db } from '../services/database/db';
 import { accuracy, statusFor, STATUS_LABELS } from '../features/review/mastery';
+import { describeStage, isLadderSession } from '../features/study/engine';
 import ThemeToggle from '../components/controls/ThemeToggle';
 import Icon from '../components/ornament/Icon';
 import {
@@ -48,7 +49,8 @@ export default function DashboardScreen() {
       .reverse()
       // A one-card drill is not a place to be sent back to, so it never takes
       // over the Continue panel from the deck the learner was actually in.
-      .filter((s) => !s.completedAt && !s.drill)
+      // A row from before the ladder has no stage to be sent back to either.
+      .filter((s) => !s.completedAt && !s.drill && isLadderSession(s))
       .first()
       .then((s) => setOpen(s ?? null));
   }, []);
@@ -118,12 +120,10 @@ export default function DashboardScreen() {
           <strong style={{ fontSize: '1.2rem' }}>
             {openDeck.name} — {open.mode === 'normal' ? 'Normal' : open.mode === 'hard' ? 'Hard mode' : 'Brutal mode'}
           </strong>
-          <span className="small muted">
-            {open.mode === 'normal'
-              ? 'Card ' + (open.currentIndex + 1) + ' of ' + open.activeCardIds.length +
-                ' · retry pile ' + open.retryCardIds.length
-              : 'Run ' + (open.perfectRunsCompleted + 1) + ' of ' + open.perfectRunsRequired}
-          </span>
+          {/* Where she left the ladder, in the same words the study screen
+              uses — "Testing 5 words", not a fraction of ten she never
+              agreed to sit. */}
+          <span className="small muted">{describeStage(open).label}</span>
         </Link>
       )}
 

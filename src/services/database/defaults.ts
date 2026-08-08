@@ -4,16 +4,23 @@ export const DEFAULT_SETTINGS: Settings = {
   id: 'settings',
 
   /**
-   * Both female-speaker perspectives, ♀→♂ leading.
+   * A woman speaking to both, which derives ♀→♂ · ♀→♀ with ♀→♂ leading.
    *
    * This app is written for a woman, so the forms she will actually say are
-   * the ones it teaches; the male-speaker variants stay available but off.
+   * the ones it teaches; the male-speaker variants stay available but unused.
    * Deliberately not all four — showing every card four ways would put her own
    * wording back onto a list of alternatives, which is the habit this setting
-   * exists to break. An install made before this setting existed picks the
-   * default up through the merge in `settingsStore.load`, keeping every score.
+   * exists to break.
+   *
+   * `identityConfirmed: false` marks this as the app's assumption rather than
+   * her answer, so Settings can ask the two questions once instead of
+   * presenting a guess as a decision she already made. An install predating
+   * these fields is migrated on load by `identityFromLegacy`, keeping every
+   * score and every perspective it was studying.
    */
-  speechPerspectives: ['femaleToMale', 'femaleToFemale'],
+  learnerGender: 'female',
+  listenerGenders: ['male', 'female'],
+  identityConfirmed: false,
 
   // Nothing chosen yet, which `memoriseCategories` reads as the first category.
   memoriseCategoryIds: [],
@@ -22,8 +29,6 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultAnswerMode: 'self',
   defaultDeckSize: 10,
   defaultPerfectRunsRequired: 10,
-  shuffleCards: true,
-  shuffleAfterFailure: true,
   showTransliteration: true,
   showHints: true,
   requireTyping: false,
@@ -31,7 +36,6 @@ export const DEFAULT_SETTINGS: Settings = {
   acceptAlternateAnswers: true,
   lenientArabicLetters: true,
   enableMasteryDecay: true,
-  autoStartRetryPile: true,
   brutalResetOnHardFailure: false,
 
   speechRate: 0.9,

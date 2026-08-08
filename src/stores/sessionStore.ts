@@ -11,6 +11,10 @@ import type {
 import {
   answerCurrentCard,
   createSession,
+  flipIntroCard,
+  isLadderSession,
+  nextIntroCard,
+  previousIntroCard,
   type AnswerInput,
   type AnswerOutcome,
 } from '../features/study/engine';
@@ -68,6 +72,18 @@ type SessionState = {
   resumeLatest: () => Promise<StudySession | null>;
   submit: (input: AnswerInput) => Promise<AnswerOutcome | null>;
   advance: () => void;
+
+  /*
+   * The introducing phase.
+   *
+   * Reading a word is not answering one, so these three write nothing to
+   * `cardProgress` and nothing to the deck's accuracy — but they do persist the
+   * session, because which of the new words she has reached is part of the
+   * progression and must survive a reload like everything else on the ladder.
+   */
+  flipIntro: () => Promise<void>;
+  nextIntro: () => Promise<void>;
+  prevIntro: () => Promise<void>;
   /**
    * Takes back the last answer and returns to the card that was asked.
    *
@@ -80,6 +96,29 @@ type SessionState = {
   abandon: () => Promise<void>;
 };
 
+/**
+ * Applies one move of the introducing phase and writes it down.
+ *
+ * Persisted for the same reason the rest of the ladder is: which of the new
+ * words she has reached is progression, not screen state, and it has to be
+ * there when she comes back. Nothing scored moves — these steps never touch
+ * `cardProgress` or the deck's accuracy.
+ */
+async function stepIntro(
+  set: (partial: Partial<SessionState>) => void,
+  get: () => SessionState,
+  step: (s: StudySession) => StudySession,
+): Promise<void> {
+  const session = get().session;
+  if (!session || session.phase !== 'introducing') return;
+
+  const next = step(session);
+  if (next === session) return;
+
+  await db.sessions.put(next);
+  set({ session: next });
+}
+
 export const useSession = create<SessionState>((set, get) => ({
   session: null,
   lastOutcome: null,
@@ -87,27 +126,26 @@ export const useSession = create<SessionState>((set, get) => ({
   history: [],
 
   async start(params) {
-    const { settings } = useSettings.getState();
     const stored = useData.getState().deckProgress[params.deckId];
 
-    const built = createSession({
+    const session = createSession({
       id: uid('session'),
       deckId: params.deckId,
+      // In the deck's own order: the ladder introduces cards 1-3, then 4-5,
+      // and a counting deck only makes sense met that way.
       cardIds: params.cards.map((c) => c.id),
       mode: params.mode,
       answerMode: params.answerMode,
       promptDirection: params.promptDirection,
       perfectRunsRequired: params.perfectRunsRequired,
-      // Hard-mode runs accumulate across sessions unless the deck was passed.
-      perfectRunsCompleted:
-        params.mode === 'normal' ? 0 : (stored?.perfectRunsCompleted ?? 0),
-      shuffleCards: settings.shuffleCards,
+      // Banked rounds carry across sessions in every mode now. Ten flawless
+      // rounds is a deck-long achievement; closing the tab is not a mistake.
+      perfectRoundsCompleted: params.drill
+        ? 0
+        : (stored?.perfectRunsCompleted ?? 0),
+      drill: params.drill,
       now: new Date().toISOString(),
     });
-
-    // The flag rides on the row rather than on the engine: nothing about
-    // grading a drill differs, only what the rest of the app does with it.
-    const session = params.drill ? { ...built, drill: true } : built;
 
     await db.sessions.put(session);
     set({ session, lastOutcome: null, awaitingAdvance: false, history: [] });
@@ -115,10 +153,12 @@ export const useSession = create<SessionState>((set, get) => ({
   },
 
   async resumeLatest() {
+    // Sessions written before the ladder have no phase to resume into, so they
+    // are stepped over rather than opened onto an empty screen.
     const open = await db.sessions
       .orderBy('updatedAt')
       .reverse()
-      .filter((s) => !s.completedAt && !s.drill)
+      .filter((s) => !s.completedAt && !s.drill && isLadderSession(s))
       .first();
     set({
       session: open ?? null,
@@ -153,7 +193,6 @@ export const useSession = create<SessionState>((set, get) => ({
 
     const outcome = answerCurrentCard(session, input, {
       now: new Date().toISOString(),
-      shuffleAfterFailure: settings.shuffleAfterFailure,
       brutalReset: settings.brutalResetOnHardFailure,
     });
 
@@ -171,28 +210,39 @@ export const useSession = create<SessionState>((set, get) => ({
     // A drill is one weak card, so finishing it says nothing about the deck.
     // Only the card's own progress, recorded above, moves; the deck keeps its
     // completion stamps and its perfect-run count exactly as they were.
+    // The banked-round count still lives in `perfectRunsCompleted` on the deck's
+    // progress row. That is the field the unlock ladder and sync already read,
+    // so a round earned on the phone still opens the next deck on the laptop
+    // without either of them learning anything about stages.
     if (session.drill) {
       await data.saveDeckProgress(deckId, { lastStudiedAt: now });
-    } else if (outcome.event === 'run-failed') {
+    } else if (outcome.event === 'round-reset') {
       await data.saveDeckProgress(deckId, {
-        perfectRunsCompleted: outcome.session.perfectRunsCompleted,
+        perfectRunsCompleted: outcome.session.perfectRounds,
         hardModeFailures: (current?.hardModeFailures ?? 0) + 1,
         lastStudiedAt: now,
       });
-    } else if (outcome.event === 'perfect-run') {
+    } else if (
+      outcome.event === 'perfect-round' ||
+      outcome.event === 'round-ended'
+    ) {
       await data.saveDeckProgress(deckId, {
-        perfectRunsCompleted: outcome.session.perfectRunsCompleted,
+        perfectRunsCompleted: outcome.session.perfectRounds,
         lastStudiedAt: now,
       });
     } else if (outcome.event === 'deck-mastered') {
+      // `hardModePassedAt` is what marks a deck permanently mastered, and it is
+      // what the next deck in the category is waiting on.
       await data.saveDeckProgress(deckId, {
-        perfectRunsCompleted: outcome.session.perfectRunsCompleted,
+        perfectRunsCompleted: outcome.session.perfectRounds,
         hardModePassedAt: now,
         lastStudiedAt: now,
       });
-    } else if (outcome.event === 'session-complete') {
+    } else if (outcome.event === 'full-deck-reached') {
+      // The first clean pass over every card in the deck. Worth stamping, but
+      // it is the start of mastery rather than the end of it.
       await data.saveDeckProgress(deckId, {
-        normalModeCompletedAt: now,
+        normalModeCompletedAt: current?.normalModeCompletedAt ?? now,
         lastStudiedAt: now,
       });
     } else {
@@ -210,6 +260,22 @@ export const useSession = create<SessionState>((set, get) => ({
 
   advance() {
     set({ awaitingAdvance: false, lastOutcome: null });
+  },
+
+  async flipIntro() {
+    await stepIntro(set, get, (s) => flipIntroCard(s, new Date().toISOString()));
+  },
+
+  async nextIntro() {
+    await stepIntro(set, get, (s) =>
+      nextIntroCard(s, { now: new Date().toISOString() }),
+    );
+  },
+
+  async prevIntro() {
+    await stepIntro(set, get, (s) =>
+      previousIntroCard(s, new Date().toISOString()),
+    );
   },
 
   async stepBack() {

@@ -249,9 +249,13 @@ export async function mergeDuplicateContent(): Promise<MergeReport> {
   const staleSessions = sessions.filter(
     (s: StudySession) =>
       !s.completedAt &&
+      // The whole deck as the ladder deals it, so a card merged away out of a
+      // stage the learner has not climbed to yet still counts as stale — the
+      // session would introduce it three stages from now and find it gone.
+      // Defaulted because a backup from an older build can carry sessions that
+      // predate the field.
       (deckRemap.has(s.deckId) ||
-        s.activeCardIds.some((id) => !survivingCardIds.has(id)) ||
-        s.retryCardIds.some((id) => !survivingCardIds.has(id))),
+        (s.deckCardIds ?? []).some((id) => !survivingCardIds.has(id))),
   );
 
   // --- write ------------------------------------------------------------

@@ -1,265 +1,554 @@
 import { describe, expect, it } from 'vitest';
+import type { StudyMode, StudySession } from '../../types';
+import { mulberry32, type RNG } from '../../utils/random';
 import {
   answerCurrentCard,
   createSession,
-  remainingInStack,
-  type AnswerInput,
+  currentIntroCardId,
+  describeStage,
+  flipIntroCard,
+  introRemaining,
+  isLadderSession,
+  nextIntroCard,
+  previousIntroCard,
+  stageProgress,
+  type AnswerOutcome,
 } from './engine';
-import { mulberry32 } from '../../utils/random';
-import type { StudyMode, StudySession } from '../../types';
 
-const NOW = '2026-08-06T10:00:00.000Z';
-const CARDS = ['c1', 'c2', 'c3', 'c4'];
+const T = '2026-01-01T00:00:00.000Z';
+const BOTH = { hebrew: true, arabic: true };
+const NEITHER = { hebrew: false, arabic: false };
+const HE_ONLY = { hebrew: true, arabic: false };
 
-type StartOverrides = {
-  cardIds?: string[];
+const DECK = Array.from({ length: 10 }, (_unused, i) => 'c' + (i + 1));
+
+type StartOptions = {
+  cards?: string[];
+  mode?: StudyMode;
+  perfectRoundsCompleted?: number;
   perfectRunsRequired?: number;
-  perfectRunsCompleted?: number;
+  drill?: boolean;
 };
 
-function start(mode: StudyMode, o: StartOverrides = {}): StudySession {
+function start(o: StartOptions = {}): StudySession {
   return createSession({
-    id: 's1',
-    deckId: 'd1',
-    cardIds: o.cardIds ?? CARDS,
-    mode,
+    id: 'session_1',
+    deckId: 'deck_1',
+    cardIds: o.cards ?? DECK,
+    mode: o.mode ?? 'normal',
     promptDirection: 'en>he+ar',
-    answerMode: 'typed',
+    answerMode: 'self',
     perfectRunsRequired: o.perfectRunsRequired ?? 10,
-    perfectRunsCompleted: o.perfectRunsCompleted,
-    shuffleCards: false,
-    now: NOW,
-    rng: mulberry32(42),
+    perfectRoundsCompleted: o.perfectRoundsCompleted,
+    drill: o.drill,
+    now: T,
   });
 }
 
-const BOTH: AnswerInput = { hebrew: true, arabic: true };
-const HE_ONLY: AnswerInput = { hebrew: true, arabic: false };
-const AR_ONLY: AnswerInput = { hebrew: false, arabic: true };
-const NEITHER: AnswerInput = { hebrew: false, arabic: false };
-
-function answer(s: StudySession, input: AnswerInput) {
-  return answerCurrentCard(s, input, {
-    now: NOW,
-    rng: mulberry32(7),
-    shuffleAfterFailure: true,
-  });
+function answer(
+  s: StudySession,
+  input: { hebrew: boolean; arabic: boolean },
+  rng: RNG = mulberry32(1),
+): AnswerOutcome {
+  return answerCurrentCard(s, input, { now: T, rng });
 }
 
-/** Answers every card of the current stack with the same input. */
-function answerWholeStack(s: StudySession, input: AnswerInput) {
-  const total = s.activeCardIds.length;
-  let out = answer(s, input);
-  for (let i = 1; i < total; i++) out = answer(out.session, input);
-  return out;
+/** Walks past every card of the current introduction and into testing. */
+function readIntroduction(s: StudySession, rng: RNG): StudySession {
+  let cur = s;
+  while (cur.phase === 'introducing') {
+    cur = flipIntroCard(cur, T);
+    cur = nextIntroCard(cur, { now: T, rng });
+  }
+  return cur;
 }
 
-describe('grading both languages independently', () => {
-  it('is fully correct only when both languages are right', () => {
-    const out = answer(start('normal'), BOTH);
-    expect(out.hebrewCorrect).toBe(true);
-    expect(out.arabicCorrect).toBe(true);
-    expect(out.fullyCorrect).toBe(true);
-    expect(out.session.completedCardIds).toEqual(['c1']);
-    expect(out.session.retryCardIds).toEqual([]);
+/** Answers correctly until the current stage is cleared. */
+function clearStage(s: StudySession, rng: RNG): AnswerOutcome {
+  let cur = s;
+  let out: AnswerOutcome | undefined;
+  let guard = 0;
+  while (cur.phase === 'testing') {
+    if (guard++ > 500) throw new Error('stage never cleared');
+    out = answerCurrentCard(cur, BOTH, { now: T, rng });
+    cur = out.session;
+  }
+  return out!;
+}
+
+/** Climbs the whole ladder and stops on the first mastery round. */
+function climbToMastery(s: StudySession, rng: RNG): StudySession {
+  let cur = s;
+  let guard = 0;
+  while (cur.phase !== 'fullDeckMastery') {
+    if (guard++ > 50) throw new Error('never reached mastery');
+    cur = readIntroduction(cur, rng);
+    cur = clearStage(cur, rng).session;
+  }
+  return cur;
+}
+
+/** Plays one mastery round through, optionally missing the card at `wrongAt`. */
+function playRound(s: StudySession, rng: RNG, wrongAt?: number): AnswerOutcome {
+  let cur = s;
+  let out: AnswerOutcome | undefined;
+  const round = s.currentRound;
+  let guard = 0;
+
+  while (cur.phase === 'fullDeckMastery' && cur.currentRound === round) {
+    if (guard++ > 200) throw new Error('round never ended');
+    const ok = wrongAt === undefined || cur.roundIndex !== wrongAt;
+    out = answerCurrentCard(cur, ok ? BOTH : NEITHER, { now: T, rng });
+    cur = out.session;
+  }
+  return out!;
+}
+
+describe('createSession', () => {
+  it('opens on the first three cards, in the deck’s own order, introducing them', () => {
+    const s = start();
+    expect(s.phase).toBe('introducing');
+    expect(s.activeCardCount).toBe(3);
+    expect(s.activeCardIds).toEqual(['c1', 'c2', 'c3']);
+    expect(s.introduceCardIds).toEqual(['c1', 'c2', 'c3']);
+    expect(s.currentCardId).toBeUndefined();
   });
 
-  it('fails the card when only Hebrew is right', () => {
-    const out = answer(start('normal'), HE_ONLY);
-    expect(out.hebrewCorrect).toBe(true);
-    expect(out.arabicCorrect).toBe(false);
-    expect(out.fullyCorrect).toBe(false);
-    expect(out.session.retryCardIds).toEqual(['c1']);
-    expect(out.session.completedCardIds).toEqual([]);
+  it('does not expose the rest of the deck', () => {
+    const s = start();
+    expect(s.activeCardIds).not.toContain('c4');
+    expect(s.deckCardIds).toHaveLength(10);
   });
 
-  it('fails the card when only Arabic is right', () => {
-    const out = answer(start('normal'), AR_ONLY);
-    expect(out.fullyCorrect).toBe(false);
-    expect(out.session.retryCardIds).toEqual(['c1']);
+  it('carries the deck’s banked perfect rounds in every mode', () => {
+    expect(start({ perfectRoundsCompleted: 4 }).perfectRounds).toBe(4);
+    expect(start({ mode: 'hard', perfectRoundsCompleted: 4 }).perfectRounds).toBe(
+      4,
+    );
   });
 
-  it('fails the card when both languages are wrong', () => {
-    const out = answer(start('normal'), NEITHER);
-    expect(out.hebrewCorrect).toBe(false);
-    expect(out.arabicCorrect).toBe(false);
-    expect(out.session.retryCardIds).toEqual(['c1']);
+  it('refuses an empty deck', () => {
+    expect(() => start({ cards: [] })).toThrow(/empty deck/i);
+  });
+
+  it('gives a drill its one card straight away, with nothing to introduce', () => {
+    const s = start({ cards: ['c7'], drill: true });
+    expect(s.phase).toBe('testing');
+    expect(s.currentCardId).toBe('c7');
+    expect(s.introduceCardIds).toEqual([]);
   });
 });
 
-describe('normal mode retry pile', () => {
-  it('queues a partially correct card for retry', () => {
-    const out = answer(start('normal'), HE_ONLY);
+describe('introducing', () => {
+  it('records a card as read when it is turned over, and not before', () => {
+    const s = start();
+    expect(s.introducedCardIds).toEqual([]);
+    expect(flipIntroCard(s, T).introducedCardIds).toEqual(['c1']);
+  });
+
+  it('does not un-read a card that is flipped back', () => {
+    let s = flipIntroCard(start(), T);
+    s = flipIntroCard(s, T);
+    expect(s.introduceFlipped).toBe(false);
+    expect(s.introducedCardIds).toEqual(['c1']);
+  });
+
+  it('walks forwards and back through the new words', () => {
+    let s = nextIntroCard(start(), { now: T });
+    expect(currentIntroCardId(s)).toBe('c2');
+    s = previousIntroCard(s, T);
+    expect(currentIntroCardId(s)).toBe('c1');
+  });
+
+  it('has nowhere to step back to from the first card', () => {
+    const s = start();
+    expect(previousIntroCard(s, T)).toBe(s);
+  });
+
+  it('switches into testing once the last new word has been passed', () => {
+    const s = readIntroduction(start(), mulberry32(2));
+    expect(s.phase).toBe('testing');
+    expect(s.activeCardIds).toEqual(['c1', 'c2', 'c3']);
+    expect(['c1', 'c2', 'c3']).toContain(s.currentCardId);
+    expect(introRemaining(s)).toBe(0);
+  });
+
+  it('refuses to grade a card while the words are still being read', () => {
+    expect(() => answer(start(), BOTH)).toThrow(/no active card/i);
+  });
+});
+
+describe('testing a stage', () => {
+  const rng = () => mulberry32(4);
+
+  it('counts distinct cards recalled, not answers given', () => {
+    const s = readIntroduction(start(), rng());
+    const out = answerCurrentCard(s, BOTH, { now: T, rng: rng() });
+    expect(out.session.phase).toBe('testing');
+    expect(stageProgress(out.session)).toEqual({ recalled: 1, total: 3 });
+  });
+
+  it('clears at 3/3 and introduces the next two words', () => {
+    const out = clearStage(readIntroduction(start(), rng()), rng());
+    expect(out.event).toBe('stage-complete');
+    expect(out.session.phase).toBe('introducing');
+    expect(out.session.activeCardCount).toBe(5);
+    expect(out.session.activeCardIds).toEqual(['c1', 'c2', 'c3', 'c4', 'c5']);
+    expect(out.session.introduceCardIds).toEqual(['c4', 'c5']);
+  });
+
+  it('takes a card back out of the cleared set when it is missed', () => {
+    const r = rng();
+    let s = readIntroduction(start(), r);
+
+    const first = answerCurrentCard(s, BOTH, { now: T, rng: r });
+    const cardId = first.session.stageCorrect[0];
+    s = first.session;
+
+    // Wrongly, so the other two cards cannot clear the stage out from under
+    // the card being watched before it comes round again.
+    let guard = 0;
+    while (s.currentCardId !== cardId) {
+      if (guard++ > 100) throw new Error('card never came back');
+      s = answerCurrentCard(s, NEITHER, { now: T, rng: r }).session;
+    }
+
+    const missed = answerCurrentCard(s, NEITHER, { now: T, rng: r });
+    expect(missed.event).toBe('retry-queued');
+    expect(missed.session.stageCorrect).not.toContain(cardId);
+    expect(missed.session.stageIncorrect).toContain(cardId);
+    expect(missed.session.phase).toBe('testing');
+  });
+
+  it('treats a half-right answer as wrong, both languages together', () => {
+    const s = readIntroduction(start(), rng());
+    const out = answer(s, HE_ONLY);
+    expect(out.fullyCorrect).toBe(false);
     expect(out.event).toBe('retry-queued');
-    expect(out.session.retryCardIds).toContain('c1');
+    expect(out.session.stageCorrect).toEqual([]);
   });
 
-  it('never lists the same card twice in the retry pile', () => {
-    let s = start('normal', { cardIds: ['c1', 'c2'] });
-    s = answer(s, HE_ONLY).session;
-    const promoted = answer(s, AR_ONLY);
-    expect(promoted.event).toBe('retry-round');
-    expect(promoted.session.activeCardIds).toEqual(['c1', 'c2']);
-    expect(promoted.session.retryCardIds).toEqual([]);
+  it('does not ask the same card twice running', () => {
+    const r = rng();
+    let s = readIntroduction(start(), r);
 
-    const again = answer(promoted.session, NEITHER);
-    expect(again.session.retryCardIds).toEqual(['c1']);
-  });
-
-  it('un-completes a card that is later answered partially', () => {
-    let s = start('normal', { cardIds: ['c1', 'c2'] });
-    s = answer(s, BOTH).session;
-    s = answer(s, NEITHER).session;
-    expect(s.activeCardIds).toEqual(['c2']);
-    expect(s.completedCardIds).toEqual(['c1']);
-  });
-
-  it('completes only when stack and retry pile are both empty', () => {
-    let s = start('normal', { cardIds: ['c1', 'c2'] });
-    s = answer(s, BOTH).session;
-    const promoted = answer(s, HE_ONLY);
-    expect(promoted.event).toBe('retry-round');
-    expect(promoted.session.completedAt).toBeUndefined();
-
-    const finished = answer(promoted.session, BOTH);
-    expect(finished.event).toBe('session-complete');
-    expect(finished.session.completedAt).toBe(NOW);
-    expect(finished.session.currentCardId).toBeUndefined();
-    expect([...finished.session.completedCardIds].sort()).toEqual(['c1', 'c2']);
-  });
-
-  it('keeps cycling failed cards until every one is fully correct', () => {
-    const s = start('normal', { cardIds: ['c1', 'c2', 'c3'] });
-    let out = answerWholeStack(s, NEITHER);
-    expect(out.event).toBe('retry-round');
-    expect(out.session.activeCardIds).toHaveLength(3);
-
-    out = answerWholeStack(out.session, HE_ONLY);
-    expect(out.event).toBe('retry-round');
-    expect(out.session.activeCardIds).toHaveLength(3);
-
-    out = answerWholeStack(out.session, BOTH);
-    expect(out.event).toBe('session-complete');
-  });
-
-  it('reports the cards remaining in the current pass', () => {
-    const s = start('normal');
-    expect(remainingInStack(s)).toBe(4);
-    expect(remainingInStack(answer(s, BOTH).session)).toBe(3);
-  });
-});
-
-describe('hard mode', () => {
-  it('restarts the whole deck after a single mistake', () => {
-    let s = start('hard');
-    s = answer(s, BOTH).session;
-    s = answer(s, BOTH).session;
-    expect(s.currentIndex).toBe(2);
-
-    const failed = answer(s, AR_ONLY);
-    expect(failed.event).toBe('run-failed');
-    expect(failed.session.currentIndex).toBe(0);
-    expect(failed.session.currentRunCorrect).toBe(0);
-    expect(failed.session.completedCardIds).toEqual([]);
-    expect([...failed.session.activeCardIds].sort()).toEqual(CARDS);
-  });
-
-  it('keeps earned perfect runs after a failed run', () => {
-    const s = start('hard', { perfectRunsCompleted: 4 });
-    expect(answer(s, NEITHER).session.perfectRunsCompleted).toBe(4);
-  });
-
-  it('wipes perfect runs on failure when brutal reset is enabled', () => {
-    const s = start('hard', { perfectRunsCompleted: 4 });
-    const failed = answerCurrentCard(s, NEITHER, {
-      now: NOW,
-      rng: mulberry32(7),
-      brutalReset: true,
-    });
-    expect(failed.session.perfectRunsCompleted).toBe(0);
-  });
-
-  it('increments perfect runs exactly once per flawless deck run', () => {
-    const out = answerWholeStack(start('hard'), BOTH);
-    expect(out.event).toBe('perfect-run');
-    expect(out.session.perfectRunsCompleted).toBe(1);
-    expect(out.session.currentIndex).toBe(0);
-    expect(out.session.currentRunCorrect).toBe(0);
-    expect(out.session.completedAt).toBeUndefined();
-    expect([...out.session.activeCardIds].sort()).toEqual(CARDS);
-  });
-
-  it('passes the deck only after the required perfect runs', () => {
-    let s = start('hard', { cardIds: ['c1', 'c2'], perfectRunsRequired: 10 });
-    for (let run = 1; run <= 9; run++) {
-      const out = answerWholeStack(s, BOTH);
-      expect(out.event).toBe('perfect-run');
-      expect(out.session.perfectRunsCompleted).toBe(run);
+    for (let i = 0; i < 20; i++) {
+      const asked = s.currentCardId;
+      const out = answerCurrentCard(s, NEITHER, { now: T, rng: r });
+      expect(out.session.currentCardId).not.toBe(asked);
       s = out.session;
     }
-    const mastered = answerWholeStack(s, BOTH);
-    expect(mastered.event).toBe('deck-mastered');
-    expect(mastered.session.perfectRunsCompleted).toBe(10);
-    expect(mastered.session.completedAt).toBe(NOW);
   });
 
-  it('demands 100 flawless answers for a 10-card, 10-run deck', () => {
-    const cards = Array.from({ length: 10 }, (_unused, i) => 'c' + i);
-    let out = answerWholeStack(
-      start('hard', { cardIds: cards, perfectRunsRequired: 10 }),
-      BOTH,
+  it('mixes the older words back in once the newer ones arrive', () => {
+    const r = rng();
+    let s = readIntroduction(
+      clearStage(readIntroduction(start(), r), r).session,
+      r,
     );
-    for (let run = 2; run <= 10; run++) {
-      out = answerWholeStack(out.session, BOTH);
+    expect(s.activeCardIds).toHaveLength(5);
+
+    const asked = new Set<string>();
+    for (let i = 0; i < 40 && s.phase === 'testing'; i++) {
+      asked.add(s.currentCardId!);
+      s = answerCurrentCard(s, NEITHER, { now: T, rng: r }).session;
     }
-    expect(out.event).toBe('deck-mastered');
-    expect(out.session.answers).toHaveLength(100);
+
+    // The first three are not parked while she learns four and five.
+    expect(asked.has('c1') || asked.has('c2') || asked.has('c3')).toBe(true);
+    expect(asked.size).toBeGreaterThan(3);
   });
 
-  it('refuses to grade once the deck is mastered', () => {
-    const out = answerWholeStack(
-      start('hard', { cardIds: ['c1'], perfectRunsRequired: 1 }),
-      BOTH,
-    );
-    expect(out.event).toBe('deck-mastered');
-    expect(() => answer(out.session, BOTH)).toThrow();
+  it('climbs 3 → 5 → 7 → 10 and then begins mastery', () => {
+    const r = rng();
+    const sizes: number[] = [];
+    let s = start();
+
+    while (s.phase !== 'fullDeckMastery') {
+      s = readIntroduction(s, r);
+      sizes.push(s.activeCardIds.length);
+      s = clearStage(s, r).session;
+    }
+
+    expect(sizes).toEqual([3, 5, 7, 10]);
+    expect(s.currentRound).toBe(1);
+    expect(s.roundQueue).toHaveLength(10);
+  });
+
+  it('runs a six-card deck as 3 → 5 → 6', () => {
+    const r = rng();
+    const sizes: number[] = [];
+    let s = start({ cards: ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'] });
+
+    while (s.phase !== 'fullDeckMastery') {
+      s = readIntroduction(s, r);
+      sizes.push(s.activeCardIds.length);
+      s = clearStage(s, r).session;
+    }
+
+    expect(sizes).toEqual([3, 5, 6]);
+  });
+
+  it('banks no perfect rounds for merely clearing the stages', () => {
+    expect(climbToMastery(start(), rng()).perfectRounds).toBe(0);
   });
 });
 
-describe('brutal mode', () => {
-  it('resets perfect run progress to zero on any mistake', () => {
-    const failed = answer(start('brutal', { perfectRunsCompleted: 6 }), HE_ONLY);
-    expect(failed.event).toBe('run-failed');
-    expect(failed.session.perfectRunsCompleted).toBe(0);
-    expect(failed.session.currentIndex).toBe(0);
+describe('full-deck mastery', () => {
+  const rng = () => mulberry32(6);
+
+  it('does not finish the deck on the first flawless round', () => {
+    const out = playRound(climbToMastery(start(), rng()), rng());
+    expect(out.event).toBe('perfect-round');
+    expect(out.session.perfectRounds).toBe(1);
+    expect(out.session.deckMastered).toBe(false);
+    expect(out.session.completedAt).toBeUndefined();
   });
 
-  it('still awards perfect runs for flawless passes', () => {
-    const out = answerWholeStack(start('brutal'), BOTH);
-    expect(out.event).toBe('perfect-run');
-    expect(out.session.perfectRunsCompleted).toBe(1);
+  it('reshuffles every round', () => {
+    const r = rng();
+    const first = climbToMastery(start(), r);
+    const second = playRound(first, r).session;
+    expect(second.roundQueue).not.toEqual(first.roundQueue);
+    expect([...second.roundQueue].sort()).toEqual([...DECK].sort());
+  });
+
+  it('masters the deck on the tenth flawless round', () => {
+    const r = rng();
+    let s = climbToMastery(start(), r);
+    let out: AnswerOutcome | undefined;
+
+    for (let round = 1; round <= 10; round++) {
+      out = playRound(s, r);
+      s = out.session;
+      if (round < 10) expect(out.event).toBe('perfect-round');
+    }
+
+    expect(out!.event).toBe('deck-mastered');
+    expect(s.perfectRounds).toBe(10);
+    expect(s.deckMastered).toBe(true);
+    expect(s.phase).toBe('completed');
+    expect(s.completedAt).toBe(T);
+  });
+
+  it('honours a deck that asks for fewer rounds', () => {
+    const r = rng();
+    let s = climbToMastery(start({ perfectRunsRequired: 2 }), r);
+    expect(playRound(s, r).event).toBe('perfect-round');
+    s = playRound(s, r).session;
+    expect(playRound(s, r).event).toBe('deck-mastered');
+  });
+
+  it('resumes on the rounds a previous session banked', () => {
+    const r = rng();
+    const s = climbToMastery(start({ perfectRoundsCompleted: 9 }), r);
+    expect(playRound(s, r).event).toBe('deck-mastered');
+  });
+
+  describe('a mistake, in normal mode', () => {
+    it('spoils the round without touching the banked ones', () => {
+      const r = rng();
+      let s = climbToMastery(start({ perfectRoundsCompleted: 3 }), r);
+      s = playRound(s, r).session;
+      expect(s.perfectRounds).toBe(4);
+
+      const out = playRound(s, r, 2);
+      expect(out.event).toBe('round-ended');
+      expect(out.session.perfectRounds).toBe(4);
+    });
+
+    it('says so the moment it happens, and keeps going', () => {
+      const r = rng();
+      const s = climbToMastery(start(), r);
+      const out = answerCurrentCard(s, NEITHER, { now: T, rng: r });
+      expect(out.event).toBe('round-missed');
+      expect(out.session.roundPerfect).toBe(false);
+      expect(out.session.phase).toBe('fullDeckMastery');
+    });
+
+    it('brings the missed card back inside the same round', () => {
+      const r = rng();
+      const s = climbToMastery(start(), r);
+      const missed = s.currentCardId!;
+
+      const out = answerCurrentCard(s, NEITHER, { now: T, rng: r });
+      expect(out.session.roundQueue).toHaveLength(11);
+      expect(out.session.roundQueue[10]).toBe(missed);
+
+      let cur = out.session;
+      let guard = 0;
+      while (cur.currentCardId !== missed) {
+        if (guard++ > 50) throw new Error('missed card never returned');
+        cur = answerCurrentCard(cur, BOTH, { now: T, rng: r }).session;
+      }
+
+      // Missed again, so it is owed again — but only ever one copy at a time,
+      // so a bad word cannot pile up turns it will never be asked in.
+      const again = answerCurrentCard(cur, NEITHER, { now: T, rng: r });
+      const outstanding = again.session.roundQueue
+        .slice(again.session.roundIndex)
+        .filter((id) => id === missed);
+      expect(outstanding).toHaveLength(1);
+    });
+
+    it('needs the missed card put right before the round can end', () => {
+      const r = rng();
+      const s = climbToMastery(start(), r);
+      const missed = s.currentCardId!;
+
+      // Wrong every time it comes round: the pass keeps handing it back rather
+      // than closing over a word she has not recalled once.
+      let cur = answerCurrentCard(s, NEITHER, { now: T, rng: r }).session;
+      for (let i = 0; i < 30 && cur.phase === 'fullDeckMastery'; i++) {
+        const ok = cur.currentCardId !== missed;
+        cur = answerCurrentCard(cur, ok ? BOTH : NEITHER, { now: T, rng: r })
+          .session;
+      }
+      expect(cur.roundQueue.slice(cur.roundIndex)).toContain(missed);
+    });
+
+    it('deals a fresh round after an imperfect one', () => {
+      const r = rng();
+      const s = climbToMastery(start(), r);
+      const out = playRound(s, r, 0);
+      expect(out.session.currentRound).toBe(2);
+      expect(out.session.roundPerfect).toBe(true);
+      expect(out.session.roundQueue).toHaveLength(10);
+    });
+  });
+
+  describe('a mistake, in hard and brutal mode', () => {
+    it('ends the round on the spot in hard mode', () => {
+      const r = rng();
+      const s = climbToMastery(start({ mode: 'hard' }), r);
+      const out = answerCurrentCard(s, NEITHER, { now: T, rng: r });
+      expect(out.event).toBe('round-reset');
+      expect(out.session.currentRound).toBe(2);
+      expect(out.session.roundIndex).toBe(0);
+    });
+
+    it('keeps the banked rounds in hard mode unless asked not to', () => {
+      const r = rng();
+      const s = climbToMastery(
+        start({ mode: 'hard', perfectRoundsCompleted: 4 }),
+        r,
+      );
+      expect(
+        answerCurrentCard(s, NEITHER, { now: T, rng: r }).session.perfectRounds,
+      ).toBe(4);
+      expect(
+        answerCurrentCard(s, NEITHER, { now: T, rng: r, brutalReset: true })
+          .session.perfectRounds,
+      ).toBe(0);
+    });
+
+    it('always wipes the banked rounds in brutal mode', () => {
+      const r = rng();
+      const s = climbToMastery(
+        start({ mode: 'brutal', perfectRoundsCompleted: 6 }),
+        r,
+      );
+      const out = answerCurrentCard(s, HE_ONLY, { now: T, rng: r });
+      expect(out.event).toBe('round-reset');
+      expect(out.session.perfectRounds).toBe(0);
+    });
+
+    it('leaves the stages themselves alike in every mode', () => {
+      // The stricter rule is a rule about mastery rounds. Missing a word while
+      // still learning five of them costs nothing extra in brutal mode.
+      const r = rng();
+      const s = readIntroduction(start({ mode: 'brutal' }), r);
+      const out = answerCurrentCard(s, NEITHER, { now: T, rng: r });
+      expect(out.event).toBe('retry-queued');
+      expect(out.session.phase).toBe('testing');
+    });
   });
 });
 
-describe('session restoration', () => {
-  it('resumes a serialised session with identical behaviour', () => {
-    let s = start('normal');
-    s = answer(s, BOTH).session;
-    s = answer(s, HE_ONLY).session;
-
-    const restored: StudySession = JSON.parse(JSON.stringify(s));
-    expect(restored).toEqual(s);
-    expect(answer(restored, BOTH).session).toEqual(answer(s, BOTH).session);
+describe('drills', () => {
+  it('ends on one correct answer without touching the deck', () => {
+    const out = answer(start({ cards: ['c7'], drill: true }), BOTH);
+    expect(out.event).toBe('drill-complete');
+    expect(out.session.completedAt).toBe(T);
+    expect(out.session.deckMastered).toBe(false);
+    expect(out.session.perfectRounds).toBe(0);
   });
 
-  it('does not mutate the session it was handed', () => {
-    const s = start('normal');
-    const snapshot = JSON.parse(JSON.stringify(s));
+  it('asks again after a wrong answer', () => {
+    const out = answer(start({ cards: ['c7'], drill: true }), NEITHER);
+    expect(out.event).toBe('retry-queued');
+    expect(out.session.currentCardId).toBe('c7');
+    expect(out.session.completedAt).toBeUndefined();
+  });
+});
+
+describe('purity and resumability', () => {
+  it('never mutates the session it is given', () => {
+    const s = readIntroduction(start(), mulberry32(8));
+    const before = JSON.parse(JSON.stringify(s));
     answer(s, NEITHER);
-    expect(s).toEqual(snapshot);
+    expect(JSON.parse(JSON.stringify(s))).toEqual(before);
   });
 
-  it('rejects an empty deck', () => {
-    expect(() => start('normal', { cardIds: [] })).toThrow();
+  it('records every answer, right or wrong', () => {
+    const r = mulberry32(9);
+    let s = readIntroduction(start(), r);
+    s = answerCurrentCard(s, BOTH, { now: T, rng: r }).session;
+    s = answerCurrentCard(s, NEITHER, { now: T, rng: r }).session;
+    expect(s.answers).toHaveLength(2);
+    expect(s.answers[1]).toMatchObject({ hebrew: false, arabic: false, at: T });
+  });
+
+  it('recognises a ladder session, and a row from before it', () => {
+    expect(isLadderSession(start())).toBe(true);
+    expect(isLadderSession(undefined)).toBe(false);
+    expect(
+      isLadderSession({ id: 'old', deckId: 'd' } as unknown as StudySession),
+    ).toBe(false);
+  });
+});
+
+describe('describeStage', () => {
+  const rng = () => mulberry32(12);
+
+  it('names the first stage by its size, never as a fraction of the deck', () => {
+    const { label } = describeStage(start());
+    expect(label).toBe('Learning 3 words');
+    expect(label).not.toContain('10');
+  });
+
+  it('credits what is already held when the next words arrive', () => {
+    const out = clearStage(readIntroduction(start(), rng()), rng());
+    expect(describeStage(out.session).label).toBe('Mastered 3 — learning 2 more');
+  });
+
+  it('says how many words are being tested', () => {
+    expect(describeStage(readIntroduction(start(), rng())).label).toBe(
+      'Testing 3 words',
+    );
+  });
+
+  it('calls the last stage the full deck', () => {
+    const r = rng();
+    let s = start();
+    while (s.activeCardCount < 10) {
+      s = clearStage(readIntroduction(s, r), r).session;
+    }
+    expect(describeStage(readIntroduction(s, r)).label).toBe(
+      'Full deck — 10 words',
+    );
+  });
+
+  it('counts perfect rounds once mastery begins', () => {
+    const r = rng();
+    const s = playRound(climbToMastery(start(), r), r).session;
+    expect(describeStage(s).label).toBe('Perfect rounds: 1 / 10');
+  });
+
+  it('warns that a spoiled round will not count', () => {
+    const r = rng();
+    const s = climbToMastery(start(), r);
+    const out = answerCurrentCard(s, NEITHER, { now: T, rng: r });
+    expect(describeStage(out.session).detail).toContain('will not count');
   });
 });

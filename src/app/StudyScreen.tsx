@@ -8,14 +8,19 @@ import { usePronunciation } from '../hooks/usePronunciation';
 import { wordForms } from '../utils/wordForms';
 import { sortCards } from '../utils/cardOrder';
 import { buildPromptPlan, gradePlan } from '../features/study/prompts';
-import { remainingInStack } from '../features/study/engine';
-import { gateDecks } from '../features/review/unlock';
+import {
+  currentIntroCardId,
+  introRemaining,
+  isLadderSession,
+} from '../features/study/engine';
+import { gateDecks, nextDeck } from '../features/review/unlock';
 import { db } from '../services/database/db';
 import { fireFeedback } from '../services/audio/feedback';
 import StudyCard from '../components/cards/StudyCard';
+import MemoriseCard from '../components/cards/MemoriseCard';
 import AnswerFeedback from '../components/feedback/AnswerFeedback';
 import Confetti from '../components/feedback/Confetti';
-import PerfectRuns from '../components/progress/PerfectRuns';
+import StageBanner from '../components/progress/StageBanner';
 import ScreenHeader from '../components/controls/ScreenHeader';
 
 const EMPTY_VALUES = { hebrew: '', arabic: '' };
@@ -26,6 +31,8 @@ export default function StudyScreen() {
   const navigate = useNavigate();
 
   const settings = useSettings((s) => s.settings);
+  const perspectives = useSettings((s) => s.perspectives);
+  const lead = useSettings((s) => s.lead);
   const decks = useData((s) => s.decks);
   const categories = useData((s) => s.categories);
   const cards = useData((s) => s.cards);
@@ -39,6 +46,9 @@ export default function StudyScreen() {
   const advance = useSession((s) => s.advance);
   const stepBack = useSession((s) => s.stepBack);
   const abandon = useSession((s) => s.abandon);
+  const flipIntro = useSession((s) => s.flipIntro);
+  const nextIntro = useSession((s) => s.nextIntro);
+  const prevIntro = useSession((s) => s.prevIntro);
   // The store only fills its history in normal mode, so this is already false
   // in hard and brutal without the screen having to know why.
   const canStepBack = useSession((s) => s.history.length > 0);
@@ -46,13 +56,18 @@ export default function StudyScreen() {
   const { play } = usePronunciation(settings);
 
   // The prompt button and the autoplay settings speak the word's leading form:
-  // the feminine one where a card has a pair, matching how the forms are read.
+  // where a card has a pair, the learner's own half of it, matching how the
+  // forms are read.
   const speak = useCallback(
     (card: Flashcard, language: 'hebrew' | 'arabic') => {
-      const [first] = wordForms(language === 'hebrew' ? card.hebrew : card.arabic);
+      const [first] = wordForms(
+        language === 'hebrew' ? card.hebrew : card.arabic,
+        undefined,
+        lead,
+      );
       if (first) void play(first, language);
     },
-    [play],
+    [play, lead],
   );
 
   const [values, setValues] = useState(EMPTY_VALUES);
@@ -154,7 +169,10 @@ export default function StudyScreen() {
                 s.deckId === deckId &&
                 !s.completedAt &&
                 !s.drill &&
-                s.mode === mode,
+                s.mode === mode &&
+                // A row from before the ladder has no stage to come back to.
+                // Left in place rather than resumed; the climb starts again.
+                isLadderSession(s),
             )
             .first();
 
@@ -199,6 +217,13 @@ export default function StudyScreen() {
     ? deckCards.find((c) => c.id === gradedCardId)
     : undefined;
 
+  // The word being read, in the stage's opening phase. Only one of `introCard`
+  // and `currentCard` is ever set: the session is either introducing or asking.
+  const introCard = session
+    ? deckCards.find((c) => c.id === currentIntroCardId(session))
+    : undefined;
+  const introducing = session?.phase === 'introducing';
+
   const plan = useMemo(
     () =>
       currentCard
@@ -209,7 +234,7 @@ export default function StudyScreen() {
             // Only the perspectives she is studying are asked for, so a card
             // with speaker/listener variants never grades her against a form
             // she has not turned on.
-            perspectives: settings.speechPerspectives,
+            perspectives,
           })
         : null,
     [
@@ -218,7 +243,7 @@ export default function StudyScreen() {
       settings.ignoreDiacritics,
       settings.lenientArabicLetters,
       settings.acceptAlternateAnswers,
-      settings.speechPerspectives,
+      perspectives,
     ],
   );
 
@@ -234,14 +259,21 @@ export default function StudyScreen() {
       const outcome = await submitAnswer(result);
       if (!outcome) return;
 
-      if (outcome.event === 'run-failed') {
+      if (outcome.event === 'round-reset' || outcome.event === 'round-ended') {
         fireFeedback('run-failed', settings);
       } else if (outcome.event === 'deck-mastered') {
         fireFeedback('deck-mastered', settings);
         setCelebrate(true);
-      } else if (outcome.event === 'perfect-run') {
+      } else if (outcome.event === 'perfect-round') {
         fireFeedback('perfect-run', settings);
         setCelebrate(true);
+      } else if (
+        outcome.event === 'stage-complete' ||
+        outcome.event === 'full-deck-reached'
+      ) {
+        // Clearing a stage is worth marking, but it is a rung rather than a
+        // summit: the accept sound, and no confetti until the deck is hers.
+        fireFeedback('accept', settings);
       } else {
         fireFeedback(outcome.fullyCorrect ? 'accept' : 'reject', settings);
       }
@@ -256,10 +288,10 @@ export default function StudyScreen() {
         ignoreDiacritics: settings.ignoreDiacritics,
         lenientArabicLetters: settings.lenientArabicLetters,
         acceptAlternateAnswers: settings.acceptAlternateAnswers,
-        perspectives: settings.speechPerspectives,
+        perspectives,
       }),
     );
-  }, [plan, currentCard, values, awaitingAdvance, grade, settings]);
+  }, [plan, currentCard, values, awaitingAdvance, grade, settings, perspectives]);
 
   const continueNext = useCallback(() => {
     setValues(EMPTY_VALUES);
@@ -297,6 +329,9 @@ export default function StudyScreen() {
   // Desktop keyboard support.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
+      // The feedback sheet is checked first even in the introducing phase: the
+      // answer that cleared a stage is still waiting to be acknowledged, and
+      // Enter must dismiss it rather than skip a word behind it.
       if (awaitingAdvance) {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
@@ -304,6 +339,24 @@ export default function StudyScreen() {
         }
         return;
       }
+
+      // Reading the new words has its own keys, and none of them can grade
+      // anything: space turns the card over, enter and the left arrow move on,
+      // the right arrow steps back — the same bindings as the Memorise tab.
+      if (introducing) {
+        if (event.key === ' ') {
+          event.preventDefault();
+          void flipIntro();
+        } else if (event.key === 'Enter' || event.key === 'ArrowLeft') {
+          event.preventDefault();
+          void nextIntro();
+        } else if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          void prevIntro();
+        }
+        return;
+      }
+
       if (event.key === 'Enter' && answerMode === 'typed') {
         event.preventDefault();
         submitTyped();
@@ -331,6 +384,10 @@ export default function StudyScreen() {
     continueNext,
     canStepBack,
     goBack,
+    introducing,
+    flipIntro,
+    nextIntro,
+    prevIntro,
   ]);
 
   // Auto-play on reveal, per language.
@@ -339,6 +396,21 @@ export default function StudyScreen() {
     if (settings.autoPlayHebrew) void speak(currentCard, 'hebrew');
     if (settings.autoPlayArabic) void speak(currentCard, 'arabic');
   }, [revealed, currentCard, settings.autoPlayHebrew, settings.autoPlayArabic, speak]);
+
+  // The same, for a word being met rather than recalled: turning the card over
+  // is the moment she first hears it.
+  const introFlipped = session?.introduceFlipped ?? false;
+  useEffect(() => {
+    if (!introFlipped || !introCard) return;
+    if (settings.autoPlayHebrew) void speak(introCard, 'hebrew');
+    if (settings.autoPlayArabic) void speak(introCard, 'arabic');
+  }, [
+    introFlipped,
+    introCard,
+    settings.autoPlayHebrew,
+    settings.autoPlayArabic,
+    speak,
+  ]);
 
   if (booting) {
     return (
@@ -408,8 +480,6 @@ export default function StudyScreen() {
   }
 
   if (session?.completedAt) {
-    const mastered = !session.drill && session.mode !== 'normal';
-
     // A drill ends on its one card, so it reports that card and sends the
     // learner back to the list they picked it from.
     if (session.drill) {
@@ -437,32 +507,131 @@ export default function StudyScreen() {
       );
     }
 
+    // The deck is only ever finished by mastering it now, so the panel says so
+    // and then points at what comes next. The ladder is meant to run on: the
+    // learner who has just held ten words through ten clean rounds should not
+    // be dropped back into a menu to work out what to open.
+    const upNext = nextDeck(
+      gateDecks(
+        decks.filter((d) => d.categoryId === deck.categoryId),
+        deckProgress,
+      ),
+    )?.deck;
+
     return (
       <div className="screen">
         <ScreenHeader title={deck.name} eyebrow={category?.name} back />
         <Confetti active />
         <div className="panel">
-          <div className="headline">{mastered ? 'Deck mastered' : 'Deck complete'}</div>
-          {mastered ? (
-            <p className="muted">
-              {session.perfectRunsRequired} perfect runs, {session.answers.length}{' '}
-              flawless answers.
-            </p>
-          ) : (
-            <p className="muted">
-              Every card answered correctly in both Hebrew and Arabic.
-            </p>
-          )}
+          <div className="headline">Deck mastered</div>
+          <p className="muted">
+            {session.perfectRunsRequired} perfect rounds over the whole deck.
+          </p>
+
+          <div className="stack">
+            {upNext && (
+              <button
+                className="btn btn-primary btn-block"
+                onClick={async () => {
+                  await abandon();
+                  navigate('/study/' + upNext.id + '?mode=' + mode);
+                }}
+              >
+                Start {upNext.name} — first words
+              </button>
+            )}
+            <button
+              className={'btn btn-block' + (upNext ? '' : ' btn-primary')}
+              onClick={async () => {
+                await abandon();
+                navigate('/category/' + deck.categoryId);
+              }}
+            >
+              {upNext ? 'Not now' : 'Done'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const modeLabel =
+    mode === 'normal' ? 'Normal' : mode === 'hard' ? 'Hard mode' : 'Brutal mode';
+  const eyebrow = session?.drill
+    ? 'Weak card · ' + (category?.name ?? '')
+    : (category?.name ?? '') + ' · ' + modeLabel;
+
+  /*
+   * Reading the new words, before anything is asked.
+   *
+   * The same card the Memorise tab uses, on the study screen and inside the
+   * same session — so the stage she is on, and how far through its new words
+   * she has read, are written down with everything else rather than lost to a
+   * navigation. Nothing here can be graded: there is no answer to give, and no
+   * score moves because somebody looked at a word.
+   */
+  if (session && introducing && introCard) {
+    const last = introRemaining(session) === 1;
+
+    return (
+      <div className="screen study">
+        <ScreenHeader title={deck.name} eyebrow={eyebrow} back />
+
+        <StageBanner session={session} />
+
+        <MemoriseCard
+          card={introCard}
+          flipped={session.introduceFlipped}
+          perspectives={perspectives}
+          lead={lead}
+          // Her own setting, even in brutal mode. Brutal strips the crutches
+          // from the asking; it has no business taking the pronunciation away
+          // from a word she is reading for the first time.
+          showTransliteration={settings.showTransliteration}
+          animationIntensity={settings.cardAnimationIntensity}
+          reducedMotion={settings.reducedMotion}
+          onFlip={() => void flipIntro()}
+          onNext={() => void nextIntro()}
+          onPrevious={() => void prevIntro()}
+          canGoBack={session.introduceIndex > 0}
+        />
+
+        <div className="row">
           <button
-            className="btn btn-primary btn-block"
-            onClick={async () => {
-              await abandon();
-              navigate('/category/' + deck.categoryId);
-            }}
+            className="btn"
+            onClick={() => void prevIntro()}
+            disabled={session.introduceIndex === 0}
+            aria-label="Previous card"
           >
-            Done
+            Back
+          </button>
+          <button className="btn grow" onClick={() => void flipIntro()}>
+            {session.introduceFlipped ? 'Hide' : 'Flip'}
+          </button>
+          <button className="btn btn-primary grow" onClick={() => void nextIntro()}>
+            {last ? 'Start testing' : 'Next'}
           </button>
         </div>
+
+        {!session.introduceFlipped && (
+          <p className="small muted" style={{ textAlign: 'center' }}>
+            Tap the card to flip. Swipe left for the next one
+            {session.introduceIndex > 0 ? ', right to go back' : ''}.
+          </p>
+        )}
+
+        {/* The answer that cleared the stage is graded against the session it
+            was given in, but the session has already moved on to the words it
+            unlocked. Without this the sheet reporting "Stage cleared" would be
+            skipped entirely, and the last answer of every stage would pass
+            unmarked. */}
+        {awaitingAdvance && lastOutcome && gradedCard && (
+          <AnswerFeedback
+            outcome={lastOutcome}
+            card={gradedCard}
+            onContinue={continueNext}
+          />
+        )}
       </div>
     );
   }
@@ -476,42 +645,11 @@ export default function StudyScreen() {
     );
   }
 
-  const position = session.activeCardIds.length - remainingInStack(session) + 1;
-  const modeLabel =
-    mode === 'normal' ? 'Normal' : mode === 'hard' ? 'Hard mode' : 'Brutal mode';
-
   return (
     <div className="screen study">
-      <ScreenHeader
-        title={deck.name}
-        eyebrow={
-          session.drill
-            ? 'Weak card · ' + (category?.name ?? '')
-            : (category?.name ?? '') + ' · ' + modeLabel
-        }
-        back
-      />
+      <ScreenHeader title={deck.name} eyebrow={eyebrow} back />
 
-      <div className="study-meta small">
-        <span>
-          {session.drill
-            ? 'One weak card'
-            : 'Card ' + position + ' of ' + session.activeCardIds.length}
-        </span>
-        <span className="muted">
-          {remainingInStack(session) - 1} remaining
-        </span>
-        {mode === 'normal' && (
-          <span className="chip">Retry pile: {session.retryCardIds.length}</span>
-        )}
-      </div>
-
-      {mode !== 'normal' && (
-        <PerfectRuns
-          completed={session.perfectRunsCompleted}
-          required={session.perfectRunsRequired}
-        />
-      )}
+      <StageBanner session={session} />
 
       <StudyCard
         card={currentCard}
@@ -519,7 +657,8 @@ export default function StudyScreen() {
         revealed={revealed}
         typed={answerMode === 'typed'}
         values={values}
-        perspectives={settings.speechPerspectives}
+        perspectives={perspectives}
+        lead={lead}
         showTransliteration={showTransliteration}
         animationIntensity={settings.cardAnimationIntensity}
         reducedMotion={settings.reducedMotion}

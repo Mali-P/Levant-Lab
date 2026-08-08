@@ -57,48 +57,82 @@ function Verdict({ label, ok }: { label: string; ok: boolean }) {
 
 function headlineFor(outcome: AnswerOutcome): string {
   switch (outcome.event) {
-    case 'run-failed':
-      return 'Run failed';
-    case 'perfect-run':
-      return 'Perfect run';
+    case 'stage-complete':
+      return 'Stage cleared';
+    case 'full-deck-reached':
+      return 'Full deck cleared';
+    case 'round-reset':
+      return 'Round failed';
+    case 'round-ended':
+      return 'Round over';
+    case 'perfect-round':
+      return 'Perfect round';
     case 'deck-mastered':
       return 'Deck mastered';
-    case 'session-complete':
-      return 'Deck complete';
-    case 'retry-round':
-      return 'Retry round';
+    case 'drill-complete':
+      return 'Card cleared';
     default:
       return outcome.fullyCorrect ? 'Perfect.' : 'Not yet.';
   }
 }
 
+/**
+ * The line under the verdict.
+ *
+ * It says where the ladder now stands, in words rather than as a fraction of
+ * ten. A learner four cards into her first five has not scored 4/10, and a
+ * sheet that told her so would be describing a test she is not sitting.
+ */
 function detailFor(outcome: AnswerOutcome): string | null {
   const s = outcome.session;
+  const banked = s.perfectRounds + ' / ' + s.perfectRunsRequired;
+
   switch (outcome.event) {
-    case 'run-failed':
+    case 'stage-complete':
       return (
-        'The deck has been reshuffled. Start again. Perfect run progress remains: ' +
-        s.perfectRunsCompleted +
-        ' / ' +
-        s.perfectRunsRequired
+        'All ' +
+        s.activeCardIds.length +
+        ' recalled. Next: ' +
+        (s.introduceCardIds.length === 1
+          ? 'one more word'
+          : s.introduceCardIds.length + ' more words') +
+        ' to read.'
       );
-    case 'perfect-run':
+    case 'full-deck-reached':
       return (
-        'Run ' + s.perfectRunsCompleted + ' of ' + s.perfectRunsRequired + ' complete.'
+        'Every card in the deck recalled. Now ' +
+        s.perfectRunsRequired +
+        ' flawless rounds to master it.'
       );
+    case 'round-reset':
+      return (
+        'The round ended there and has been dealt again. Perfect rounds: ' +
+        banked
+      );
+    case 'round-missed':
+      return (
+        'This round can no longer be perfect, but your ' +
+        banked +
+        ' stand. That word will come back before the round ends.'
+      );
+    case 'round-ended':
+      return (
+        'Not a clean round, so it does not count — and nothing was taken away. Perfect rounds: ' +
+        banked
+      );
+    case 'perfect-round':
+      return 'Perfect rounds: ' + banked + '. Reshuffling.';
     case 'deck-mastered':
       return (
         s.perfectRunsRequired +
-        ' perfect runs. ' +
+        ' perfect rounds over the whole deck. ' +
         s.answers.length +
-        ' flawless answers.'
+        ' answers this session.'
       );
-    case 'session-complete':
-      return 'Every card answered correctly in both languages.';
-    case 'retry-round':
-      return 'Starting the retry pile.';
+    case 'drill-complete':
+      return 'Answered correctly in both Hebrew and Arabic.';
     case 'retry-queued':
-      return 'Added to the retry pile.';
+      return 'It will come back, but not next.';
     default:
       return null;
   }
