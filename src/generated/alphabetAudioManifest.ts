@@ -2,7 +2,7 @@
  * GENERATED FILE -- rewritten by `npm run generate-alphabet-audio`.
  * Do not edit by hand.
  *
- * Committed so the app builds and validates with no Google or Azure
+ * Committed so the app builds and validates with no Google or Gemini
  * credentials. An empty map means no alphabet clips have been generated yet;
  * every letter then falls back to device speech, which is why the app still
  * runs offline either way.
@@ -15,8 +15,13 @@ export type AlphabetAudioRecord = {
   entryKind: 'letter' | 'vowel' | 'char';
   entryId: string;
   clipKind: 'name' | 'sound' | 'example';
-  provider: 'google' | 'azure';
-  /** Full provider voice name, e.g. `ar-JO-SanaNeural`. */
+  /** `azure` appears only on clips recorded before Arabic moved to Gemini. */
+  provider: 'google' | 'azure' | 'gemini';
+  /**
+   * How it was said: a provider voice name such as `he-IL-Wavenet-A`, or for
+   * Gemini the model, voice and a digest of the dialect instruction —
+   * `gemini-2.5-flash-preview-tts/Kore/4f1c8a90`.
+   */
   voice: string;
   /** What was actually sent to the provider, vowel marks included. */
   spoken: string;

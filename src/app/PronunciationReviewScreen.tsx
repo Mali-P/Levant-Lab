@@ -43,16 +43,17 @@ export default function PronunciationReviewScreen() {
         <div className="empty">
           <p>No recordings have been generated yet.</p>
           <p className="small muted">
-            Run <code>npm run generate-audio</code> with Google and Azure
+            Run <code>npm run generate-audio</code> with Google and Gemini
             credentials in <code>.env</code>, then reload.
           </p>
         </div>
       ) : (
         <>
           <p className="small muted">
-            {clips.length} clip(s). The Arabic is Jordanian Levantine and must be
-            checked by a Palestinian or Jordanian speaker before it is treated as
-            final. Record any fix in <code>src/constants/pronunciationOverrides.ts</code>{' '}
+            {clips.length} clip(s). The Arabic is Gemini asked for a Palestinian
+            Levantine accent, which it can drift from, so it must be checked by a
+            Palestinian speaker before it is treated as final. Record any fix in{' '}
+            <code>src/constants/pronunciationOverrides.ts</code>{' '}
             and re-run <code>npm run generate-audio -- --force</code>.
           </p>
 

@@ -139,14 +139,26 @@ no credentials and no Docker.
 
 The recordings are made once, by a developer, from two providers:
 
-| | Provider | Locale | Default voice |
+| | Provider | Dialect chosen by | Default voice |
 |---|---|---|---|
-| Hebrew | Google Cloud Text-to-Speech | `he-IL` | `he-IL-Wavenet-A` |
-| Arabic | Azure Speech | `ar-JO` | `ar-JO-SanaNeural` |
+| Hebrew | Google Cloud Text-to-Speech | locale `he-IL` | `he-IL-Wavenet-A` |
+| Arabic | Gemini TTS | a written instruction | `Kore` |
 
-Jordanian is the closest dialect Azure offers to Palestinian Levantine. A
-Modern Standard Arabic voice is never used, and the vocabulary itself is never
-rewritten towards MSA. Both voices are set through the environment.
+No vendor sells a Palestinian voice. Azure's Jordanian `ar-JO-SanaNeural` was
+the nearest neighbour and stood in for one; Gemini's voices carry no locale at
+all and take their accent from what they are told, so the instruction can name
+Palestinian outright:
+
+> Say the following in everyday spoken Palestinian Levantine Arabic, in the
+> accent of a native speaker from Jerusalem…
+
+That instruction is `GEMINI_ARABIC_STYLE`, and it counts as part of the voice:
+editing it re-records every Arabic clip. A Modern Standard Arabic voice is
+never asked for, and the vocabulary itself is never rewritten towards MSA.
+
+The Azure path is shelved rather than removed — `ARABIC_TTS_PROVIDER=azure`
+brings it back, which is how the two accents get compared. Every voice is set
+through the environment.
 
 ### Generating
 
@@ -169,10 +181,14 @@ and writes the same detail to `audio-report.json`.
 Clips are skipped unless the file is missing or the voice or spoken text has
 changed, so fixing one word does not re-bill the other 477.
 
-Install `ffmpeg` before generating. It trims the silence at each end and pulls
-both providers to the same loudness (-16 LUFS, mono, 24 kHz), so Hebrew and
-Arabic do not jump in volume. Without it the run still succeeds, but says
-clearly that the clips are raw. Speed is never altered.
+`ffmpeg` is required for Arabic and recommended for Hebrew. Gemini returns raw
+PCM samples rather than a finished file, so without ffmpeg there is nothing to
+encode them into the MP3 the app plays and the Arabic half of the run fails
+with that reason. Google's Hebrew arrives as MP3 and still generates.
+
+ffmpeg also trims the silence at each end and pulls every provider to the same
+loudness (-16 LUFS, mono, 24 kHz), so Hebrew and Arabic do not jump in volume.
+Speed is never altered.
 
 ### Layout
 
@@ -198,11 +214,14 @@ Open `/audio-review` in the app. Every clip is playable beside its meaning, the
 displayed word, its form, the transliteration, the exact text sent to the
 provider and the voice that said it.
 
-**The Arabic must be checked by a Palestinian or Jordanian Levantine speaker
-before it is treated as final.** Record fixes in
-`src/constants/pronunciationOverrides.ts`, which replaces the text sent to
-Azure without touching what the learner reads, then re-run with `--force`.
-Change the visible wording only when the visible wording is itself wrong.
+**The Arabic must be checked by a Palestinian Levantine speaker before it is
+treated as final**, and doubly so now that the accent is asked for in words
+rather than selected from a list: an instruction can be ignored in a way a
+locale cannot. Record fixes in `src/constants/pronunciationOverrides.ts`, which
+replaces the text sent to the provider without touching what the learner reads,
+then re-run with `--force`. Change the visible wording only when the visible
+wording is itself wrong. Where a whole run leans MSA, the fix is
+`GEMINI_ARABIC_STYLE`, not 477 overrides.
 
 ### Credentials
 

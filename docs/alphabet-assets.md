@@ -117,8 +117,10 @@ npm run validate-alphabet                        # no credentials needed
 npm run validate-alphabet -- --require-audio     # release check
 ```
 
-Hebrew uses the Google `he-IL` voice, Arabic the Azure `ar-JO-SanaNeural`
-voice, from the same `.env` the vocabulary pipeline reads. Clips land in
+Hebrew uses the Google `he-IL` voice; Arabic uses Gemini TTS under the
+Palestinian style direction, from the same `.env` the vocabulary pipeline
+reads, so ffmpeg has to be installed for the Arabic half to produce anything.
+Clips land in
 `public/assets/audio/alphabet/{he,ar}/` under stable ids such as
 `letter_alef_name.mp3`, and the app only ever plays bundled files — a letter
 with no clip falls back to device speech rather than reaching the network.

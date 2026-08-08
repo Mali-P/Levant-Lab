@@ -2,11 +2,12 @@
  * GENERATED FILE — rewritten by `npm run generate-audio`. Do not edit by hand.
  *
  * It is committed so the app builds and validates without anyone needing
- * Google or Azure credentials. An empty map simply means no clips have been
+ * Google or Gemini credentials. An empty map simply means no clips have been
  * generated yet; every speaker button then falls back to device speech.
  */
 
-export type AudioProvider = 'google' | 'azure';
+/** `azure` appears only on clips recorded before Arabic moved to Gemini. */
+export type AudioProvider = 'google' | 'azure' | 'gemini';
 
 export type AudioClipRecord = {
   /** Path under the bundled assets, e.g. `assets/audio/he/x_feminine.mp3`. */
@@ -20,7 +21,12 @@ export type AudioClipRecord = {
    */
   form: string;
   provider: AudioProvider;
-  /** Full provider voice name, e.g. `ar-JO-SanaNeural`. */
+  /**
+   * How it was said. A provider voice name for Google and Azure, e.g.
+   * `he-IL-Wavenet-A`; for Gemini, model, voice and a digest of the dialect
+   * instruction — `gemini-2.5-flash-preview-tts/Kore/4f1c8a90` — since all
+   * three decide the accent.
+   */
   voice: string;
   /** English meaning, for the review screen. */
   english: string;

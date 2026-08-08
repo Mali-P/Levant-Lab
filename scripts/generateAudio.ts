@@ -6,10 +6,10 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { loadConfig } from './audio/config';
+import { arabicVoiceTag, loadConfig } from './audio/config';
 import { buildJobs, sourceHash, type ClipJob } from './audio/jobs';
 import {
-  azureArabic,
+  arabicSynthesizer,
   googleHebrew,
   TtsError,
   type Synthesizer,
@@ -104,9 +104,10 @@ async function main(): Promise<number> {
   const speakable = jobs.filter((job) => job.spoken.length > 0);
   const needed = new Map<AudioLanguage, ClipJob[]>();
 
+  const arabicVoice = arabicVoiceTag(config);
+
   for (const job of speakable) {
-    const voice =
-      job.language === 'hebrew' ? config.google.voice : config.azure.voice;
+    const voice = job.language === 'hebrew' ? config.google.voice : arabicVoice;
     const file = join(config.outputRoot, job.path);
     const unchanged =
       !options.force &&
@@ -166,7 +167,21 @@ async function main(): Promise<number> {
       voice =
         language === 'hebrew'
           ? await googleHebrew(config)
-          : await azureArabic(config);
+          : await arabicSynthesizer(config);
+
+      // Gemini hands back raw samples, so ffmpeg stops being a nicety here:
+      // without it there is nothing to turn a WAV into the MP3 the app plays,
+      // and writing WAV bytes to an `.mp3` name would ship a file the browser
+      // is only guessing about.
+      if (!trimming && voice.format !== 'mp3') {
+        throw new TtsError(
+          voice.provider +
+            ' returns ' +
+            voice.format +
+            ' audio, which needs ffmpeg to encode. Install ffmpeg, or set ' +
+            'ARABIC_TTS_PROVIDER=azure to record from the shelved Azure voice.',
+        );
+      }
     } catch (error) {
       // A missing credential is one failure per clip rather than a crash, so
       // the other language still finishes and a partial run stays useful.
@@ -250,7 +265,8 @@ async function main(): Promise<number> {
       key: job.key,
       english: job.english,
     })),
-    voices: { hebrew: config.google.voice, arabic: config.azure.voice },
+    voices: { hebrew: config.google.voice, arabic: arabicVoice },
+    arabicProvider: config.arabicProvider,
   };
   writeFileSync(resolve(REPORT_FILE), JSON.stringify(report, null, 2), 'utf8');
 

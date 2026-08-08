@@ -6,10 +6,10 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { loadConfig } from './audio/config';
+import { arabicVoiceTag, loadConfig } from './audio/config';
 import { sourceHash } from './audio/jobs';
 import {
-  azureArabic,
+  arabicSynthesizer,
   googleHebrew,
   TtsError,
   type Synthesizer,
@@ -30,9 +30,10 @@ import type { AlphabetAudioRecord } from '../src/generated/alphabetAudioManifest
  * but nothing else. A letter has no deck and no English meaning, and folding
  * it into the vocabulary job list would mean inventing both.
  *
- * Hebrew goes to the Google he-IL voice and Arabic to the Azure Jordanian
- * voice, exactly as the vocabulary does. An MSA voice would teach a
- * pronunciation the learner will not hear.
+ * Hebrew goes to the Google he-IL voice and Arabic to Gemini under the
+ * Palestinian style direction, exactly as the vocabulary does. Modern
+ * Standard Arabic is never asked for: it would teach a pronunciation the
+ * learner will not hear.
  */
 
 const MANIFEST_FILE = 'src/generated/alphabetAudioManifest.ts';
@@ -116,10 +117,11 @@ async function main(): Promise<number> {
   const failures: Array<{ key: string; label: string; reason: string }> = [];
   let skipped = 0;
 
+  const arabicVoice = arabicVoiceTag(config);
+
   const needed = new Map<AlphabetScript, AlphabetClipSpec[]>();
   for (const clip of speakable) {
-    const voice =
-      clip.script === 'hebrew' ? config.google.voice : config.azure.voice;
+    const voice = clip.script === 'hebrew' ? config.google.voice : arabicVoice;
     const file = join(config.outputRoot, clip.path);
     const unchanged =
       !options.force &&
@@ -168,7 +170,20 @@ async function main(): Promise<number> {
       voice =
         script === 'hebrew'
           ? await googleHebrew(config)
-          : await azureArabic(config);
+          : await arabicSynthesizer(config);
+
+      // Gemini hands back raw samples: with no ffmpeg there is nothing to
+      // encode them into the MP3 the app plays, and WAV bytes under an `.mp3`
+      // name would leave the browser guessing.
+      if (!trimming && voice.format !== 'mp3') {
+        throw new TtsError(
+          voice.provider +
+            ' returns ' +
+            voice.format +
+            ' audio, which needs ffmpeg to encode. Install ffmpeg, or set ' +
+            'ARABIC_TTS_PROVIDER=azure to record from the shelved Azure voice.',
+        );
+      }
     } catch (error) {
       // A missing credential is one failure per clip rather than a crash, so
       // the other script still finishes and a partial run stays useful.
@@ -248,7 +263,8 @@ async function main(): Promise<number> {
       key: clip.key,
       label: clip.label,
     })),
-    voices: { hebrew: config.google.voice, arabic: config.azure.voice },
+    voices: { hebrew: config.google.voice, arabic: arabicVoice },
+    arabicProvider: config.arabicProvider,
   };
   writeFileSync(resolve(REPORT_FILE), JSON.stringify(report, null, 2), 'utf8');
 
