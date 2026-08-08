@@ -8,6 +8,7 @@ import {
   type LanguageSide,
   type SpeechForms,
   type SpeechPerspective,
+  type TtsPronunciation,
 } from '../types';
 
 export type WordForm = {
@@ -34,6 +35,14 @@ export type WordForm = {
   audioPath?: string;
   /** Pronunciation override for this form, when the visible text mis-speaks. */
   pronunciationText?: string;
+  /**
+   * The pronunciation this form is locked to, where the course fixes one.
+   *
+   * Carried down to here because the speaker button is where it is finally
+   * obeyed: a locked form is spoken as the course says whatever the learner's
+   * pronunciation-text setting is doing.
+   */
+  tts?: TtsPronunciation;
   /** Anything worth saying about this form alone. */
   notes?: string;
 };
@@ -52,6 +61,7 @@ function baseForm(side: LanguageSide): LanguageForm {
     script: side.script,
     transliteration: side.transliteration,
     pronunciationText: side.pronunciationText,
+    tts: side.tts,
     audioPath: side.audioPath,
   };
 }
@@ -151,6 +161,7 @@ export function speechWordForms(
       : perspectives.map((p) => SPEECH_PERSPECTIVE_LABELS[p]).join(', '),
     audioPath: form.audioPath,
     pronunciationText: form.pronunciationText,
+    tts: form.tts,
     notes: form.notes,
   }));
 }
@@ -198,6 +209,7 @@ export function wordForms(
         key: 'only',
         audioPath: side.audioPath,
         pronunciationText: side.pronunciationText,
+        tts: side.tts,
       },
     ];
   }
@@ -211,6 +223,7 @@ export function wordForms(
     label: 'feminine',
     audioPath: side.forms.feminine.audioPath,
     pronunciationText: side.forms.feminine.pronunciationText,
+    tts: side.forms.feminine.tts,
   };
   const masculine: WordForm = {
     script: side.forms.masculine.script,
@@ -221,6 +234,7 @@ export function wordForms(
     label: 'masculine',
     audioPath: side.forms.masculine.audioPath,
     pronunciationText: side.forms.masculine.pronunciationText,
+    tts: side.forms.masculine.tts,
   };
 
   return lead === 'masculine' ? [masculine, feminine] : [feminine, masculine];

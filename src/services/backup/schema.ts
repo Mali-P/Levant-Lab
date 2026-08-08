@@ -6,10 +6,23 @@ const acceptedAnswer = z.object({
   dialect: z.string().optional(),
 });
 
+/**
+ * The pronunciation a form is locked to. Travels in a backup because a
+ * learner's correction to a guess is hers, and restoring her cards without it
+ * would hand her back the guess.
+ */
+const ttsPronunciation = z.object({
+  text: z.string(),
+  target: z.string().optional(),
+  source: z.enum(['curated', 'dictionary', 'user']),
+  locked: z.boolean().optional(),
+});
+
 const genderedForm = z.object({
   script: z.string(),
   transliteration: z.string().optional(),
   pronunciationText: z.string().optional(),
+  tts: ttsPronunciation.optional(),
   audioPath: z.string().optional(),
 });
 
@@ -17,6 +30,7 @@ const languageSide = z.object({
   script: z.string(),
   transliteration: z.string().optional(),
   pronunciationText: z.string().optional(),
+  tts: ttsPronunciation.optional(),
   forms: z
     .object({ feminine: genderedForm, masculine: genderedForm })
     .optional(),

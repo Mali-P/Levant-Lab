@@ -27,14 +27,60 @@ export type AcceptedAnswer = {
   dialect?: string;
 };
 
+/**
+ * How one form is to be pronounced, decided by the course rather than by the
+ * speech engine's reading of the spelling.
+ *
+ * Four things are kept apart on purpose, because collapsing any two of them is
+ * how a card ends up teaching one word and saying another:
+ *
+ *   the script the learner reads      — `script`
+ *   the romanisation she is taught    — `transliteration`
+ *   the input that produces it        — `text`, here
+ *   the recording, where there is one — `audioPath`
+ *
+ * `text` is engine input and nothing else. It is normally the same word
+ * vocalised; it is never shown, never graded, and never a different word.
+ */
+export type TtsPronunciation = {
+  /** The exact input handed to the speech engine. */
+  text: string;
+  /**
+   * The romanisation this must come out as. Redundant with the form's own
+   * `transliteration` when they agree, and the tie-breaker when they do not —
+   * a reviewer correcting audio writes here without touching what is taught.
+   */
+  target?: string;
+  /**
+   * `curated` — authored Levantry course content. Authoritative.
+   * `dictionary` — stamped from the Palestinian pronunciation dictionary.
+   * `user` — the learner's own correction to a guess on her own card.
+   */
+  source: 'curated' | 'dictionary' | 'user';
+  /**
+   * Never re-derive this pronunciation from the Arabic spelling.
+   *
+   * A locked form ignores the "use card pronunciation" setting, which exists so
+   * a learner can silence her own respellings — not so she can be handed a
+   * Modern Standard reading of a word the deck teaches in Palestinian. Defaults
+   * to true for `curated` and false otherwise.
+   */
+  locked?: boolean;
+};
+
 export type GenderedForm = {
   script: string;
   transliteration?: string;
   /**
    * Sent to the speech generator instead of `script`. Holds niqqud or a
    * respelling that fixes a mispronunciation; the learner never sees it.
+   *
+   * The bare form of `tts`, kept for cards and backups written before that
+   * field existed. `tts` wins where both are set.
    */
   pronunciationText?: string;
+  /** The pronunciation this form is locked to, where the course fixes one. */
+  tts?: TtsPronunciation;
   /** Bundled clip for this exact form, relative to the app base. */
   audioPath?: string;
 };
@@ -119,6 +165,8 @@ export type LanguageForm = {
   transliteration?: string;
   /** Sent to the speech generator instead of `script`; the learner never sees it. */
   pronunciationText?: string;
+  /** The pronunciation this wording is locked to, where the course fixes one. */
+  tts?: TtsPronunciation;
   /** Bundled clip for this exact wording, relative to the app base. */
   audioPath?: string;
   notes?: string;
@@ -166,6 +214,14 @@ export type LanguageSide = {
   transliteration?: string;
   /** Sent to TTS instead of `script` when present. Lets niqqud / respelling drive audio. */
   pronunciationText?: string;
+  /**
+   * The pronunciation this side is locked to, where the course fixes one.
+   *
+   * Applies to the side's own single form. A side with `forms` or `speechForms`
+   * carries the lock on each of those instead, because two forms of a word are
+   * two different pronunciations and one entry cannot be right about both.
+   */
+  tts?: TtsPronunciation;
   forms?: GenderedForms;
   /**
    * Speaker/listener variants, where this phrase has any. Independent of

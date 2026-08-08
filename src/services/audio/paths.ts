@@ -4,6 +4,7 @@ import {
   type LanguageSide,
 } from '../../types';
 import { speechWordForms } from '../../utils/wordForms';
+import { resolveSpokenPlan, type TtsSource } from './ttsPlan';
 
 export type AudioLanguage = 'hebrew' | 'arabic';
 
@@ -90,12 +91,41 @@ export function clipKey(
 }
 
 /**
- * What the generator should send to the provider: the pronunciation override
- * when the entry carries one, otherwise the text the learner reads. Never a
- * rewrite of the stored wording — the Arabic stays Levantine as written.
+ * What the generator should send to the provider, and on whose authority.
+ *
+ * The whole ladder bar the clip itself, because at generation time the clip is
+ * the thing being made: the form's own override, then the Palestinian
+ * dictionary, then the spelling. Never a rewrite of the stored wording — the
+ * Arabic the learner reads stays Levantine as written, and only the engine's
+ * copy is vocalised.
  */
-export function textToSpeak(form: GenderedForm | LanguageSide): string {
-  return (form.pronunciationText ?? form.script).trim();
+function speechFor(
+  form: GenderedForm | LanguageSide,
+  language: AudioLanguage,
+): { spoken: string; transliteration?: string; ttsSource: TtsSource; locked: boolean } {
+  const plan = resolveSpokenPlan(form, { language });
+  return {
+    spoken: plan.text.trim(),
+    // The plan's target, not the form's own romanisation: where a reviewer has
+    // corrected one without the other, the corrected one is what the recording
+    // has to match.
+    transliteration: plan.target,
+    ttsSource: plan.source,
+    locked: plan.locked,
+  };
+}
+
+/**
+ * What the generator should send to the provider for one form.
+ *
+ * Kept as a named export because it is the one-line question the rest of the
+ * pipeline asks; `speechFor` is the same answer with its provenance attached.
+ */
+export function textToSpeak(
+  form: GenderedForm | LanguageSide,
+  language: AudioLanguage,
+): string {
+  return speechFor(form, language).spoken;
 }
 
 export type ClipSpec = {
@@ -106,7 +136,19 @@ export type ClipSpec = {
   text: string;
   /** What the provider is asked to say. */
   spoken: string;
+  /**
+   * The romanisation the recording has to come out as, handed to providers that
+   * take direction in prose. Levantry's target, not the engine's guess.
+   */
   transliteration?: string;
+  /**
+   * Which tier decided `spoken`. `'inferred'` means nothing did — the engine is
+   * reading undiacritized spelling and choosing the vowels itself, which is what
+   * `validate-pronunciation` fails the starter set on.
+   */
+  ttsSource: TtsSource;
+  /** Set when the pronunciation is course data that must not be re-derived. */
+  locked: boolean;
   path: string;
   key: string;
 };
@@ -137,8 +179,7 @@ export function clipsForSide(
       language,
       form: form.key,
       text: form.script,
-      spoken: textToSpeak(form),
-      transliteration: form.transliteration,
+      ...speechFor(form, language),
       path: clipPath(audioId, language, form.key),
       key: clipKey(audioId, language, form.key),
     }));
@@ -156,8 +197,7 @@ export function clipsForSide(
     language,
     form,
     text: source.script,
-    spoken: textToSpeak(source),
-    transliteration: source.transliteration,
+    ...speechFor(source, language),
     path: clipPath(audioId, language, form),
     key: clipKey(audioId, language, form),
   }));

@@ -54,14 +54,26 @@ describe('clipPath', () => {
 });
 
 describe('textToSpeak', () => {
-  it('speaks the displayed text by default', () => {
-    expect(textToSpeak({ script: 'قطة' })).toBe('قطة');
+  it('falls back to the displayed text for a word nothing knows', () => {
+    expect(textToSpeak({ script: 'قطة' }, 'arabic')).toBe('قطة');
   });
 
   it('prefers the pronunciation override when one is set', () => {
-    expect(textToSpeak({ script: 'قطة', pronunciationText: 'قِطَّة' })).toBe(
-      'قِطَّة',
+    expect(
+      textToSpeak({ script: 'قطة', pronunciationText: 'قِطَّة' }, 'arabic'),
+    ).toBe('قِطَّة');
+  });
+
+  // The point of the whole ladder: undiacritized تنين is what the engine gets
+  // wrong, so it must never be what the engine is handed.
+  it('vocalises a word the Palestinian dictionary knows', () => {
+    expect(textToSpeak({ script: 'تنين', transliteration: 'tnēn' }, 'arabic')).toBe(
+      'تْنِين',
     );
+  });
+
+  it('leaves Hebrew to its own niqqud rather than an Arabic dictionary', () => {
+    expect(textToSpeak({ script: 'תנין' }, 'hebrew')).toBe('תנין');
   });
 });
 
