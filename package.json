@@ -16,6 +16,7 @@
     "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "generate-audio": "tsx scripts/generateAudio.ts",
     "validate-audio": "tsx scripts/validateAudio.ts",
+    "validate-pronunciation": "tsx scripts/validatePronunciation.ts",
     "generate-alphabet-audio": "tsx scripts/generateAlphabetAudio.ts",
     "validate-alphabet": "tsx scripts/validateAlphabet.ts"
   },
