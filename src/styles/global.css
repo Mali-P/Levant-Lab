@@ -2111,9 +2111,13 @@ a.btn-primary:active {
   min-width: 0;
 }
 
+/*
+ * Sized to the height of the two text lines beside it rather than to the name
+ * alone, so the mark anchors the header instead of sitting in it like a bullet.
+ */
 .brand-mark {
-  width: 42px;
-  height: 42px;
+  width: 56px;
+  height: 56px;
   flex: none;
   color: var(--terracotta-ink);
 }
@@ -2293,8 +2297,8 @@ a.btn-primary:active {
  */
 @media (max-width: 359px) {
   .brand-mark {
-    width: 34px;
-    height: 34px;
+    width: 44px;
+    height: 44px;
   }
 
   .brand-name {
