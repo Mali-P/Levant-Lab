@@ -131,6 +131,65 @@ feed niqqud or a respelling to the voice without changing what you study.
 Arabic audio reads the stored Levantine wording; it is never swapped for
 Modern Standard Arabic.
 
+## Orthography does not control pronunciation
+
+Arabic spelling underdetermines speech. Written without harakat, `مرحبا` is
+equally readable as *marḥaba* and as the textbook *marḥaban*, and `تنين` as
+*tnēn* and as something with a syllable it does not have. Left to itself a
+generic Arabic voice picks the Modern Standard reading — the one this app is
+not teaching. So the pronunciation target comes from the course data, never
+from the engine's reading of the spelling.
+
+Four things are kept apart, and none of them is a synonym for another:
+
+| | What it is |
+|---|---|
+| `script` | the Arabic the learner sees |
+| `transliteration` | the pronunciation she is being taught |
+| `tts.text` | the exact input that makes an engine produce it |
+| `audioPath` | the recording, where one exists |
+
+Every speaker button and every generated clip resolves the same ladder, in
+`src/services/audio/ttsPlan.ts`:
+
+1. the bundled recording
+2. the card's own `tts` entry
+3. the Palestinian dictionary in `src/constants/palestinianPronunciation.ts`
+4. the spelling — and on curated content that is a bug, not a fallback
+
+Tier 3 is keyed by the Arabic word and holds both the taught romanisation and
+the same word vocalised (`تنين` → `تْنِين`, *tnēn*). Vocalising is the lever:
+`مَرْحَبا` has nowhere to put a tanwīn, and `تْنِين` cannot take an opening
+vowel. Where an engine later offers phonemes or SSML, only `ttsText` changes.
+
+A `tts` entry with `locked: true` — the default for anything but a `user`
+correction — means *do not re-derive this from the spelling*. Locked forms
+ignore the "use card pronunciation text" setting, which exists so a learner can
+silence her own respellings, not so she can be handed an MSA reading of a word
+the deck teaches in Palestinian.
+
+Cards the learner writes herself are treated differently on purpose: the app
+does not know what she meant, so an engine guess is honest there, and her
+correction is stored on the card and used from then on.
+
+```bash
+npm run validate-pronunciation              # no credentials needed; safe in CI
+npm run validate-pronunciation -- --strict  # fail on every deck, not just enforced ones
+```
+
+`ENFORCED_DECKS` in `scripts/validatePronunciation.ts` is the list of decks
+where an uncovered Arabic form fails the run. A deck joins it the day it reaches
+zero uncovered forms; the rest are reported as a warning tally so the check is
+usable before the content is complete. "One to ten" and "Numbers with nouns"
+are enforced today.
+
+Those two decks are also where a content line is drawn. "One to ten" teaches
+one Arabic word per number — the isolated counting form — because counting has
+one right answer; the forms that change with what is being counted, تنتين among
+them, are taught in "Numbers with nouns". The dictionary holds every one of
+them, because both decks have to be said correctly. Which of them a learner
+sees is a question about grammar, never about her own gender.
+
 ## Pronunciation audio
 
 Every word ships as an audio file. The app never calls a speech API: pressing a
