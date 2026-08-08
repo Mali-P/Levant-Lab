@@ -1063,9 +1063,8 @@ textarea.input {
   gap: 8px;
 }
 
-/* A category row and its Memorise tick. The tick is a sibling of the link
-   rather than a child of it: an anchor may not hold a button, and pressing it
-   must change the tab's pile, never navigate. */
+/* A category row. The Memorise tick that used to sit beside it now lives on
+   each deck's own screen, beneath that deck's study modes. */
 .category-row {
   display: flex;
   align-items: stretch;
@@ -1075,12 +1074,6 @@ textarea.input {
 .category-row .list-item {
   width: auto;
   min-width: 0;
-}
-
-.category-row .chip-toggle {
-  flex-shrink: 0;
-  min-height: var(--tap);
-  padding-inline: 12px;
 }
 
 .list-item {
@@ -1704,6 +1697,40 @@ a.btn-primary:visited {
 .mode-choice-go {
   flex: none;
   color: var(--ink-dim);
+}
+
+/* The Memorise tick reads as one more row in the picker, but it is a button
+   rather than a link, so it needs the resets an anchor never wanted. */
+.memorise-tick {
+  width: 100%;
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tickbox {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  color: transparent;
+}
+
+/* Filled rather than merely outlined when on: at a glance across the picker,
+   a ticked deck should differ in weight, not only in whether a hairline
+   holds a mark. */
+.memorise-tick.on .tickbox {
+  border-color: var(--he);
+  color: var(--he);
+}
+
+.tickbox .ico {
+  width: 1rem;
+  height: 1rem;
 }
 
 /* ---------- memorise card ---------- */

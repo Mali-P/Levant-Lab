@@ -22,8 +22,8 @@ export const DEFAULT_SETTINGS: Settings = {
   listenerGenders: ['male', 'female'],
   identityConfirmed: false,
 
-  // Nothing chosen yet, which `memoriseCategories` reads as the first category.
-  memoriseCategoryIds: [],
+  // Nothing ticked yet, which `memoriseDecks` reads as the first unlocked deck.
+  memoriseDeckIds: [],
 
   defaultMode: 'normal',
   defaultAnswerMode: 'self',

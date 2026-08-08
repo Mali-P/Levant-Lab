@@ -479,15 +479,16 @@ export type Settings = {
   practicePerspectiveOverride?: SpeechPerspective[];
 
   /**
-   * The categories the Memorise tab reads from, chosen in Study.
+   * The decks the Memorise tab reads from, ticked on each deck's own screen.
    *
-   * Empty means "the first category" rather than "nothing": Memorise is the
-   * middle tab and must always open on something, so a learner who has never
-   * chosen — or who has just unticked the last box — still gets the category
-   * she is meant to start with. Ids of categories that no longer exist are
-   * ignored on read, so deleting a category cannot empty the tab either.
+   * Empty means "the first unlocked deck" rather than "nothing": Memorise is
+   * the middle tab and must always open on something, so a learner who has
+   * never ticked — or who has just unticked the last deck — still gets the deck
+   * she is meant to start with. Ids of decks that no longer exist, or that are
+   * still locked, are ignored on read, so neither deleting a deck nor a deck
+   * closing behind her can empty the tab.
    */
-  memoriseCategoryIds: string[];
+  memoriseDeckIds: string[];
 
   // Study
   defaultMode: StudyMode;

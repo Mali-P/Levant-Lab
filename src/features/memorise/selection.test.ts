@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Category, Deck, DeckProgress, Flashcard } from '../../types';
-import { memoriseCategories, memorisePool } from './selection';
+import { memoriseDecks, memorisePool } from './selection';
 
 const T0 = '2026-01-02T09:00:00.000Z';
 
@@ -40,35 +40,60 @@ function mastered(deckId: string): DeckProgress {
 }
 
 const CATEGORIES = [category('a', 0), category('b', 1), category('c', 2)];
+const DECKS = [deck('a1', 'a', 0), deck('a2', 'a', 1), deck('b1', 'b', 0)];
 
-describe('memoriseCategories', () => {
-  it('falls back to the first category when nothing has been chosen', () => {
-    expect(memoriseCategories(CATEGORIES, []).map((c) => c.id)).toEqual(['a']);
-    expect(memoriseCategories(CATEGORIES, undefined).map((c) => c.id)).toEqual(['a']);
+/** Everything unlocked, so a test can speak about ticks rather than the ladder. */
+const ALL_OPEN = { a1: mastered('a1'), b1: mastered('b1') };
+
+function chooseDecks(
+  selectedIds: string[] | undefined,
+  deckProgress: Record<string, DeckProgress> = ALL_OPEN,
+) {
+  return memoriseDecks({
+    categories: CATEGORIES,
+    decks: DECKS,
+    deckProgress,
+    selectedIds,
+  }).map((d) => d.id);
+}
+
+describe('memoriseDecks', () => {
+  it('falls back to the first unlocked deck when nothing has been ticked', () => {
+    expect(chooseDecks([])).toEqual(['a1']);
+    expect(chooseDecks(undefined)).toEqual(['a1']);
   });
 
-  it('keeps the chosen categories, in the order Study lists them', () => {
-    const chosen = memoriseCategories(CATEGORIES, ['c', 'a']);
-    expect(chosen.map((c) => c.id)).toEqual(['a', 'c']);
+  it('keeps the ticked decks, in the order Study lays them out', () => {
+    expect(chooseDecks(['b1', 'a1'])).toEqual(['a1', 'b1']);
   });
 
-  it('ignores ids of categories that no longer exist', () => {
-    expect(memoriseCategories(CATEGORIES, ['b', 'deleted']).map((c) => c.id)).toEqual([
-      'b',
-    ]);
+  it('ignores ids of decks that no longer exist', () => {
+    expect(chooseDecks(['a2', 'deleted'])).toEqual(['a2']);
   });
 
   it('falls back rather than emptying the tab when every id is stale', () => {
-    expect(memoriseCategories(CATEGORIES, ['deleted']).map((c) => c.id)).toEqual(['a']);
+    expect(chooseDecks(['deleted'])).toEqual(['a1']);
   });
 
-  it('has nothing to offer when there are no categories at all', () => {
-    expect(memoriseCategories([], ['a'])).toEqual([]);
+  it('leaves out a ticked deck the learner has not unlocked', () => {
+    // Deck a2 opens only once a1 is mastered, so a tick on it is not honoured
+    // yet — and with nothing else ticked the tab falls back to a1.
+    expect(chooseDecks(['a2'], {})).toEqual(['a1']);
+  });
+
+  it('has nothing to offer when there are no decks at all', () => {
+    expect(
+      memoriseDecks({
+        categories: CATEGORIES,
+        decks: [],
+        deckProgress: {},
+        selectedIds: ['a1'],
+      }),
+    ).toEqual([]);
   });
 });
 
 describe('memorisePool', () => {
-  const decks = [deck('a1', 'a', 0), deck('a2', 'a', 1), deck('b1', 'b', 0)];
   const cards = [
     card('a1-second', 'a1', 1),
     card('a1-first', 'a1', 0),
@@ -76,40 +101,16 @@ describe('memorisePool', () => {
     card('b1-only', 'b1', 0),
   ];
 
-  it('reads category by category, deck by deck, in each deck’s own order', () => {
-    const pool = memorisePool({
-      categories: [CATEGORIES[0], CATEGORIES[1]],
-      decks,
-      cards,
-      deckProgress: { a1: mastered('a1') },
-    });
-    expect(pool.map((c) => c.id)).toEqual([
-      'a1-first',
-      'a1-second',
-      'a2-only',
-      'b1-only',
-    ]);
+  it('reads deck by deck, in each deck’s own order', () => {
+    const pool = memorisePool([DECKS[0], DECKS[2]], cards);
+    expect(pool.map((c) => c.id)).toEqual(['a1-first', 'a1-second', 'b1-only']);
   });
 
-  it('leaves out decks the learner has not unlocked', () => {
-    const pool = memorisePool({
-      categories: [CATEGORIES[0]],
-      decks,
-      cards,
-      deckProgress: {},
-    });
-    // Deck a2 opens only once a1 is mastered, so it is not dealt here.
-    expect(pool.map((c) => c.id)).toEqual(['a1-first', 'a1-second']);
+  it('is empty when the chosen decks hold no cards', () => {
+    expect(memorisePool([deck('empty', 'c', 0)], cards)).toEqual([]);
   });
 
-  it('is empty when the chosen categories hold no cards', () => {
-    expect(
-      memorisePool({
-        categories: [CATEGORIES[2]],
-        decks,
-        cards,
-        deckProgress: {},
-      }),
-    ).toEqual([]);
+  it('is empty when nothing was chosen', () => {
+    expect(memorisePool([], cards)).toEqual([]);
   });
 });

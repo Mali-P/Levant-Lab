@@ -32,6 +32,7 @@ export type IconName =
   // controls
   | 'speaker'
   | 'lock'
+  | 'check'
   | 'back'
   | 'forward'
   | 'sun'
@@ -149,6 +150,7 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M12 14.4v2.4" />
     </>
   ),
+  check: <path d="m5 12.4 4.8 4.8L19 6.6" />,
   back: <path d="M15 4.5 7.5 12l7.5 7.5" />,
   forward: <path d="M9 4.5 16.5 12 9 19.5" />,
   sun: (

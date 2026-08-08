@@ -16,16 +16,16 @@ import {
   restartMemorise,
   type MemoriseSession,
 } from '../features/memorise/session';
-import { memoriseCategories, memorisePool } from '../features/memorise/selection';
+import { memoriseDecks, memorisePool } from '../features/memorise/selection';
 import MemoriseCard from '../components/cards/MemoriseCard';
 import ScreenHeader from '../components/controls/ScreenHeader';
 
 /**
  * Memorise mode: read the cards once, one at a time.
  *
- * Two ways in, one screen. `/memorise/:deckId` reads a single deck, opened from
- * its mode picker. `/memorise` is the middle tab, and reads whichever categories
- * the learner ticked in Study — the first category until she ticks anything.
+ * Two ways in, one screen. `/memorise/:deckId` reads a single deck. `/memorise`
+ * is the middle tab, and reads whichever decks the learner ticked on their own
+ * screens — the first deck she can open until she ticks anything.
  *
  * Nothing on this screen grades anything. There is no answer to give, no
  * correct / incorrect pair, no retry pile, and not a single write to
@@ -56,13 +56,21 @@ export default function MemoriseScreen() {
   const deck = deckId ? decks.find((d) => d.id === deckId) : undefined;
   const category = categories.find((c) => c.id === deck?.categoryId);
 
-  // The tab's pile: the categories ticked in Study, the first category until
-  // she ticks any. Deliberately not consulted in deck mode, where the deck the
-  // learner opened is the pile and her tab selection has nothing to say.
+  // The tab's pile: the decks ticked on their own screens, the first unlocked
+  // deck until she ticks any. Deliberately not consulted in deck mode, where the
+  // deck the learner opened is the pile and her tab selection has nothing to
+  // say.
   const chosen = useMemo(
     () =>
-      deckId ? [] : memoriseCategories(categories, settings.memoriseCategoryIds),
-    [deckId, categories, settings.memoriseCategoryIds],
+      deckId
+        ? []
+        : memoriseDecks({
+            categories,
+            decks,
+            deckProgress,
+            selectedIds: settings.memoriseDeckIds,
+          }),
+    [deckId, categories, decks, deckProgress, settings.memoriseDeckIds],
   );
 
   // A bookmark can point straight at a deck the learner has not earned yet, so
@@ -82,14 +90,14 @@ export default function MemoriseScreen() {
     () =>
       deckId
         ? sortCards(cards.filter((c) => c.deckId === deckId))
-        : memorisePool({ categories: chosen, decks, cards, deckProgress }),
-    [deckId, chosen, cards, decks, deckProgress],
+        : memorisePool(chosen, cards),
+    [deckId, chosen, cards],
   );
 
-  // What the pass is dealt from, as one string: a deck id, or the categories
-  // she has chosen. Reticking a box in Study therefore deals a fresh pass, and
-  // a selection that happens to hold the same number of cards is not mistaken
-  // for the one before it.
+  // What the pass is dealt from, as one string: a deck id, or the decks she has
+  // ticked. Reticking a deck therefore deals a fresh pass, and a selection that
+  // happens to hold the same number of cards is not mistaken for the one before
+  // it.
   const sourceKey = deckId ?? chosen.map((c) => c.id).join(',');
 
   useEffect(() => {
@@ -248,18 +256,18 @@ export default function MemoriseScreen() {
           ) : (
             <>
               {/* The pile can be empty without anything being wrong: a brand
-                  new install, or every deck of the chosen categories still
-                  locked. Both are answered in Study, so that is where the
-                  button goes. */}
+                  new install, or a ticked deck that has since been emptied.
+                  Both are answered in Study, so that is where the button
+                  goes. */}
               <p>
-                Nothing to read here yet. Pick the categories you want to
-                memorise in Study.
+                Nothing to read here yet. Open a deck in Study and tick
+                “Memorise this deck”.
               </p>
               <button
                 className="btn btn-primary"
                 onClick={() => navigate('/categories')}
               >
-                Choose categories
+                Choose a deck
               </button>
             </>
           )}
@@ -315,7 +323,7 @@ export default function MemoriseScreen() {
                 </button>
               </>
             ) : (
-              // A pile drawn from several categories has no single deck to be
+              // A pile drawn from several ticked decks has no single deck to be
               // tested on, so it offers the choosing screen instead of picking
               // a deck on the learner's behalf.
               <button

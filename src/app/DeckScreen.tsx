@@ -11,23 +11,18 @@ import { LevantMotif } from '../components/ornament/Ornament';
 /**
  * The mode picker a deck opens on.
  *
- * The order is the intended progression — meet the words, then be asked about
- * them, then be asked until nothing slips. Memorise leads because being tested
- * on vocabulary you have never read is not a test, it is a guess.
+ * The order is the intended progression — be asked about the words, then be
+ * asked until nothing slips. Reading a deck through is no longer one of these
+ * choices: it belongs to the Memorise tab, and this screen only says whether
+ * this deck is among what that tab deals.
  */
 const CHOICES = [
-  {
-    href: (deckId: string) => '/memorise/' + deckId,
-    name: 'Memorise',
-    blurb: 'Read the whole deck through. Nothing is scored.',
-    icon: 'codex' as const,
-    lead: true,
-  },
   {
     href: (deckId: string) => '/study/' + deckId + '?mode=normal',
     name: 'Normal',
     blurb: 'Three words, then five, then seven, then the deck.',
     icon: 'target' as const,
+    lead: true,
   },
   {
     href: (deckId: string) => '/study/' + deckId + '?mode=hard',
@@ -48,6 +43,7 @@ export default function DeckScreen() {
   const navigate = useNavigate();
 
   const settings = useSettings((s) => s.settings);
+  const update = useSettings((s) => s.update);
   const decks = useData((s) => s.decks);
   const categories = useData((s) => s.categories);
   const cards = useData((s) => s.cards);
@@ -101,6 +97,21 @@ export default function DeckScreen() {
       'mastered',
   ).length;
 
+  // The tick shows the stored choice literally rather than what the tab happens
+  // to be dealing: with nothing ticked at all the tab falls back to the first
+  // deck the learner can open, and drawing that as ticked would offer her an
+  // untick that changes nothing. The line under the list says so instead.
+  const thisDeckId = deck.id;
+  const inMemorise = settings.memoriseDeckIds?.includes(thisDeckId) ?? false;
+
+  function toggleMemorise() {
+    const current = settings.memoriseDeckIds ?? [];
+    const next = inMemorise
+      ? current.filter((id) => id !== thisDeckId)
+      : [...current, thisDeckId];
+    void update({ memoriseDeckIds: next });
+  }
+
   return (
     <div className="screen">
       <ScreenHeader title={deck.name} eyebrow={category?.name} back />
@@ -148,7 +159,38 @@ export default function DeckScreen() {
                 </span>
               </Link>
             ))}
+
+            {/* Not another way to study but a standing choice about the deck,
+                so it ticks in place instead of leading anywhere. It sits with
+                the modes because this screen is where a learner decides what
+                she is doing with this deck. */}
+            <button
+              type="button"
+              className={'mode-choice memorise-tick' + (inMemorise ? ' on' : '')}
+              aria-pressed={inMemorise}
+              onClick={toggleMemorise}
+            >
+              <span className="mode-choice-icon" aria-hidden="true">
+                <Icon name="codex" />
+              </span>
+              <span className="grow">
+                <span className="mode-choice-name">Memorise this deck</span>
+                <span className="small muted">
+                  {inMemorise
+                    ? 'The Memorise tab reads this deck. Nothing is scored.'
+                    : 'Add it to the Memorise tab’s read-through.'}
+                </span>
+              </span>
+              <span className="tickbox" aria-hidden="true">
+                {inMemorise && <Icon name="check" />}
+              </span>
+            </button>
           </div>
+
+          <p className="small muted">
+            With no deck ticked anywhere, Memorise reads the first deck you can
+            open.
+          </p>
         </>
       )}
     </div>
