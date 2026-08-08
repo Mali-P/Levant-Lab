@@ -10,6 +10,10 @@ coverage
 .env
 .env.*
 !.env.example
+
+# Where the production deploy target lives. The example is committed; the real
+# file names a host and a private key path, so it is not. See docs/DEPLOYMENT.md.
+!.env.deploy.example
 *.serviceaccount.json
 gcp-*.json
 google-credentials*.json
