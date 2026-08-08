@@ -1203,8 +1203,11 @@ a.btn-primary:visited {
   gap: 8px;
 }
 
+/* Four buttons in two rows is 112px of the screen the card is competing for,
+   so on a short phone they come down to the 44px tap floor rather than taking
+   the answer with them. */
 .grade-grid .btn {
-  min-height: 52px;
+  min-height: clamp(44px, 7vh, 52px);
   padding: 0 10px;
   font-size: 0.92rem;
 }
@@ -1212,9 +1215,17 @@ a.btn-primary:visited {
 /*
  * Tighter card internals on the study screen so a revealed card shows the
  * prompt and both answers without scrolling on a normal phone.
+ *
+ * Measured against the viewport's height rather than fixed, because what has
+ * to fit is the same on every phone and the room to fit it in is not: a 640px
+ * screen gives the card barely half what an 844px one does once the header,
+ * the stage banner and the grading buttons have taken their fixed share. Each
+ * clamp tops out at the size the card had before, so a tall screen is left
+ * exactly as it was and a short one tightens instead of scrolling.
  */
 .screen.study .card {
-  gap: 10px;
+  gap: clamp(6px, 1.2vh, 10px);
+  padding-block: clamp(9px, 1.5vh, 14px);
 }
 
 .screen.study .card-prompt {
@@ -1223,21 +1234,70 @@ a.btn-primary:visited {
 }
 
 .screen.study .card-prompt .glyph {
-  font-size: 2.1rem;
+  font-size: clamp(1.4rem, 3.4vh, 2.1rem);
 }
 
 .screen.study .card-prompt .word {
-  font-size: clamp(1.8rem, 8vw, 2.5rem);
+  font-size: clamp(1.35rem, 3.6vh, 2.5rem);
 }
 
 .screen.study .answer-block {
-  padding-top: 10px;
+  padding-top: clamp(5px, 1.2vh, 10px);
   gap: 4px;
 }
 
+/* The floor is where a pointed script is still read rather than decoded; the
+   min-height goes with it, so an unrevealed card's row of dots does not hold
+   open a line sized for a word twice as tall. */
 .screen.study .answer-reveal {
-  font-size: 1.8rem;
-  min-height: 2.1rem;
+  font-size: clamp(1.25rem, 3.4vh, 1.8rem);
+  min-height: 1.2em;
+}
+
+/*
+ * Short screens: the last of the height, taken from the layout rather than
+ * from the words.
+ *
+ * A clamp can only make a thing smaller, and by here there is nothing left
+ * worth shrinking — so this changes what sits beside what instead. The two
+ * gendered forms of an answer stop stacking and share a line, which is how
+ * their transliterations have always read directly underneath them ("♀ shalosh
+ * ♂ shlosha"), and it is the one change that buys a whole line back per
+ * language. They stack again the moment they do not fit side by side, and on a
+ * screen tall enough to stack them this rule never applies at all.
+ */
+@media (max-height: 720px) {
+  .screen.study .answer-reveal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 18px;
+    /* The row is LTR so feminine stays the left of the pair, which is the order
+       the transliterations under it are read in. Left to inherit, the scripts'
+       own right-to-left flow would lay the two forms out back-to-front against
+       their own romanisations. Each word still sets itself RTL inside. */
+    direction: ltr;
+  }
+
+  /* The bands of air around the card. Halved rather than removed: the card
+     still has to read as an object standing off the text above it. The bottom
+     padding is the tab bar's own height plus its clearance, and it keeps the
+     clearance a card's width of thumb still needs. */
+  .screen.study {
+    gap: 8px;
+    padding-bottom: 76px;
+  }
+
+  .screen.study .stage-banner {
+    gap: 4px;
+  }
+
+  .screen.study .card-stage,
+  .screen.study .card-stage + .row,
+  .screen.study .card-stage + .btn,
+  .screen.study .card-stage + .grade-grid {
+    margin-top: 8px;
+  }
 }
 
 /* The audio buttons sit inside the card, where the full 48px tap target would
@@ -1766,7 +1826,11 @@ a.btn-primary:visited {
  * stretching past a phone's worth of line length on a wide display.
  */
 .screen.study .card-stage {
-  flex: 0 1 auto;
+  /* Grows as well as shrinks. Everything else on this screen is flex-shrink: 0
+     with a height of its own, so the card is the only thing that can take the
+     height left over — and a card that scrolls its own back while leaving a
+     band of empty screen underneath is the worst of both. */
+  flex: 1 1 auto;
   min-height: 46%;
   max-height: 100%;
   width: 100%;
@@ -1804,22 +1868,48 @@ a.btn-primary:visited {
  * without scrolling — a form the learner has to scroll to find is a form they
  * will skip. Once the card is turned over the English has done its job, so it
  * gives up the space the scripts need.
+ *
+ * The back takes the same height-fluid spacing every card on this screen does,
+ * and needs it most: the study screen's intro spends two lines on the stage
+ * banner that the Memorise tab spends one on, so a back that just fits under
+ * the tab is the one that clips under the banner.
  */
+
+/* The card's own "Memorise" label, which the screen header above it already
+   says. Worth its line while the front is showing and there is room to spare;
+   the first thing to go once the back needs the height. */
+.screen.study .memorise-card.flipped .memorise-eyebrow {
+  display: none;
+}
+
 .screen.study .memorise-card.flipped .card-prompt {
   padding: 0;
 }
 
 .screen.study .memorise-card.flipped .card-prompt .word {
-  font-size: clamp(1.3rem, 5vw, 1.7rem);
+  font-size: clamp(1.15rem, 4.5vw, 1.7rem);
+}
+
+.screen.study .memorise-card.flipped .card-prompt .glyph {
+  font-size: clamp(1.2rem, 3vh, 1.8rem);
 }
 
 .screen.study .memorise-card.flipped .answer-block {
-  padding-top: 8px;
+  padding-top: clamp(4px, 1.2vh, 8px);
   gap: 2px;
 }
 
 .screen.study .memorise-card.flipped .memorise-forms {
   gap: 2px;
+}
+
+/* The same 44px the study card already gives the buttons inside its own face,
+   and for the same reason: four of these rows are stacked, so the 4px each one
+   gives up is 16px the scripts get back, and 44px is still comfortable under a
+   thumb with nothing crowding it horizontally. */
+.screen.study .memorise-card.flipped .memorise-form .btn.speaker {
+  min-height: 44px;
+  min-width: 44px;
 }
 
 /*
@@ -1850,8 +1940,10 @@ a.btn-primary:visited {
   font-weight: 650;
 }
 
+/* Fluid for the same reason the spacing above it is, and floored at a size the
+   pointed Hebrew and Arabic scripts are still read at rather than decoded. */
 .screen.study .memorise-form .form-line {
-  font-size: 1.5rem;
+  font-size: clamp(1.25rem, 3.4vh, 1.5rem);
 }
 
 /*
