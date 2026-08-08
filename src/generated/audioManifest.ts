@@ -12,7 +12,13 @@ export type AudioClipRecord = {
   /** Path under the bundled assets, e.g. `assets/audio/he/x_feminine.mp3`. */
   path: string;
   language: 'hebrew' | 'arabic';
-  form: 'feminine' | 'masculine' | 'neutral';
+  /**
+   * Which form was recorded: `feminine` / `masculine` for a grammatical pair,
+   * `neutral` for a word said one way, or the joined perspective keys of a
+   * speaker/listener variant — `f2m`, or `f2m+m2m` where two perspectives
+   * share one wording and therefore one clip. See `FormName` in `audio/paths`.
+   */
+  form: string;
   provider: AudioProvider;
   /** Full provider voice name, e.g. `ar-JO-SanaNeural`. */
   voice: string;

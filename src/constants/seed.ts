@@ -688,7 +688,7 @@ const CUSTOM_DECKS: SeedDeck[] = [
       c(
         'how are you, mom?',
         ['מה שלומך אמא', 'ma shlomekh ima'],
-        ['كيف حالك ماما', 'kīf ḥālek māma'],
+        ['كيف حالك ماما', 'kīf ḥālik māma'],
         { ar: 'The ـك ending is the feminine حالِك; كيفك is the shorter everyday version of the same question.' },
       ),
       c(
@@ -702,14 +702,17 @@ const CUSTOM_DECKS: SeedDeck[] = [
         // Said by her, to her mother: a woman speaking to a woman throughout.
         // The verb was masculine here until the perspectives went in, which is
         // exactly the mistake this axis exists to stop.
-        ['אני רוצה לעזור לך בבית שלך אמא', 'ani rotsa laʿazor lakh babayit shelakh ima'],
-        ['أنا بدي أساعدك بالبيت ماما', 'ana biddi asāʿdek bil-bēt māma'],
-        { he: 'רוצה is said rotsa by a woman; לך and שלך take the feminine endings for her mother.', ar: 'أساعدِك is the feminine "help you"; drop بالبيت and it is simply "I want to help you".' },
+        bySp(
+          ['אני רוצה לעזור לך בבית שלך אמא', 'ani rotsa laʿazor lakh babayit shelakh ima'],
+          ['אני רוצה לעזור לך בבית שלך אמא', 'ani rotse laʿazor lakh babayit shelakh ima'],
+        ),
+        ['أنا بدي أساعدك بالبيت ماما', 'ana biddi asāʿdik bil-bēt māma'],
+        { he: 'רוצה is the speaker\'s own — rotsa from a woman, rotse from a man — and is written the same either way. לך and שלך stay feminine because the person addressed is always her mother.', ar: 'بدي does not change for a woman or a man; أساعدِك is the feminine "help you", said to her mother. Drop بالبيت and it is simply "I want to help you".' },
       ),
       c(
         'do you want?',
         toL(['אתה רוצה', 'ata rotse'], ['את רוצה', 'at rotsa']),
-        toL(['بدَّك', 'biddak'], ['بدِّك', 'biddek']),
+        toL(['بدَّك', 'biddak'], ['بدِّك', 'biddik']),
         { ar: 'Written بدك either way — only the transliteration tells the two endings apart.' },
       ),
       c(
@@ -719,7 +722,7 @@ const CUSTOM_DECKS: SeedDeck[] = [
           ['אפשר לשאול, את יהודייה או ערבייה', 'efshar lish\'ol, at yehudiya o araviya'],
         ),
         toL(
-          ['لو سمحت، إنت يهودي ولا عربي', 'law samaḥt, inta yahūdi walla ʿarabi'],
+          ['لو سمحت، إنت يهودي ولا عربي', 'law samaḥt, inte yahūdi walla ʿarabi'],
           ['لو سمحتي، إنتِ يهودية ولا عربية', 'law samaḥti, inti yahūdiyye walla ʿarabiyye'],
         ),
         {
@@ -1156,7 +1159,7 @@ export const SEED_CATEGORIES: SeedCategory[] = [
           c('lost', ['אבודה', 'avuda', 'אבוד', 'avud'], ['ضايعة', 'ḍāyʿa', 'ضايع', 'ḍāyeʿ']),
           // Commands are aimed at somebody, so the ending is always theirs.
           c('stop!', toL(['עצור', 'atsor'], ['עצרי', 'itsri']), toL(['وقّف', 'waʾʾef'], ['وقّفي', 'waʾʾfi'])),
-          c('call!', toL(['תתקשר', 'titkasher'], ['תתקשרי', 'titkasheri']), toL(['اتّصل', 'ittiṣil'], ['اتّصلي', 'ittiṣli'])),
+          c('call!', toL(['תתקשר', 'titkasher'], ['תתקשרי', 'titkashri']), toL(['اتّصل', 'ittiṣil'], ['اتّصلي', 'ittiṣli'])),
         ],
       },
       {
@@ -1180,7 +1183,11 @@ export const SEED_CATEGORIES: SeedCategory[] = [
           c('thief', ['גנבת', 'ganevet', 'גנב', 'ganav'], ['حرامية', 'ḥarāmiyye', 'حرامي', 'ḥarāmi']),
           c('theft', ['גניבה', 'gneva'], ['سرقة', 'sirqa']),
           c('safe', ['בטוחה', 'btukha', 'בטוח', 'batuakh'], ['آمنة', 'āmne', 'آمن', 'āmen']),
-          c('afraid', bySp(['מפחדת', 'mefakhedet'], ['מפחד', 'mefakhed']), bySp(['خايفة', 'khāyfe'], ['خايف', 'khāyef']), { ar: 'Said of yourself, so the ending is your own.' }),
+          // A bare adjective, taught beside "safe" and "lost": the gender is
+          // whoever is afraid, which may be a third person, so it is a word
+          // pair. Written as a speaker perspective it would have hidden خايف
+          // from a learner studying only the female-speaker views.
+          c('afraid', ['מפחדת', 'mefakhedet', 'מפחד', 'mefakhed'], ['خايفة', 'khāyfe', 'خايف', 'khāyef'], { ar: 'The gender is the person described, not whoever is speaking.' }),
           c('problem', ['בעיה', 'be\'aya'], ['مشكلة', 'mushkile']),
           c('no problem', ['אין בעיה', 'ein be\'aya'], ['ما في مشكلة', 'mā fī mushkile']),
           c('keys', ['מפתחות', 'maftekhot'], ['مفاتيح', 'mafātīḥ']),
@@ -1582,7 +1589,7 @@ export const SEED_CATEGORIES: SeedCategory[] = [
           c('cook', ['טבחית', 'tabakhit', 'טבח', 'tabakh'], ['طبّاخة', 'ṭabbākha', 'طبّاخ', 'ṭabbākh']),
           c('farmer', ['חקלאית', 'khakla\'it', 'חקלאי', 'khaklai'], ['فلّاحة', 'fallāḥa', 'فلّاح', 'fallāḥ']),
           c('carpenter', ['נגרית', 'nagarit', 'נגר', 'nagar'], ['نجّارة', 'najjāra', 'نجّار', 'najjār']),
-          c('builder', ['בנאית', 'bana\'it', 'בנאי', 'banai'], ['بنّاية', 'bannāye', 'بنّا', 'banna']),
+          c('builder', ['בנאית', 'bana\'it', 'בנאי', 'banai'], ['بنّا', 'banna'], { ar: 'One form: بنّاية is a building, not a woman who builds, and Palestinian Arabic has no everyday feminine of بنّا.' }),
           c('shopkeeper', ['חנוונית', 'khanvanit', 'חנווני', 'khanvani'], ['صاحبة محلّ', 'ṣāḥbet maḥall', 'صاحب محلّ', 'ṣāḥeb maḥall']),
           c('lawyer', ['עורכת דין', 'orekhet din', 'עורך דין', 'orekh din'], ['محامية', 'muḥāmye', 'محامي', 'muḥāmi']),
           c('journalist', ['עיתונאית', 'itona\'it', 'עיתונאי', 'itonai'], ['صحفيّة', 'ṣuḥufiyye', 'صحفي', 'ṣuḥufi']),
