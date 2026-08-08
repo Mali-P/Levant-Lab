@@ -186,9 +186,9 @@ type PairedWord = [string, string, string, string];
  * The nine units as they are said inside a compound such as "twenty-three".
  *
  * Hebrew keeps its feminine/masculine pair inside a compound. Spoken
- * Palestinian Arabic uses one counting form — the same one the masculine column
- * of "One to ten" shows — so the Arabic side carries a single word, and it is
- * the one place the headline is not a feminine form.
+ * Palestinian Arabic uses one counting form — the same one "One to ten" teaches
+ * — so the Arabic side carries a single word, and the two decks agree word for
+ * word.
  */
 const COMPOUND_UNITS: {
   english: string;
@@ -265,24 +265,88 @@ function tensDeck(index: number): SeedDeck {
 }
 
 /**
- * One to a hundred, ten cards at a time. The teens are irregular in both
- * languages and are written out; everything from twenty-one up is built from
- * the units and tens above, which is also how a learner meets them.
+ * The other forms of one to ten: the ones a number takes in front of a noun.
+ *
+ * This is where the second Arabic column went, and it is a grammar deck rather
+ * than a second counting deck. Two different things live here, both of them
+ * about the noun and neither about who is speaking:
+ *
+ *   one and two agree with the noun's gender — كتاب واحد, but بنت وحدة; تنين
+ *     وِلاد, but تنتين بنات.
+ *   three to ten drop the ة in front of a noun — تلات كتب, never تلاتة كتب,
+ *     even though تلاتة is what you say when you are counting.
+ *
+ * A learner meets these after she can count, which is why the deck sits at the
+ * end of the category rather than beside "One to ten".
+ */
+const NUMBERS_WITH_NOUNS: SeedDeck = {
+  name: 'Numbers with nouns',
+  cards: [
+    c(
+      'one (with a noun)',
+      ['אחת', 'akhat', 'אחד', 'ekhad'],
+      ['وحدة', 'waḥde', 'واحد', 'wāḥad'],
+      {
+        ar: 'واحد and وحدة follow the noun and match its gender: كتاب واحد, بنت وحدة.',
+        he: 'The number follows the noun here too: ספר אחד, ילדה אחת.',
+      },
+    ),
+    c(
+      'two (with a noun)',
+      ['שתי', 'shtei', 'שני', 'shnei'],
+      ['تنتين', 'tintēn', 'تنين', 'tnēn'],
+      {
+        ar: 'Matches the gender of what is being counted: تنين ولاد, تنتين بنات.',
+        he: 'Before a noun Hebrew uses שתי / שני, not שתיים / שניים.',
+      },
+    ),
+    c('three (with a noun)', ['שלוש', 'shalosh', 'שלושה', 'shlosha'], ['تلات', 'talāt'], {
+      ar: 'From three up the ة drops in front of a noun: تلات كتب, not تلاتة كتب.',
+    }),
+    c('four (with a noun)', ['ארבע', 'arba', 'ארבעה', 'arba\'a'], ['أربع', 'arbaʿ']),
+    c('five (with a noun)', ['חמש', 'khamesh', 'חמישה', 'khamisha'], ['خمس', 'khams']),
+    c('six (with a noun)', ['שש', 'shesh', 'שישה', 'shisha'], ['ستّ', 'sitt']),
+    c('seven (with a noun)', ['שבע', 'sheva', 'שבעה', 'shiv\'a'], ['سبع', 'sabaʿ']),
+    c('eight (with a noun)', ['שמונה', 'shmone', 'שמונה', 'shmona'], ['تمان', 'tmān'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+    c('nine (with a noun)', ['תשע', 'tesha', 'תשעה', 'tish\'a'], ['تسع', 'tisaʿ']),
+    c('ten (with a noun)', ['עשר', 'eser', 'עשרה', 'asara'], ['عشر', 'ʿashar']),
+  ],
+};
+
+/**
+ * Counting out loud: one Arabic answer per number, and it is the isolated
+ * counting form.
+ *
+ * Spoken Palestinian has more than one word for several of these — تنتين beside
+ * تنين for "two", تلات beside تلاتة for "three" — but in every case the second
+ * word belongs to counting *things*, not to counting. Teaching both here would
+ * ask a learner saying "one, two, three" to pick between two answers where the
+ * language gives her one, so the second form lives in "Numbers with nouns"
+ * above, in the grammar that calls for it.
+ *
+ * Hebrew keeps its feminine/masculine pair, because there the choice is the
+ * gender of what is being counted rather than a counting/counting-things split,
+ * and a Hebrew speaker counting aloud really is choosing a column.
+ *
+ * After ten it is decks of ten all the way to a hundred: the teens are
+ * irregular in both languages and are written out, and everything from
+ * twenty-one up is built from the units and tens above, which is also how a
+ * learner meets them.
  */
 const NUMBER_DECKS: SeedDeck[] = [
   {
     name: 'One to ten',
     cards: [
-      c('one', ['אחת', 'akhat', 'אחד', 'ekhad'], ['وحدة', 'waḥde', 'واحد', 'wāḥad']),
-      c('two', ['שתיים', 'shtayim', 'שניים', 'shnayim'], ['تنتين', 'tintēn', 'تنين', 'tnēn']),
-      c('three', ['שלוש', 'shalosh', 'שלושה', 'shlosha'], ['تلات', 'talāt', 'تلاتة', 'talāte']),
-      c('four', ['ארבע', 'arba', 'ארבעה', 'arba\'a'], ['أربع', 'arbaʿ', 'أربعة', 'arbaʿa']),
-      c('five', ['חמש', 'khamesh', 'חמישה', 'khamisha'], ['خمس', 'khams', 'خمسة', 'khamse']),
-      c('six', ['שש', 'shesh', 'שישה', 'shisha'], ['ستّ', 'sitt', 'ستّة', 'sitte']),
-      c('seven', ['שבע', 'sheva', 'שבעה', 'shiv\'a'], ['سبع', 'sabaʿ', 'سبعة', 'sabʿa']),
-      c('eight', ['שמונה', 'shmone', 'שמונה', 'shmona'], ['تمان', 'tmān', 'تمانية', 'tmānye'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
-      c('nine', ['תשע', 'tesha', 'תשעה', 'tish\'a'], ['تسع', 'tisaʿ', 'تسعة', 'tisʿa']),
-      c('ten', ['עשר', 'eser', 'עשרה', 'asara'], ['عشر', 'ʿashar', 'عشرة', 'ʿashara']),
+      c('one', ['אחת', 'akhat', 'אחד', 'ekhad'], ['واحد', 'wāḥad']),
+      c('two', ['שתיים', 'shtayim', 'שניים', 'shnayim'], ['تنين', 'tnēn']),
+      c('three', ['שלוש', 'shalosh', 'שלושה', 'shlosha'], ['تلاتة', 'talāte']),
+      c('four', ['ארבע', 'arba', 'ארבעה', 'arba\'a'], ['أربعة', 'arbaʿa']),
+      c('five', ['חמש', 'khamesh', 'חמישה', 'khamisha'], ['خمسة', 'khamse']),
+      c('six', ['שש', 'shesh', 'שישה', 'shisha'], ['ستّة', 'sitte']),
+      c('seven', ['שבע', 'sheva', 'שבעה', 'shiv\'a'], ['سبعة', 'sabʿa']),
+      c('eight', ['שמונה', 'shmone', 'שמונה', 'shmona'], ['تمانية', 'tmānye'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+      c('nine', ['תשע', 'tesha', 'תשעה', 'tish\'a'], ['تسعة', 'tisʿa']),
+      c('ten', ['עשר', 'eser', 'עשרה', 'asara'], ['عشرة', 'ʿashara']),
     ],
   },
   {
@@ -302,6 +366,7 @@ const NUMBER_DECKS: SeedDeck[] = [
   },
   // Twenty-one to thirty, thirty-one to forty, and so on up to one hundred.
   ...TENS.slice(0, -1).map((_, index) => tensDeck(index)),
+  NUMBERS_WITH_NOUNS,
 ];
 
 /**

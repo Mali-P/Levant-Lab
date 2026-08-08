@@ -95,6 +95,21 @@ function buildDerived(): Record<GlossLanguage, Map<string, string>> {
     }
   }
 
+  /**
+   * Drops "six (with a noun)" where plain "six" is already one of the readings.
+   *
+   * A parenthesis on a card prompt says which card this is, not what the word
+   * means, and Hebrew שש is taught by both. Only the redundant reading goes: a
+   * word that is *only* ever "clean (verb)" keeps its parenthesis, because
+   * there nothing plainer was ever written.
+   */
+  const withoutRedundantContext = (meanings: Set<string>): string[] => {
+    const plain = [...meanings].filter((meaning) => !meaning.includes('('));
+    return [...meanings].filter(
+      (meaning) => !plain.some((bare) => meaning.startsWith(bare + ' (')),
+    );
+  };
+
   const flatten = (source: Map<string, Set<string>>) =>
     new Map(
       [...source].map(([key, meanings]) => [
@@ -102,7 +117,7 @@ function buildDerived(): Record<GlossLanguage, Map<string, string>> {
         // Three readings is already more than a hover is worth reading; a word
         // with more than that is a common one whose first senses are the ones
         // being asked about.
-        [...meanings].slice(0, 3).join(' · '),
+        withoutRedundantContext(meanings).slice(0, 3).join(' · '),
       ]),
     );
 

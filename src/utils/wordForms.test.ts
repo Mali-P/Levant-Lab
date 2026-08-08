@@ -186,9 +186,13 @@ describe('starter cards', () => {
       'Seventy-one to eighty',
       'Eighty-one to ninety',
       'Ninety-one to one hundred',
+      // Last, and not part of the count: the grammar of one to ten in front of
+      // a noun, met once the numbers themselves are known.
+      'Numbers with nouns',
     ]);
 
-    const last = numbers.decks.at(-1)!.cards;
+    const last = numbers.decks.find((d) => d.name === 'Ninety-one to one hundred')!
+      .cards;
     expect(last[0].english).toBe('ninety-one');
     expect(last[0].hebrew.forms?.feminine.script).toBe('תשעים ואחת');
     expect(last[0].arabic.script).toBe('واحد وتسعين');
