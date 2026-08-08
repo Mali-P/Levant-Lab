@@ -1,0 +1,12 @@
+# Line endings are content, not formatting, for anything that gets executed.
+#
+# Development happens on Windows, where the machine-wide core.autocrlf=true
+# rewrites checked-out files to CRLF. That is harmless for source the bundler
+# reads, and not harmless at all for scripts/deploy.sh: a shebang line ending
+# in CR makes the kernel look for an interpreter literally named "bash\r", and
+# the script dies before a single one of its guard rails runs. Pin the
+# executable file types to LF so the checkout matches what the shell and Node
+# actually expect, whatever the developer's global git config says.
+
+*.sh   text eol=lf
+*.mjs  text eol=lf
