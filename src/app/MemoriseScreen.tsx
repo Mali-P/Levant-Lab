@@ -4,12 +4,14 @@ import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { usePronunciation } from '../hooks/usePronunciation';
 import { wordForms } from '../utils/wordForms';
+import { sortCards } from '../utils/cardOrder';
 import { gateDecks } from '../features/review/unlock';
 import {
   createMemoriseSession,
   currentMemoriseCardId,
   flipCard,
   nextCard,
+  previousCard,
   remainingToView,
   restartMemorise,
   type MemoriseSession,
@@ -59,8 +61,10 @@ export default function MemoriseScreen() {
     : undefined;
   const locked = Boolean(gate && !gate.unlocked);
 
+  // Sorted, not merely filtered: IndexedDB returns rows by id, so an unsorted
+  // "shuffle off" pass would still deal a counting deck out of sequence.
   const deckCards = useMemo(
-    () => cards.filter((c) => c.deckId === deckId),
+    () => sortCards(cards.filter((c) => c.deckId === deckId)),
     [cards, deckId],
   );
 
@@ -93,6 +97,10 @@ export default function MemoriseScreen() {
 
   const advance = useCallback(() => {
     setSession((s) => (s ? nextCard(s, new Date().toISOString()) : s));
+  }, []);
+
+  const goBack = useCallback(() => {
+    setSession((s) => (s ? previousCard(s, new Date().toISOString()) : s));
   }, []);
 
   const again = useCallback(() => {
@@ -132,7 +140,8 @@ export default function MemoriseScreen() {
   ]);
 
   // Desktop keyboard support: space turns the card over, enter and the right
-  // arrow move on. Nothing here can grade, so there is no destructive key.
+  // arrow move on, the left arrow steps back. Nothing here can grade, so there
+  // is no destructive key and no key worth confirming.
   useEffect(() => {
     if (!session || session.completedAt) return;
 
@@ -143,12 +152,15 @@ export default function MemoriseScreen() {
       } else if (event.key === 'Enter' || event.key === 'ArrowRight') {
         event.preventDefault();
         advance();
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        goBack();
       }
     }
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [session, flip, advance]);
+  }, [session, flip, advance, goBack]);
 
   if (!deck) {
     return (
@@ -287,9 +299,22 @@ export default function MemoriseScreen() {
         reducedMotion={settings.reducedMotion}
         onFlip={flip}
         onNext={advance}
+        onPrevious={goBack}
+        canGoBack={session.index > 0}
       />
 
       <div className="row">
+        {/* The button equivalent of the back swipe, for anyone on a keyboard or
+            a screen reader. Held rather than hidden on the first card so the
+            row does not reflow the moment the learner moves on. */}
+        <button
+          className="btn"
+          onClick={goBack}
+          disabled={session.index === 0}
+          aria-label="Previous card"
+        >
+          Back
+        </button>
         <button className="btn grow" onClick={flip}>
           {session.flipped ? 'Hide' : 'Flip'}
         </button>
@@ -303,7 +328,8 @@ export default function MemoriseScreen() {
           Next buttons are right there saying the same thing. */}
       {!session.flipped && (
         <p className="small muted" style={{ textAlign: 'center' }}>
-          Tap the card to flip. Swipe left for the next one.
+          Tap the card to flip. Swipe right for the next one
+          {session.index > 0 ? ', left to go back' : ''}.
         </p>
       )}
     </div>

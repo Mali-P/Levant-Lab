@@ -127,6 +127,30 @@ export function nextCard(
   };
 }
 
+/**
+ * Steps back to the card before this one.
+ *
+ * Free in both directions because nothing here is graded: there is no answer to
+ * un-record and no score to hand back. The view tally is deliberately left
+ * alone — a card whose back has been read stays read, however many times the
+ * learner walks past it again.
+ *
+ * The first card and a finished pass both have nowhere to go, and say so by
+ * returning the session untouched rather than by wrapping around.
+ */
+export function previousCard(
+  session: MemoriseSession,
+  now: string,
+): MemoriseSession {
+  if (session.completedAt || session.index === 0) return session;
+  return {
+    ...session,
+    index: session.index - 1,
+    flipped: false,
+    updatedAt: now,
+  };
+}
+
 export type RestartMemoriseOptions = {
   now: string;
   shuffleCards?: boolean;

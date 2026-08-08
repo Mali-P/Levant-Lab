@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type {
   AnswerMode,
+  CardProgress,
+  DeckProgress,
   Flashcard,
   PromptDirection,
   StudyMode,
@@ -28,16 +30,53 @@ type StartParams = {
   drill?: boolean;
 };
 
+/**
+ * Everything one answer overwrote, kept so it can be put back.
+ *
+ * A snapshot rather than a reversal. Neither half of grading is invertible:
+ * `applyAnswerToProgress` folds a longest streak and a review date into the
+ * card, and `applyNormal` can swap the whole active stack for the retry pile,
+ * discarding the order it replaced. Undoing by subtraction would be guesswork,
+ * so the store simply remembers the three rows as they stood.
+ */
+type AnswerStep = {
+  /** The session as it was before the answer, ready to be persisted again. */
+  session: StudySession;
+  cardId: string;
+  /** Undefined where the card had never been answered before. */
+  cardProgress?: CardProgress;
+  deckProgress?: DeckProgress;
+};
+
 type SessionState = {
   session: StudySession | null;
   lastOutcome: AnswerOutcome | null;
   /** Set while the feedback panel is showing, before the next card appears. */
   awaitingAdvance: boolean;
+  /**
+   * Answers that can still be taken back, oldest first.
+   *
+   * Only normal mode fills this. Hard and brutal exist to make a mistake cost
+   * something — a run that can be rewound is not a run — and a drill is a
+   * single card with nothing behind it. In-memory only: a session resumed after
+   * a reload starts with nothing to undo, which is the honest answer, since the
+   * progress rows it would restore were never kept.
+   */
+  history: AnswerStep[];
 
   start: (params: StartParams) => Promise<StudySession>;
   resumeLatest: () => Promise<StudySession | null>;
   submit: (input: AnswerInput) => Promise<AnswerOutcome | null>;
   advance: () => void;
+  /**
+   * Takes back the last answer and returns to the card that was asked.
+   *
+   * Restores the session, the card's progress and the deck's progress together,
+   * so the learner is not merely shown the old card while her score keeps the
+   * answer she is about to replace. Returns the card id she has landed back on,
+   * or null when there is nothing to undo.
+   */
+  stepBack: () => Promise<string | null>;
   abandon: () => Promise<void>;
 };
 
@@ -45,6 +84,7 @@ export const useSession = create<SessionState>((set, get) => ({
   session: null,
   lastOutcome: null,
   awaitingAdvance: false,
+  history: [],
 
   async start(params) {
     const { settings } = useSettings.getState();
@@ -70,7 +110,7 @@ export const useSession = create<SessionState>((set, get) => ({
     const session = params.drill ? { ...built, drill: true } : built;
 
     await db.sessions.put(session);
-    set({ session, lastOutcome: null, awaitingAdvance: false });
+    set({ session, lastOutcome: null, awaitingAdvance: false, history: [] });
     return session;
   },
 
@@ -80,7 +120,12 @@ export const useSession = create<SessionState>((set, get) => ({
       .reverse()
       .filter((s) => !s.completedAt && !s.drill)
       .first();
-    set({ session: open ?? null, lastOutcome: null, awaitingAdvance: false });
+    set({
+      session: open ?? null,
+      lastOutcome: null,
+      awaitingAdvance: false,
+      history: [],
+    });
     return open ?? null;
   },
 
@@ -90,6 +135,21 @@ export const useSession = create<SessionState>((set, get) => ({
 
     const { settings } = useSettings.getState();
     const data = useData.getState();
+
+    // Taken before anything is written, and only where going back is offered:
+    // holding snapshots for a hard-mode run would be dead weight the screen
+    // never reads. `session.currentCardId` is guaranteed by `answerCurrentCard`
+    // below, which throws without one.
+    const cardId = session.currentCardId!;
+    const step: AnswerStep | null =
+      session.mode === 'normal' && !session.drill
+        ? {
+            session,
+            cardId,
+            cardProgress: data.cardProgress[cardId],
+            deckProgress: data.deckProgress[session.deckId],
+          }
+        : null;
 
     const outcome = answerCurrentCard(session, input, {
       now: new Date().toISOString(),
@@ -139,7 +199,12 @@ export const useSession = create<SessionState>((set, get) => ({
       await data.saveDeckProgress(deckId, { lastStudiedAt: now });
     }
 
-    set({ session: outcome.session, lastOutcome: outcome, awaitingAdvance: true });
+    set({
+      session: outcome.session,
+      lastOutcome: outcome,
+      awaitingAdvance: true,
+      history: step ? [...get().history, step] : get().history,
+    });
     return outcome;
   },
 
@@ -147,9 +212,42 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ awaitingAdvance: false, lastOutcome: null });
   },
 
+  async stepBack() {
+    const history = get().history;
+    const step = history[history.length - 1];
+    if (!step) return null;
+
+    // Session first, then the scores, in the reverse order `submit` wrote them.
+    // A crash between the two leaves a session pointing at a card whose score
+    // still holds the answer — the same window `submit` already lives with, and
+    // in the harmless direction: the card is simply asked again.
+    await db.sessions.put(step.session);
+    await useData
+      .getState()
+      .restoreProgress(
+        step.cardId,
+        step.cardProgress,
+        step.session.deckId,
+        step.deckProgress,
+      );
+
+    set({
+      session: step.session,
+      history: history.slice(0, -1),
+      lastOutcome: null,
+      awaitingAdvance: false,
+    });
+    return step.cardId;
+  },
+
   async abandon() {
     const session = get().session;
     if (session) await db.sessions.delete(session.id);
-    set({ session: null, lastOutcome: null, awaitingAdvance: false });
+    set({
+      session: null,
+      lastOutcome: null,
+      awaitingAdvance: false,
+      history: [],
+    });
   },
 }));

@@ -801,6 +801,11 @@ textarea.input {
 .swipe-hint.right { right: 18px; color: var(--ok); border: 2px solid var(--ok); }
 .swipe-hint.left { left: 18px; color: var(--bad); border: 2px solid var(--bad); }
 
+/* Navigation, not a verdict. "Back", and Memorise's "Next", move through the
+   deck without judging the card, so they must not borrow the green and red
+   that mean correct and wrong on the study card. */
+.swipe-hint.neutral { color: var(--muted-ink); border-color: var(--line); }
+
 /* ---------- feedback ---------- */
 
 .feedback {
@@ -1660,14 +1665,22 @@ a.btn-primary:visited {
  * card rather than a strip, and it is a little over half the height the stage
  * used to insist on. The cap is what any full face grows into: four forms and
  * two labels turned over, or a revealed answer pair with its typed fields.
+ *
+ * Width is the screen's own width. Arabic and Hebrew forms set beside their
+ * gender glyph need the room, and the shell already keeps the card from
+ * stretching past a phone's worth of line length on a wide display.
  */
 .screen.study .card-stage {
   flex: 0 1 auto;
   min-height: 46%;
   max-height: 100%;
-  width: min(100%, 292px);
+  width: 100%;
   margin-inline: auto;
   align-self: center;
+  /* The meta row above is text about the card, not part of it. Standing the
+     card off it by the same distance the buttons stand off below keeps the
+     card floating in the screen rather than hanging from the line of text. */
+  margin-top: 14px;
 }
 
 /* The screen's own 10px gap reads as a crack between two things that touch.

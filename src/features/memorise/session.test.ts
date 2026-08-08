@@ -6,6 +6,7 @@ import {
   flipCard,
   memoriseProgress,
   nextCard,
+  previousCard,
   remainingToView,
   restartMemorise,
   type MemoriseSession,
@@ -114,6 +115,57 @@ describe('nextCard', () => {
     session = readAndAdvance(session);
 
     expect(nextCard(session, NOW)).toBe(session);
+  });
+});
+
+describe('previousCard', () => {
+  it('steps back to the card before, face down', () => {
+    let session = readAndAdvance(start(['a', 'b']));
+    expect(currentMemoriseCardId(session)).toBe('b');
+
+    session = flipCard(session, NOW);
+    session = previousCard(session, NOW);
+
+    expect(currentMemoriseCardId(session)).toBe('a');
+    expect(session.flipped).toBe(false);
+  });
+
+  it('leaves the view tally alone — a card read once stays read', () => {
+    let session = readAndAdvance(start(['a', 'b']));
+    session = previousCard(session, NOW);
+    expect(session.viewed).toEqual(['a']);
+  });
+
+  it('stops at the first card rather than wrapping to the last', () => {
+    const session = start(['a', 'b', 'c']);
+    expect(previousCard(session, NOW)).toBe(session);
+  });
+
+  it('does not reopen a pass that has finished', () => {
+    let session = start(['a']);
+    session = readAndAdvance(session);
+    expect(session.completedAt).toBe(NOW);
+    expect(previousCard(session, NOW)).toBe(session);
+  });
+
+  it('never mutates the session it was given', () => {
+    const session = readAndAdvance(start(['a', 'b']));
+    previousCard(session, NOW);
+    expect(session.index).toBe(1);
+  });
+
+  it('walks the whole deck backwards and forwards again', () => {
+    let session = start(['a', 'b', 'c']);
+    session = nextCard(session, NOW);
+    session = nextCard(session, NOW);
+    expect(currentMemoriseCardId(session)).toBe('c');
+
+    session = previousCard(session, NOW);
+    session = previousCard(session, NOW);
+    expect(currentMemoriseCardId(session)).toBe('a');
+
+    session = nextCard(session, NOW);
+    expect(currentMemoriseCardId(session)).toBe('b');
   });
 });
 

@@ -57,6 +57,26 @@ type DataState = {
     cardId: string,
     result: { hebrew: boolean; arabic: boolean },
   ) => Promise<void>;
+  /**
+   * Puts a card's and a deck's progress back exactly as they were before an
+   * answer, so a study session can be walked backwards.
+   *
+   * Wholesale replacement rather than subtraction, because grading is not an
+   * invertible function: `applyAnswerToProgress` folds in a longest streak and
+   * a next-review date that cannot be computed backwards from the result. Only
+   * the caller that took the snapshot knows what was there.
+   *
+   * `undefined` means the row did not exist yet and is deleted rather than left
+   * holding the answer being undone. No tombstone is written for that: the row
+   * was born moments ago on this device and has never been anywhere else, so
+   * there is nothing for another device to be told about.
+   */
+  restoreProgress: (
+    cardId: string,
+    card: CardProgress | undefined,
+    deckId: string,
+    deck: DeckProgress | undefined,
+  ) => Promise<void>;
   saveDeckProgress: (deckId: string, patch: Partial<DeckProgress>) => Promise<void>;
   resetAllProgress: () => Promise<void>;
 };
@@ -227,6 +247,29 @@ export const useData = create<DataState>((set, get) => ({
     const next: CardProgress = { ...scored, updatedAt: now };
     await db.cardProgress.put(next);
     set({ cardProgress: { ...get().cardProgress, [cardId]: next } });
+  },
+
+  async restoreProgress(cardId, card, deckId, deck) {
+    const cardProgress = { ...get().cardProgress };
+    const deckProgress = { ...get().deckProgress };
+
+    if (card) {
+      await db.cardProgress.put(card);
+      cardProgress[cardId] = card;
+    } else {
+      await db.cardProgress.delete(cardId);
+      delete cardProgress[cardId];
+    }
+
+    if (deck) {
+      await db.deckProgress.put(deck);
+      deckProgress[deckId] = deck;
+    } else {
+      await db.deckProgress.delete(deckId);
+      delete deckProgress[deckId];
+    }
+
+    set({ cardProgress, deckProgress });
   },
 
   async saveDeckProgress(deckId, patch) {

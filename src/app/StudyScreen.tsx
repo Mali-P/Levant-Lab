@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { AnswerMode, Flashcard, PromptDirection, StudyMode } from '../types';
 import { useData } from '../stores/dataStore';
@@ -6,6 +6,7 @@ import { useSession } from '../stores/sessionStore';
 import { useSettings } from '../stores/settingsStore';
 import { usePronunciation } from '../hooks/usePronunciation';
 import { wordForms } from '../utils/wordForms';
+import { sortCards } from '../utils/cardOrder';
 import { buildPromptPlan, gradePlan } from '../features/study/prompts';
 import { remainingInStack } from '../features/study/engine';
 import { gateDecks } from '../features/review/unlock';
@@ -36,7 +37,11 @@ export default function StudyScreen() {
   const startSession = useSession((s) => s.start);
   const submitAnswer = useSession((s) => s.submit);
   const advance = useSession((s) => s.advance);
+  const stepBack = useSession((s) => s.stepBack);
   const abandon = useSession((s) => s.abandon);
+  // The store only fills its history in normal mode, so this is already false
+  // in hard and brutal without the screen having to know why.
+  const canStepBack = useSession((s) => s.history.length > 0);
 
   const { play } = usePronunciation(settings);
 
@@ -57,6 +62,12 @@ export default function StudyScreen() {
   // The session advances the moment an answer is graded, so the feedback sheet
   // needs its own handle on the card that was just answered.
   const [gradedCardId, setGradedCardId] = useState<string | null>(null);
+  // What was typed into each card that can still be taken back, oldest first,
+  // kept in step with the store's own undo stack. A ref rather than state
+  // because nothing renders from it until a card is actually walked back to —
+  // and it is screen business, not session business: the store has no interest
+  // in half-typed text.
+  const typedHistory = useRef<{ hebrew: string; arabic: string }[]>([]);
 
   const deck = decks.find((d) => d.id === deckId);
   const category = categories.find((c) => c.id === deck?.categoryId);
@@ -72,8 +83,10 @@ export default function StudyScreen() {
     : undefined;
   const locked = Boolean(gate && !gate.unlocked);
 
+  // In the deck's own order, so a run with shuffling turned off asks one to ten
+  // in that order rather than in whatever order IndexedDB returned the rows.
   const deckCards = useMemo(
-    () => cards.filter((c) => c.deckId === deckId),
+    () => sortCards(cards.filter((c) => c.deckId === deckId)),
     [cards, deckId],
   );
 
@@ -110,6 +123,11 @@ export default function StudyScreen() {
     let cancelled = false;
 
     (async () => {
+      // A different deck or mode is a different run: whatever was typed into
+      // the last one can never be gone back to, and the store clears its own
+      // snapshots alongside.
+      typedHistory.current = [];
+
       if (!deck || locked || sessionCards.length === 0) {
         setBooting(false);
         return;
@@ -143,11 +161,14 @@ export default function StudyScreen() {
       if (cancelled) return;
 
       if (open) {
-        // Resume exactly where the last session stopped.
+        // Resume exactly where the last session stopped. Nothing can be taken
+        // back across that gap: the progress rows an undo would restore were
+        // only ever held in memory, and they went with the last visit.
         useSession.setState({
           session: open,
           lastOutcome: null,
           awaitingAdvance: false,
+          history: [],
         });
       } else {
         await startSession({
@@ -201,9 +222,15 @@ export default function StudyScreen() {
     ],
   );
 
+  // Whether an answer given now could be taken back afterwards. Kept in step
+  // with the condition the store uses, so `typedHistory` never drifts out of
+  // alignment with the snapshots it is indexed against.
+  const rewindable = mode === 'normal' && !drillCardId;
+
   const grade = useCallback(
     async (result: { hebrew: boolean; arabic: boolean }) => {
       setGradedCardId(useSession.getState().session?.currentCardId ?? null);
+      if (rewindable) typedHistory.current.push(values);
       const outcome = await submitAnswer(result);
       if (!outcome) return;
 
@@ -219,7 +246,7 @@ export default function StudyScreen() {
         fireFeedback(outcome.fullyCorrect ? 'accept' : 'reject', settings);
       }
     },
-    [submitAnswer, settings],
+    [submitAnswer, settings, rewindable, values],
   );
 
   const submitTyped = useCallback(() => {
@@ -242,6 +269,31 @@ export default function StudyScreen() {
     advance();
   }, [advance]);
 
+  /**
+   * Swipe left: take back the last answer and stand on that card again.
+   *
+   * The whole point is a second look, so the learner lands with what she typed
+   * still in the fields, ready to be corrected and sent again. Her score is put
+   * back at the same moment — the answer she is replacing must not still be
+   * sitting in the card's accuracy while she replaces it.
+   *
+   * The reveal is deliberately asymmetric. Self-graded cards come back open, so
+   * she can see the answer and judge herself again; typed cards come back
+   * closed, because handing her the transliteration for a word she is about to
+   * retype would be marking her own homework.
+   */
+  const goBack = useCallback(async () => {
+    if (awaitingAdvance) return;
+
+    const cardId = await stepBack();
+    if (!cardId) return;
+
+    setValues(typedHistory.current.pop() ?? EMPTY_VALUES);
+    setRevealed(answerMode !== 'typed');
+    setCelebrate(false);
+    setGradedCardId(null);
+  }, [stepBack, awaitingAdvance, answerMode]);
+
   // Desktop keyboard support.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -260,10 +312,26 @@ export default function StudyScreen() {
         event.preventDefault();
         setRevealed(true);
       }
+      // The keyboard twin of the back swipe. Left alone in a typed field, where
+      // the arrow is how you move the caret through what you are writing.
+      if (event.key === 'ArrowLeft' && canStepBack) {
+        const editing = document.activeElement?.tagName === 'INPUT';
+        if (editing) return;
+        event.preventDefault();
+        void goBack();
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [awaitingAdvance, answerMode, revealed, submitTyped, continueNext]);
+  }, [
+    awaitingAdvance,
+    answerMode,
+    revealed,
+    submitTyped,
+    continueNext,
+    canStepBack,
+    goBack,
+  ]);
 
   // Auto-play on reveal, per language.
   useEffect(() => {
@@ -464,7 +532,9 @@ export default function StudyScreen() {
           if (answerMode === 'typed') submitTyped();
           else void grade({ hebrew: true, arabic: true });
         }}
-        onSwipeLeft={() => void grade({ hebrew: false, arabic: false })}
+        // Only where there is an answer to take back. Hard and brutal never
+        // offer it: a run you can rewind is not a run.
+        onSwipeBack={canStepBack ? () => void goBack() : undefined}
       />
 
       {answerMode === 'typed' ? (
@@ -507,9 +577,20 @@ export default function StudyScreen() {
         </button>
       )}
 
+      {/* The gesture's equivalent for anyone not swiping. Only rendered where
+          the gesture itself is offered, so the two never disagree about
+          whether going back is possible. */}
+      {canStepBack && (
+        <button className="btn btn-ghost btn-block" onClick={() => void goBack()}>
+          ← Back to the last card
+        </button>
+      )}
+
       {!revealed && (
         <p className="small muted" style={{ textAlign: 'center' }}>
-          Swipe right for correct, left for retry, up to reveal.
+          {canStepBack
+            ? 'Swipe right for correct, up to reveal, left to go back and change your last answer.'
+            : 'Swipe right for correct, up to reveal.'}
         </p>
       )}
 

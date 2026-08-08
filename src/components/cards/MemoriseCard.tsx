@@ -27,6 +27,9 @@ export type MemoriseCardProps = {
   reducedMotion: boolean;
   onFlip: () => void;
   onNext: () => void;
+  onPrevious: () => void;
+  /** False on the first card, where there is nothing behind to swipe back to. */
+  canGoBack: boolean;
 };
 
 const SWIPE_DISTANCE = 110;
@@ -37,9 +40,11 @@ const SWIPE_VELOCITY = 480;
  * form on the back.
  *
  * Not `StudyCard`. That card exists to be answered — it carries typed fields,
- * a correct / retry swipe pair and the swipe hints that go with them. Here a
- * swipe only ever means "next", there is nothing to get wrong, and both sides
- * are read rather than recalled.
+ * a grading swipe and a reveal, and going back to it means unpicking a score.
+ * Here a swipe only ever means "next" or "back", there is nothing to get wrong,
+ * and both sides are read rather than recalled. That is why this card walks
+ * freely in both directions in every mode: reading a deck is browsing, and
+ * nothing behind the learner has been written down.
  */
 /**
  * The variants this card has that the learner is *not* currently studying.
@@ -107,7 +112,8 @@ export default function MemoriseCard(props: MemoriseCardProps) {
 
   const tilt = reducedMotion ? 0 : 9 * props.animationIntensity;
   const rotate = useTransform(x, [-220, 0, 220], [-tilt, 0, tilt]);
-  const nextOpacity = useTransform(x, [-130, -40], [1, 0]);
+  const nextOpacity = useTransform(x, [40, 130], [0, 1]);
+  const backOpacity = useTransform(x, [-130, -40], [1, 0]);
 
   useEffect(() => {
     x.set(0);
@@ -115,9 +121,16 @@ export default function MemoriseCard(props: MemoriseCardProps) {
 
   function handleDragEnd(_event: unknown, info: PanInfo) {
     const { offset, velocity } = info;
-    if (offset.x < -SWIPE_DISTANCE || velocity.x < -SWIPE_VELOCITY) {
+
+    if (offset.x > SWIPE_DISTANCE || velocity.x > SWIPE_VELOCITY) {
       props.onNext();
+    } else if (
+      props.canGoBack &&
+      (offset.x < -SWIPE_DISTANCE || velocity.x < -SWIPE_VELOCITY)
+    ) {
+      props.onPrevious();
     }
+
     x.set(0);
   }
 
@@ -145,13 +158,25 @@ export default function MemoriseCard(props: MemoriseCardProps) {
         onClick={props.onFlip}
         aria-label={'Card: ' + card.english}
       >
+        {/* Both hints are neutral: neither direction grades anything, so
+            neither should borrow the study card's green and red. */}
         <motion.span
-          className="swipe-hint left"
+          className="swipe-hint right neutral"
           style={{ opacity: nextOpacity }}
           aria-hidden="true"
         >
           Next
         </motion.span>
+
+        {props.canGoBack && (
+          <motion.span
+            className="swipe-hint left neutral"
+            style={{ opacity: backOpacity }}
+            aria-hidden="true"
+          >
+            Back
+          </motion.span>
+        )}
 
         {/* The catalogue label at the head of the tablet. It names the mode,
             not the card, so it stays put when the card is turned over. */}

@@ -31,7 +31,13 @@ export type StudyCardProps = {
   onReveal: () => void;
   onSpeak: (language: 'hebrew' | 'arabic') => void;
   onSwipeRight: () => void;
-  onSwipeLeft: () => void;
+  /**
+   * Steps back to the previous card. Absent where there is nothing to go back
+   * to — the first card of a run, or a hard or brutal mode where a graded
+   * answer is final — and the card then has no left swipe at all rather than a
+   * left swipe that quietly does nothing.
+   */
+  onSwipeBack?: () => void;
 };
 
 const SWIPE_DISTANCE = 110;
@@ -46,7 +52,7 @@ export default function StudyCard(props: StudyCardProps) {
   const tilt = reducedMotion ? 0 : 9 * props.animationIntensity;
   const rotate = useTransform(x, [-220, 0, 220], [-tilt, 0, tilt]);
   const acceptOpacity = useTransform(x, [40, 130], [0, 1]);
-  const rejectOpacity = useTransform(x, [-130, -40], [1, 0]);
+  const backOpacity = useTransform(x, [-130, -40], [1, 0]);
 
   useEffect(() => {
     x.set(0);
@@ -61,8 +67,11 @@ export default function StudyCard(props: StudyCardProps) {
       props.onReveal();
     } else if (offset.x > SWIPE_DISTANCE || velocity.x > SWIPE_VELOCITY) {
       props.onSwipeRight();
-    } else if (offset.x < -SWIPE_DISTANCE || velocity.x < -SWIPE_VELOCITY) {
-      props.onSwipeLeft();
+    } else if (
+      props.onSwipeBack &&
+      (offset.x < -SWIPE_DISTANCE || velocity.x < -SWIPE_VELOCITY)
+    ) {
+      props.onSwipeBack();
     }
 
     x.set(0);
@@ -94,13 +103,18 @@ export default function StudyCard(props: StudyCardProps) {
         >
           Correct
         </motion.span>
-        <motion.span
-          className="swipe-hint left"
-          style={{ opacity: rejectOpacity }}
-          aria-hidden="true"
-        >
-          Retry
-        </motion.span>
+        {/* Neutral, not the old red: going back is not a verdict on the card.
+            It appears only when there is a card behind to go back to, so the
+            gesture never advertises itself where it does nothing. */}
+        {props.onSwipeBack && (
+          <motion.span
+            className="swipe-hint left neutral"
+            style={{ opacity: backOpacity }}
+            aria-hidden="true"
+          >
+            Back
+          </motion.span>
+        )}
 
         <div className="card-prompt">
           {plan.audio ? (
