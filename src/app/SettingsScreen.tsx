@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  SPEECH_PERSPECTIVES,
+  SPEECH_PERSPECTIVE_LABELS,
   SPEECH_PERSPECTIVE_MARKERS,
-  SPEECH_PERSPECTIVE_SHORT,
   type AnswerMode,
-  type SpeechPerspective,
   type StudyMode,
   type ThemeMode,
 } from '../types';
 import { useSettings } from '../stores/settingsStore';
+import {
+  derivePerspectives,
+  listenersOf,
+  speakerOf,
+  type ListenerChoice,
+  type SpeakerGender,
+} from '../utils/speechIdentity';
 import { speechService, rankVoices, type SpeechVoice } from '../services/speech';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Toggle from '../components/controls/Toggle';
@@ -36,20 +41,27 @@ export default function SettingsScreen() {
   const perspectives = settings.speechPerspectives;
 
   /**
-   * Turns one perspective on or off, keeping canonical female-first order.
+   * The two questions behind the four perspectives: who she is, and who she is
+   * speaking to. `speechPerspectives` stays the stored, canonical field —
+   * these controls read it and write it back derived, so grading, audio and
+   * every card keep reading exactly what they read before.
    *
-   * The last one cannot be turned off: an empty set would leave every gendered
-   * card with nothing to show and nothing to grade. Nothing here touches
-   * progress — the setting only decides which forms are taught, so it can be
-   * widened or narrowed at any point without losing a score.
+   * Neither answer can empty the list: every combination derives at least one
+   * perspective, and an empty set would leave a gendered card with nothing to
+   * show and nothing to grade. Nothing here touches progress — the setting only
+   * decides which forms are taught, so it can be changed at any point without
+   * losing a score.
    */
-  function togglePerspective(perspective: SpeechPerspective) {
-    const on = perspectives.includes(perspective);
-    if (on && perspectives.length === 1) return;
-    const next = SPEECH_PERSPECTIVES.filter((p) =>
-      p === perspective ? !on : perspectives.includes(p),
-    );
-    void update({ speechPerspectives: next });
+  const speaker = speakerOf(perspectives);
+  const listeners = listenersOf(perspectives);
+
+  function setIdentity(next: { speaker?: SpeakerGender; listeners?: ListenerChoice }) {
+    void update({
+      speechPerspectives: derivePerspectives(
+        next.speaker ?? speaker,
+        next.listeners ?? listeners,
+      ),
+    });
   }
 
   return (
@@ -62,40 +74,40 @@ export default function SettingsScreen() {
       <section className="panel">
         <span className="eyebrow">Who are you learning to speak as, and to?</span>
         <p className="small muted">
-          Cards lead with the form you would actually say. Female-speaker forms
-          come first throughout. Practice only asks for what you pick here, and
-          changing it later keeps every score.
+          Cards lead with the form you would actually say. Practice only asks
+          for what you pick here, and changing it later keeps every score.
         </p>
 
-        {SPEECH_PERSPECTIVES.map((perspective, index) => {
-          const on = perspectives.includes(perspective);
-          const primary = on && perspectives[0] === perspective;
-          return (
-            <Toggle
-              key={perspective}
-              label={
-                SPEECH_PERSPECTIVE_MARKERS[perspective] +
-                '  ' +
-                SPEECH_PERSPECTIVE_SHORT[perspective] +
-                (primary ? '  · primary' : '')
-              }
-              hint={
-                index === 0 && !on
-                  ? 'The form most learners here need most often.'
-                  : undefined
-              }
-              checked={on}
-              onChange={() => togglePerspective(perspective)}
-            />
-          );
-        })}
+        <Choice<SpeakerGender>
+          label="I am…"
+          value={speaker}
+          onChange={(v) => setIdentity({ speaker: v })}
+          options={[
+            { value: 'female', label: '♀  a woman' },
+            { value: 'male', label: '♂  a man' },
+          ]}
+        />
+        <Choice<ListenerChoice>
+          label="I practise speaking to…"
+          value={listeners}
+          onChange={(v) => setIdentity({ listeners: v })}
+          options={[
+            { value: 'both', label: 'both — men and women' },
+            { value: 'male', label: '♂  men' },
+            { value: 'female', label: '♀  women' },
+          ]}
+        />
 
-        {perspectives.length === 1 && (
-          <p className="small muted">
-            One mode selected. Cards show a single form — the one you need —
-            and Memorise can still reveal the others on request.
-          </p>
-        )}
+        <p className="small muted">
+          {perspectives.length === 1
+            ? 'One form only — the one you need. Memorise can still reveal the ' +
+              'others on request.'
+            : 'Cards lead with ' +
+              SPEECH_PERSPECTIVE_MARKERS[perspectives[0]] +
+              ' ' +
+              SPEECH_PERSPECTIVE_LABELS[perspectives[0]] +
+              '.'}
+        </p>
       </section>
 
       <section className="panel">
