@@ -3,35 +3,61 @@ import type {
   Flashcard,
   LanguageAnswerResult,
   LanguageSide,
+  SpeechPerspective,
 } from '../../types';
+import { speechWordForms } from '../../utils/wordForms';
 import { normalise, type NormaliseOptions } from './normalise';
 
 export type ValidationOptions = NormaliseOptions & {
   /** When false, only `script` is accepted and alternates are ignored. */
   acceptAlternateAnswers?: boolean;
+  /**
+   * The conversation perspectives the learner is studying. A card carrying
+   * speaker/listener variants is graded against these and no others.
+   */
+  perspectives?: readonly SpeechPerspective[];
 };
 
 /**
  * Every string that should count as a correct answer for one language.
  *
- * Both gendered forms always count. They are not alternate spellings the
+ * Both *grammatical* forms always count. They are not alternate spellings the
  * learner opted into: the prompt asks for the word, and a learner who answers
  * with the form that matches their own gender has answered it.
+ *
+ * Speaker/listener variants are graded differently — only against the
+ * perspectives the learner has enabled. Someone studying ♀→♂ is never marked
+ * wrong for failing to produce ♂→♀, and is never quietly credited for it
+ * either. Where a side has no variants, or the caller passes no perspectives,
+ * this falls back to the whole word.
  */
 export function expectedAnswers(
   side: LanguageSide,
   opts: ValidationOptions = {},
 ): string[] {
-  const values = [side.script];
-  if (side.forms) {
-    values.push(side.forms.feminine.script, side.forms.masculine.script);
+  const values: string[] = [];
+
+  const speech =
+    side.speechForms && opts.perspectives?.length
+      ? speechWordForms(side, opts.perspectives)
+      : [];
+
+  if (speech.length > 0) {
+    for (const form of speech) values.push(form.script);
+  } else {
+    values.push(side.script);
+    if (side.forms) {
+      values.push(side.forms.feminine.script, side.forms.masculine.script);
+    }
   }
+
   if (opts.acceptAlternateAnswers !== false && side.accepted) {
     for (const alt of side.accepted) {
       if (alt.value) values.push(alt.value);
     }
   }
-  // `script` mirrors the masculine form, so deduplicate before the list is
+  // Forms overlap constantly — `script` mirrors the leading form, and two
+  // perspectives often share one wording — so deduplicate before the list is
   // shown back to the learner as "these would have been right".
   return [...new Set(values.filter((v) => v && v.trim().length > 0))];
 }

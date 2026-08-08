@@ -1639,6 +1639,16 @@ a.btn-primary:visited {
   direction: ltr;
 }
 
+/*
+ * A variant the learner is not studying, revealed by "Show other forms".
+ * Set back rather than hidden: it is there for reference and should not
+ * compete with the form she actually needs to say. Contrast stays above the
+ * 4.5:1 floor, so this is a matter of emphasis and never of legibility.
+ */
+.memorise-form.muted-form {
+  opacity: 0.62;
+}
+
 .memorise-form .form-line {
   font-family: var(--script);
   font-size: 1.9rem;

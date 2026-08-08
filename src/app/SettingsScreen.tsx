@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { AnswerMode, StudyMode, ThemeMode } from '../types';
+import {
+  SPEECH_PERSPECTIVES,
+  SPEECH_PERSPECTIVE_MARKERS,
+  SPEECH_PERSPECTIVE_SHORT,
+  type AnswerMode,
+  type SpeechPerspective,
+  type StudyMode,
+  type ThemeMode,
+} from '../types';
 import { useSettings } from '../stores/settingsStore';
 import { speechService, rankVoices, type SpeechVoice } from '../services/speech';
 import ScreenHeader from '../components/controls/ScreenHeader';
@@ -25,9 +33,70 @@ export default function SettingsScreen() {
     ...list.map((v) => ({ value: v.id, label: v.name + ' (' + v.lang + ')' })),
   ];
 
+  const perspectives = settings.speechPerspectives;
+
+  /**
+   * Turns one perspective on or off, keeping canonical female-first order.
+   *
+   * The last one cannot be turned off: an empty set would leave every gendered
+   * card with nothing to show and nothing to grade. Nothing here touches
+   * progress — the setting only decides which forms are taught, so it can be
+   * widened or narrowed at any point without losing a score.
+   */
+  function togglePerspective(perspective: SpeechPerspective) {
+    const on = perspectives.includes(perspective);
+    if (on && perspectives.length === 1) return;
+    const next = SPEECH_PERSPECTIVES.filter((p) =>
+      p === perspective ? !on : perspectives.includes(p),
+    );
+    void update({ speechPerspectives: next });
+  }
+
   return (
     <div className="screen">
       <ScreenHeader title="Settings" />
+
+      {/* First on the screen, not filed under Study: it decides which words
+          the app teaches at all, which is a bigger question than how they are
+          drilled. */}
+      <section className="panel">
+        <span className="eyebrow">Who are you learning to speak as, and to?</span>
+        <p className="small muted">
+          Cards lead with the form you would actually say. Female-speaker forms
+          come first throughout. Practice only asks for what you pick here, and
+          changing it later keeps every score.
+        </p>
+
+        {SPEECH_PERSPECTIVES.map((perspective, index) => {
+          const on = perspectives.includes(perspective);
+          const primary = on && perspectives[0] === perspective;
+          return (
+            <Toggle
+              key={perspective}
+              label={
+                SPEECH_PERSPECTIVE_MARKERS[perspective] +
+                '  ' +
+                SPEECH_PERSPECTIVE_SHORT[perspective] +
+                (primary ? '  · primary' : '')
+              }
+              hint={
+                index === 0 && !on
+                  ? 'The form most learners here need most often.'
+                  : undefined
+              }
+              checked={on}
+              onChange={() => togglePerspective(perspective)}
+            />
+          );
+        })}
+
+        {perspectives.length === 1 && (
+          <p className="small muted">
+            One mode selected. Cards show a single form — the one you need —
+            and Memorise can still reveal the others on request.
+          </p>
+        )}
+      </section>
 
       <section className="panel">
         <span className="eyebrow">Study</span>

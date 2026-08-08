@@ -77,6 +77,19 @@ export default function StudyScreen() {
     [cards, deckId],
   );
 
+  // `?card=` turns the screen into a drill on one weak word: the same quiz and
+  // the same grading, over a stack of one. It is what the weakest-cards list on
+  // the home screen opens, so a word answered wrongly comes back as a question
+  // rather than as the card editor.
+  const drillCardId = params.get('card');
+  const drillCard = drillCardId
+    ? deckCards.find((c) => c.id === drillCardId)
+    : undefined;
+  const sessionCards = useMemo(
+    () => (drillCardId ? (drillCard ? [drillCard] : []) : deckCards),
+    [drillCardId, drillCard, deckCards],
+  );
+
   const mode = (params.get('mode') as StudyMode) || settings.defaultMode;
   const answerModeParam = params.get('answer') as AnswerMode | null;
   // Brutal mode makes typing mandatory, whatever the deck default says.
@@ -97,16 +110,35 @@ export default function StudyScreen() {
     let cancelled = false;
 
     (async () => {
-      if (!deck || locked || deckCards.length === 0) {
+      if (!deck || locked || sessionCards.length === 0) {
         setBooting(false);
         return;
       }
 
-      const open = await db.sessions
-        .orderBy('updatedAt')
-        .reverse()
-        .filter((s) => s.deckId === deckId && !s.completedAt && s.mode === mode)
-        .first();
+      // A drill always starts fresh, and never resumes or is resumed into: the
+      // deck's own half-finished run is a different session and stays put.
+      // Drills walked away from are cleared here rather than left to pile up,
+      // since nothing else will ever open one again.
+      if (drillCardId) {
+        const abandoned = await db.sessions
+          .filter((s) => Boolean(s.drill) && !s.completedAt)
+          .primaryKeys();
+        if (abandoned.length) await db.sessions.bulkDelete(abandoned);
+      }
+
+      const open = drillCardId
+        ? undefined
+        : await db.sessions
+            .orderBy('updatedAt')
+            .reverse()
+            .filter(
+              (s) =>
+                s.deckId === deckId &&
+                !s.completedAt &&
+                !s.drill &&
+                s.mode === mode,
+            )
+            .first();
 
       if (cancelled) return;
 
@@ -120,11 +152,12 @@ export default function StudyScreen() {
       } else {
         await startSession({
           deckId,
-          cards: deckCards,
+          cards: sessionCards,
           mode,
           answerMode,
           promptDirection: direction,
           perfectRunsRequired: deck.perfectRunsRequired,
+          drill: Boolean(drillCardId),
         });
       }
       if (!cancelled) setBooting(false);
@@ -135,7 +168,7 @@ export default function StudyScreen() {
     };
     // Restarting on every settings tweak would discard the user's place.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckId, mode, deckCards.length, locked]);
+  }, [deckId, mode, sessionCards.length, drillCardId, locked]);
 
   const currentCard = session?.currentCardId
     ? deckCards.find((c) => c.id === session.currentCardId)
@@ -152,6 +185,10 @@ export default function StudyScreen() {
             ignoreDiacritics: settings.ignoreDiacritics,
             lenientArabicLetters: settings.lenientArabicLetters,
             acceptAlternateAnswers: settings.acceptAlternateAnswers,
+            // Only the perspectives she is studying are asked for, so a card
+            // with speaker/listener variants never grades her against a form
+            // she has not turned on.
+            perspectives: settings.speechPerspectives,
           })
         : null,
     [
@@ -160,6 +197,7 @@ export default function StudyScreen() {
       settings.ignoreDiacritics,
       settings.lenientArabicLetters,
       settings.acceptAlternateAnswers,
+      settings.speechPerspectives,
     ],
   );
 
@@ -191,6 +229,7 @@ export default function StudyScreen() {
         ignoreDiacritics: settings.ignoreDiacritics,
         lenientArabicLetters: settings.lenientArabicLetters,
         acceptAlternateAnswers: settings.acceptAlternateAnswers,
+        perspectives: settings.speechPerspectives,
       }),
     );
   }, [plan, currentCard, values, awaitingAdvance, grade, settings]);
@@ -270,7 +309,23 @@ export default function StudyScreen() {
     );
   }
 
-  if (deckCards.length === 0) {
+  // A drill whose card has since been deleted or moved: say so plainly rather
+  // than silently quizzing the whole deck instead.
+  if (drillCardId && !drillCard) {
+    return (
+      <div className="screen">
+        <ScreenHeader title={deck.name} eyebrow={category?.name} back />
+        <div className="empty">
+          <p>That card is no longer in this deck.</p>
+          <button className="btn btn-primary" onClick={() => navigate('/')}>
+            Back to home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (sessionCards.length === 0) {
     return (
       <div className="screen">
         <ScreenHeader title={deck.name} eyebrow={category?.name} back />
@@ -285,7 +340,35 @@ export default function StudyScreen() {
   }
 
   if (session?.completedAt) {
-    const mastered = session.mode !== 'normal';
+    const mastered = !session.drill && session.mode !== 'normal';
+
+    // A drill ends on its one card, so it reports that card and sends the
+    // learner back to the list they picked it from.
+    if (session.drill) {
+      return (
+        <div className="screen">
+          <ScreenHeader title={drillCard!.english} eyebrow="Weak card" back />
+          <Confetti active />
+          <div className="panel">
+            <div className="headline">Card cleared</div>
+            <p className="muted">
+              Answered correctly in both Hebrew and Arabic. It stays on the
+              weakest list until its accuracy catches up.
+            </p>
+            <button
+              className="btn btn-primary btn-block"
+              onClick={async () => {
+                await abandon();
+                navigate('/');
+              }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="screen">
         <ScreenHeader title={deck.name} eyebrow={category?.name} back />
@@ -333,13 +416,19 @@ export default function StudyScreen() {
     <div className="screen study">
       <ScreenHeader
         title={deck.name}
-        eyebrow={(category?.name ?? '') + ' · ' + modeLabel}
+        eyebrow={
+          session.drill
+            ? 'Weak card · ' + (category?.name ?? '')
+            : (category?.name ?? '') + ' · ' + modeLabel
+        }
         back
       />
 
       <div className="study-meta small">
         <span>
-          Card {position} of {session.activeCardIds.length}
+          {session.drill
+            ? 'One weak card'
+            : 'Card ' + position + ' of ' + session.activeCardIds.length}
         </span>
         <span className="muted">
           {remainingInStack(session) - 1} remaining
@@ -362,6 +451,7 @@ export default function StudyScreen() {
         revealed={revealed}
         typed={answerMode === 'typed'}
         values={values}
+        perspectives={settings.speechPerspectives}
         showTransliteration={showTransliteration}
         animationIntensity={settings.cardAnimationIntensity}
         reducedMotion={settings.reducedMotion}

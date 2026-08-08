@@ -219,7 +219,10 @@ const CATEGORY_MARKS: Record<string, IconName> = {
   'Counting and numbers': 'tally',
   'Food and drink': 'amphora',
   Family: 'family',
-  'Titles and pronouns': 'rosette',
+  // Pronouns take the pomegranate and titles keep the rosette: two categories
+  // now, and two marks, so the tiles never read as one split in half.
+  Pronouns: 'pomegranate',
+  Titles: 'rosette',
   'Body parts': 'figure',
   'Daily routine': 'sunrise',
   Activities: 'runner',

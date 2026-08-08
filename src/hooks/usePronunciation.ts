@@ -10,15 +10,29 @@ import {
   subscribe,
 } from '../services/audio/pronunciation';
 
-/** The accessible name of a speaker button, e.g. "Play Hebrew feminine pronunciation". */
+/**
+ * The accessible name of a speaker button.
+ *
+ * Where forms differ the name has to say *how*, because two adjacent buttons
+ * are otherwise indistinguishable to a screen reader:
+ *
+ *   "Play Hebrew feminine pronunciation"
+ *   "Play Arabic — female speaking to male"
+ *
+ * A word with one form gets the bare name; there is nothing to tell apart.
+ */
 export function pronunciationLabel(
   language: SpeechLanguage,
-  gender?: 'feminine' | 'masculine',
+  form?: Pick<WordForm, 'gender' | 'label' | 'perspectives'>,
 ): string {
   const name = language === 'hebrew' ? 'Hebrew' : 'Arabic';
-  return gender
-    ? 'Play ' + name + ' ' + gender + ' pronunciation'
-    : 'Play ' + name + ' pronunciation';
+  if (form?.perspectives && form.label) {
+    return 'Play ' + name + ' — ' + form.label;
+  }
+  if (form?.gender) {
+    return 'Play ' + name + ' ' + form.gender + ' pronunciation';
+  }
+  return 'Play ' + name + ' pronunciation';
 }
 
 /**

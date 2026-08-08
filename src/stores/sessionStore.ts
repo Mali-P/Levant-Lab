@@ -24,6 +24,8 @@ type StartParams = {
   answerMode: AnswerMode;
   promptDirection: PromptDirection;
   perfectRunsRequired: number;
+  /** A single weak card being drilled, rather than a run through the deck. */
+  drill?: boolean;
 };
 
 type SessionState = {
@@ -48,7 +50,7 @@ export const useSession = create<SessionState>((set, get) => ({
     const { settings } = useSettings.getState();
     const stored = useData.getState().deckProgress[params.deckId];
 
-    const session = createSession({
+    const built = createSession({
       id: uid('session'),
       deckId: params.deckId,
       cardIds: params.cards.map((c) => c.id),
@@ -63,6 +65,10 @@ export const useSession = create<SessionState>((set, get) => ({
       now: new Date().toISOString(),
     });
 
+    // The flag rides on the row rather than on the engine: nothing about
+    // grading a drill differs, only what the rest of the app does with it.
+    const session = params.drill ? { ...built, drill: true } : built;
+
     await db.sessions.put(session);
     set({ session, lastOutcome: null, awaitingAdvance: false });
     return session;
@@ -72,7 +78,7 @@ export const useSession = create<SessionState>((set, get) => ({
     const open = await db.sessions
       .orderBy('updatedAt')
       .reverse()
-      .filter((s) => !s.completedAt)
+      .filter((s) => !s.completedAt && !s.drill)
       .first();
     set({ session: open ?? null, lastOutcome: null, awaitingAdvance: false });
     return open ?? null;
@@ -102,7 +108,12 @@ export const useSession = create<SessionState>((set, get) => ({
     const deckId = session.deckId;
     const current = data.deckProgress[deckId];
 
-    if (outcome.event === 'run-failed') {
+    // A drill is one weak card, so finishing it says nothing about the deck.
+    // Only the card's own progress, recorded above, moves; the deck keeps its
+    // completion stamps and its perfect-run count exactly as they were.
+    if (session.drill) {
+      await data.saveDeckProgress(deckId, { lastStudiedAt: now });
+    } else if (outcome.event === 'run-failed') {
       await data.saveDeckProgress(deckId, {
         perfectRunsCompleted: outcome.session.perfectRunsCompleted,
         hardModeFailures: (current?.hardModeFailures ?? 0) + 1,

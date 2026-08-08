@@ -93,8 +93,14 @@ export default function PronunciationReviewScreen() {
                       script: clip.text,
                       transliteration: clip.transliteration,
                       audioPath: clip.path,
+                      key: clip.form,
+                      // Only a grammatical pair carries a gender. A
+                      // speaker/listener variant names itself in `clip.form`
+                      // instead, and the explicit label below reads it out.
                       gender:
-                        clip.form === 'neutral' ? undefined : clip.form,
+                        clip.form === 'feminine' || clip.form === 'masculine'
+                          ? clip.form
+                          : undefined,
                     }}
                     language={clip.language}
                     label={

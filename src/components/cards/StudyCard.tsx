@@ -5,9 +5,9 @@ import {
   useTransform,
   type PanInfo,
 } from 'framer-motion';
-import type { Flashcard } from '../../types';
+import type { Flashcard, SpeechPerspective } from '../../types';
 import type { PromptPlan } from '../../features/study/prompts';
-import { wordForms } from '../../utils/wordForms';
+import { wordForms, type WordForm } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
 import Icon from '../ornament/Icon';
 
@@ -17,6 +17,12 @@ export type StudyCardProps = {
   revealed: boolean;
   typed: boolean;
   values: { hebrew: string; arabic: string };
+  /**
+   * Which speaker/listener perspectives to reveal, female-speaker first. The
+   * card leads with the learner's own form and shows nothing at all for a
+   * perspective she has not enabled.
+   */
+  perspectives: readonly SpeechPerspective[];
   showTransliteration: boolean;
   animationIntensity: number;
   reducedMotion: boolean;
@@ -129,12 +135,13 @@ export default function StudyCard(props: StudyCardProps) {
           // line stays tied to the scored language, so an English answer field
           // still hints at the word it is standing in for.
           const answerSide = field.input === 'hebrew' ? card.hebrew : card.arabic;
-          const revealForms =
+          const revealForms: WordForm[] =
             field.input === 'english'
-              ? [{ script: card.english }]
-              : wordForms(answerSide);
+              ? [{ script: card.english, key: 'only' }]
+              : wordForms(answerSide, props.perspectives);
           const translitForms = wordForms(
             field.scores === 'hebrew' ? card.hebrew : card.arabic,
+            props.perspectives,
           );
 
           return (
@@ -152,7 +159,7 @@ export default function StudyCard(props: StudyCardProps) {
                 <span className="speaker-row">
                   {translitForms.map((form) => (
                     <SpeakerButton
-                      key={form.gender ?? 'only'}
+                      key={form.key}
                       form={form}
                       language={field.scores}
                     />
@@ -188,7 +195,7 @@ export default function StudyCard(props: StudyCardProps) {
               >
                 {revealed
                   ? revealForms.map((form) => (
-                      <div className="form-line" key={form.gender ?? 'only'}>
+                      <div className="form-line" key={form.key}>
                         {form.marker && (
                           <span className="form-marker" aria-label={form.label}>
                             {form.marker}

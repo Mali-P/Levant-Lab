@@ -38,7 +38,8 @@ export default function LetterSpeaker({
 
   return (
     <SpeakerButton
-      form={{ script: fallbackText, audioPath }}
+      // A letter has one pronunciation: no gendered pair, no speaker variants.
+      form={{ script: fallbackText, audioPath, key: 'only' }}
       language={script}
       label={label}
     />

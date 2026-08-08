@@ -3,6 +3,18 @@ import type { CardProgress, DeckProgress, Settings } from '../../types';
 export const DEFAULT_SETTINGS: Settings = {
   id: 'settings',
 
+  /**
+   * Both female-speaker perspectives, ♀→♂ leading.
+   *
+   * This app is written for a woman, so the forms she will actually say are
+   * the ones it teaches; the male-speaker variants stay available but off.
+   * Deliberately not all four — showing every card four ways would put her own
+   * wording back onto a list of alternatives, which is the habit this setting
+   * exists to break. An install made before this setting existed picks the
+   * default up through the merge in `settingsStore.load`, keeping every score.
+   */
+  speechPerspectives: ['femaleToMale', 'femaleToFemale'],
+
   defaultMode: 'normal',
   defaultAnswerMode: 'self',
   defaultDeckSize: 10,

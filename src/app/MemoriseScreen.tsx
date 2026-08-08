@@ -106,22 +106,26 @@ export default function MemoriseScreen() {
     );
   }, [shuffle]);
 
-  // Autoplay follows the same per-language settings as the study screen, and
-  // speaks the leading — feminine — form of each word.
+  // Autoplay follows the same per-language settings as the study screen and
+  // speaks the leading form: her own ♀→♂ wording where the phrase has
+  // speaker/listener variants, the feminine form where it has a grammatical
+  // pair. Never a form she is not studying.
   const flipped = session?.flipped ?? false;
+  const perspectives = settings.speechPerspectives;
   useEffect(() => {
     if (!flipped || !currentCard) return;
     if (settings.autoPlayHebrew) {
-      const [first] = wordForms(currentCard.hebrew);
+      const [first] = wordForms(currentCard.hebrew, perspectives);
       if (first) void play(first, 'hebrew');
     }
     if (settings.autoPlayArabic) {
-      const [first] = wordForms(currentCard.arabic);
+      const [first] = wordForms(currentCard.arabic, perspectives);
       if (first) void play(first, 'arabic');
     }
   }, [
     flipped,
     currentCard,
+    perspectives,
     settings.autoPlayHebrew,
     settings.autoPlayArabic,
     play,
@@ -277,6 +281,7 @@ export default function MemoriseScreen() {
       <MemoriseCard
         card={currentCard}
         flipped={session.flipped}
+        perspectives={perspectives}
         showTransliteration={settings.showTransliteration}
         animationIntensity={settings.cardAnimationIntensity}
         reducedMotion={settings.reducedMotion}

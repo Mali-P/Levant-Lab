@@ -1,4 +1,5 @@
 import type { GenderedForms, LanguageSide } from '../../types';
+import { useSettings } from '../../stores/settingsStore';
 import { wordForms } from '../../utils/wordForms';
 
 type Props = {
@@ -8,20 +9,24 @@ type Props = {
 };
 
 /**
- * A word as it should be read in a list or preview row: the feminine form
- * first with its ♀ marker, then the masculine with ♂. A word that everyone
- * says the same way renders as one unmarked line.
+ * A word as it should be read in a list or preview row.
+ *
+ * Where the phrase changes with who is speaking, the learner's own
+ * perspectives are shown in female-first order and nobody else's. Otherwise
+ * the grammatical pair reads feminine-first with its ♀ / ♂ markers, and a word
+ * everyone says the same way renders as one unmarked line.
  *
  * Every list surface uses this rather than reading `script`, which mirrors
- * only the masculine form and would quietly teach half the pair.
+ * only the leading form and would quietly teach half the card.
  */
 export default function WordForms({ side, language }: Props) {
-  const forms = wordForms(side as LanguageSide);
+  const perspectives = useSettings((s) => s.settings.speechPerspectives);
+  const forms = wordForms(side as LanguageSide, perspectives);
 
   return (
     <span className={'forms-inline ' + language}>
       {forms.map((form) => (
-        <span className="form-line" key={form.gender ?? 'only'}>
+        <span className="form-line" key={form.key}>
           {form.marker && (
             <span className="form-marker" aria-label={form.label}>
               {form.marker}

@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type {
-  ArabicDialect,
-  ArabicHalf,
-  Flashcard,
-  GenderedForm,
-  GenderedForms,
+import {
+  isNotApplicable,
+  isSameAs,
+  SPEECH_PERSPECTIVES,
+  SPEECH_PERSPECTIVE_MARKERS,
+  SPEECH_PERSPECTIVE_SHORT,
+  type ArabicDialect,
+  type ArabicHalf,
+  type Flashcard,
+  type GenderedForm,
+  type GenderedForms,
+  type SpeechForms,
+  type SpeechPerspective,
+  type SpeechVariant,
 } from '../types';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
@@ -79,6 +87,189 @@ export default function CardEditorScreen() {
   /** Drops the pair back to a single word, keeping the feminine form. */
   const clearForms = (language: 'hebrew' | 'arabic') =>
     patchSide(language, { forms: undefined });
+
+  /**
+   * How one perspective is filled in. `shared` is the absence of an entry —
+   * the perspective simply uses the card's own wording — which is what keeps a
+   * phrase that does not vary from sprouting four identical strings.
+   */
+  type SpeechMode = 'shared' | 'own' | 'sameAs' | 'notApplicable';
+
+  const speechModeOf = (variant: SpeechVariant | undefined): SpeechMode => {
+    if (!variant) return 'shared';
+    if (isNotApplicable(variant)) return 'notApplicable';
+    if (isSameAs(variant)) return 'sameAs';
+    return 'own';
+  };
+
+  const patchSpeech = (
+    language: 'hebrew' | 'arabic',
+    perspective: SpeechPerspective,
+    variant: SpeechVariant | undefined,
+  ) => {
+    const side = draft![language];
+    const next: SpeechForms = { ...(side.speechForms ?? {}) };
+    if (variant) next[perspective] = variant;
+    else delete next[perspective];
+
+    const empty = Object.keys(next).length === 0;
+    patchSide(language, { speechForms: empty ? undefined : next });
+  };
+
+  /**
+   * Switching a perspective's mode.
+   *
+   * Moving to "its own wording" seeds the boxes from whatever the perspective
+   * already resolved to, so the editor never blanks a field the content author
+   * was about to reuse. "Same as" defaults to ♀→♂, the perspective everything
+   * else here is ordered around.
+   */
+  const setSpeechMode = (
+    language: 'hebrew' | 'arabic',
+    perspective: SpeechPerspective,
+    mode: SpeechMode,
+  ) => {
+    const side = draft![language];
+    const existing = side.speechForms?.[perspective];
+
+    if (mode === 'shared') return patchSpeech(language, perspective, undefined);
+    if (mode === 'notApplicable') {
+      return patchSpeech(language, perspective, { notApplicable: true });
+    }
+    if (mode === 'sameAs') {
+      const target: SpeechPerspective =
+        perspective === 'femaleToMale' ? 'femaleToFemale' : 'femaleToMale';
+      return patchSpeech(language, perspective, { sameAs: target });
+    }
+
+    const seed =
+      existing && !isSameAs(existing) && !isNotApplicable(existing)
+        ? existing
+        : { script: side.script, transliteration: side.transliteration };
+    patchSpeech(language, perspective, { ...seed });
+  };
+
+  /**
+   * The speaker/listener variants, ♀→♂ first.
+   *
+   * Hidden behind a button until a card needs them: most words do not change
+   * with who is talking, and four empty boxes on every card would invite
+   * exactly the fabricated distinctions this is meant to avoid.
+   */
+  const speechFields = (language: 'hebrew' | 'arabic') => {
+    const side = draft![language];
+    const scriptClass = 'input ' + language;
+    const tag = language === 'hebrew' ? 'he' : 'ar';
+
+    if (!side.speechForms) {
+      return (
+        <button
+          type="button"
+          className="btn"
+          onClick={() => setSpeechMode(language, 'femaleToMale', 'own')}
+        >
+          Add speaker and listener variants
+        </button>
+      );
+    }
+
+    return (
+      <>
+        <p className="small muted">
+          Who is speaking, and who is being spoken to. Leave a row on “same for
+          everyone” unless the wording really changes — the card only shows
+          differences.
+        </p>
+
+        {SPEECH_PERSPECTIVES.map((perspective) => {
+          const variant = side.speechForms![perspective];
+          const mode = speechModeOf(variant);
+          const own =
+            variant && !isSameAs(variant) && !isNotApplicable(variant)
+              ? variant
+              : undefined;
+
+          return (
+            <div className="field" key={perspective}>
+              <span>
+                {SPEECH_PERSPECTIVE_MARKERS[perspective]}{' '}
+                {SPEECH_PERSPECTIVE_SHORT[perspective]}
+              </span>
+
+              <select
+                className="input"
+                value={mode}
+                onChange={(e) =>
+                  setSpeechMode(language, perspective, e.target.value as SpeechMode)
+                }
+              >
+                <option value="shared">Same for everyone</option>
+                <option value="own">Its own wording</option>
+                <option value="sameAs">Same as another variant</option>
+                <option value="notApplicable">Not said this way</option>
+              </select>
+
+              {mode === 'sameAs' && (
+                <select
+                  className="input"
+                  value={(variant as { sameAs: SpeechPerspective }).sameAs}
+                  onChange={(e) =>
+                    patchSpeech(language, perspective, {
+                      sameAs: e.target.value as SpeechPerspective,
+                    })
+                  }
+                >
+                  {SPEECH_PERSPECTIVES.filter((p) => p !== perspective).map((p) => (
+                    <option key={p} value={p}>
+                      {SPEECH_PERSPECTIVE_MARKERS[p]} {SPEECH_PERSPECTIVE_SHORT[p]}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {mode === 'own' && (
+                <div className="row">
+                  <input
+                    className={scriptClass + ' grow'}
+                    dir="rtl"
+                    lang={tag}
+                    placeholder="Script"
+                    value={own?.script ?? ''}
+                    onChange={(e) =>
+                      patchSpeech(language, perspective, {
+                        ...own,
+                        script: e.target.value,
+                      })
+                    }
+                  />
+                  <input
+                    className="input english grow"
+                    placeholder="Transliteration"
+                    value={own?.transliteration ?? ''}
+                    onChange={(e) =>
+                      patchSpeech(language, perspective, {
+                        script: own?.script ?? '',
+                        ...own,
+                        transliteration: e.target.value || undefined,
+                      })
+                    }
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <button
+          type="button"
+          className="btn"
+          onClick={() => patchSide(language, { speechForms: undefined })}
+        >
+          Remove speaker and listener variants
+        </button>
+      </>
+    );
+  };
 
   const alternatesText = (language: 'hebrew' | 'arabic') =>
     (draft[language].accepted ?? []).map((a) => a.value).join(', ');
@@ -239,6 +430,7 @@ export default function CardEditorScreen() {
           </button>
         </div>
         {wordFields('hebrew')}
+        {speechFields('hebrew')}
         <label className="field">
           <span>Pronunciation text for audio</span>
           <input className="input hebrew" dir="rtl" lang="he" value={draft.hebrew.pronunciationText ?? ''}
@@ -277,6 +469,7 @@ export default function CardEditorScreen() {
           </button>
         </div>
         {wordFields('arabic')}
+        {speechFields('arabic')}
         <label className="field">
           <span>Pronunciation text for audio</span>
           <input className="input arabic" dir="rtl" lang="ar" value={draft.arabic.pronunciationText ?? ''}

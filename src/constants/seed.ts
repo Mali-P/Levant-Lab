@@ -1,9 +1,15 @@
-import type { ArabicDialect, GenderedForms } from '../types';
+import type {
+  ArabicDialect,
+  GenderedForms,
+  LanguageForm,
+  SpeechForms,
+} from '../types';
 
 export type SeedSide = {
   script: string;
   transliteration: string;
   forms?: GenderedForms;
+  speechForms?: SpeechForms;
   notes?: string;
 };
 
@@ -33,12 +39,101 @@ const PAL: ArabicDialect = 'Palestinian';
  */
 type Word = [string, string] | [string, string, string, string];
 
-function side(word: Word): SeedSide {
+/** One wording: `[script, transliteration]`. */
+type W = [string, string];
+
+/**
+ * How a phrase changes with who is in the conversation.
+ *
+ * This is the speaker/listener axis, kept strictly apart from the `Word` pair
+ * above, which is *word* gender — the gender of a noun or of the thing an
+ * adjective describes. A card can carry one, the other, or neither.
+ *
+ * Three shapes, because these are the three the languages actually make:
+ *
+ * `listener` — only who is being addressed matters. كيفَك to a man, كيفِك to a
+ *   woman, said identically by a woman or a man. Most greetings and questions.
+ * `speaker`  — only who is talking matters. A woman says أنا تعبانة whoever
+ *   she is talking to. Most "I am ..." statements.
+ * `both`     — the two combine, so all four perspectives differ. Hebrew
+ *   אני מתגעגעת אלייך carries the speaker in the verb and the listener in the
+ *   suffix at once.
+ *
+ * A phrase that changes for neither is written as a plain `Word` and gets no
+ * variants at all — the point is never to manufacture four versions of
+ * something people say one way.
+ */
+type Speech =
+  | { by: 'listener'; toMale: W; toFemale: W }
+  | { by: 'speaker'; female: W; male: W }
+  | { by: 'both'; f2m: W; f2f: W; m2f: W; m2m: W };
+
+type Entry = Word | Speech;
+
+function form([script, transliteration]: W): LanguageForm {
+  return { script, transliteration };
+}
+
+/**
+ * Builds the four perspectives from one of the three shapes.
+ *
+ * Perspectives that repeat another word for word are stored as a pointer
+ * rather than a copy, so the content never asserts a distinction the language
+ * does not make and the two share a single recording.
+ *
+ * The headline is always ♀→♂ — a woman speaking to a man. That is the default
+ * this app teaches, so anything reading only `script` gets the form she is
+ * most likely to need rather than a masculine-speaker default she would have
+ * to convert in her head.
+ */
+function speechSide(spec: Speech): SeedSide {
+  if (spec.by === 'listener') {
+    const speechForms: SpeechForms = {
+      femaleToMale: form(spec.toMale),
+      femaleToFemale: form(spec.toFemale),
+      // The speaker's own gender does not touch these, so the male-speaker
+      // perspectives are the very same two wordings.
+      maleToFemale: { sameAs: 'femaleToFemale' },
+      maleToMale: { sameAs: 'femaleToMale' },
+    };
+    return { script: spec.toMale[0], transliteration: spec.toMale[1], speechForms };
+  }
+
+  if (spec.by === 'speaker') {
+    const speechForms: SpeechForms = {
+      femaleToMale: form(spec.female),
+      // Who is listening does not touch these.
+      femaleToFemale: { sameAs: 'femaleToMale' },
+      maleToFemale: form(spec.male),
+      maleToMale: { sameAs: 'maleToFemale' },
+    };
+    return { script: spec.female[0], transliteration: spec.female[1], speechForms };
+  }
+
+  return {
+    script: spec.f2m[0],
+    transliteration: spec.f2m[1],
+    speechForms: {
+      femaleToMale: form(spec.f2m),
+      femaleToFemale: form(spec.f2f),
+      maleToFemale: form(spec.m2f),
+      maleToMale: form(spec.m2m),
+    },
+  };
+}
+
+function isSpeech(entry: Entry): entry is Speech {
+  return !Array.isArray(entry);
+}
+
+function side(entry: Entry): SeedSide {
+  if (isSpeech(entry)) return speechSide(entry);
+  const word = entry;
   if (word.length === 2) return { script: word[0], transliteration: word[1] };
   const [fScript, fTranslit, mScript, mTranslit] = word;
   return {
     // The feminine form is the headline: this app is written for a woman, so
-    // the word she says — or is spoken to with — is the one shown first, and
+    // the word she says — or is described by — is the one shown first, and
     // anything that reads only `script` still gets a complete, correct word.
     script: fScript,
     transliteration: fTranslit,
@@ -49,11 +144,15 @@ function side(word: Word): SeedSide {
   };
 }
 
-/** One starter card. Hebrew and Arabic are each a shared form or an F/M pair. */
+/**
+ * One starter card. Each language is independently either a single form, a
+ * feminine/masculine word pair, or a set of speaker/listener variants — a
+ * distinction can exist in Hebrew and not in Arabic, or the reverse.
+ */
 function c(
   english: string,
-  hebrew: Word,
-  arabic: Word,
+  hebrew: Entry,
+  arabic: Entry,
   notes?: { he?: string; ar?: string },
 ): SeedCard {
   return {
@@ -61,6 +160,21 @@ function c(
     hebrew: { ...side(hebrew), notes: notes?.he },
     arabic: { ...side(arabic), dialect: PAL, notes: notes?.ar },
   };
+}
+
+/** Only the listener's gender changes the wording. */
+function toL(toMale: W, toFemale: W): Speech {
+  return { by: 'listener', toMale, toFemale };
+}
+
+/** Only the speaker's own gender changes the wording. */
+function bySp(female: W, male: W): Speech {
+  return { by: 'speaker', female, male };
+}
+
+/** Both matter, so all four perspectives differ. Female-speaker pair first. */
+function both4(f2m: W, f2f: W, m2f: W, m2m: W): Speech {
+  return { by: 'both', f2m, f2f, m2f, m2m };
 }
 
 /** A word that is written and said the same way whoever is speaking. */
@@ -194,14 +308,19 @@ const NUMBER_DECKS: SeedDeck[] = [
  * Everyday spoken greetings, in the shapes people actually say them: مرحبا
  * rather than the textbook مرحباً, أهلا rather than أهلاً.
  *
- * Where a card carries a feminine/masculine pair, the gender is the person
- * being *spoken to*, not the speaker — a greeting changes its ending to match
- * whoever it is aimed at — except "good / fine", where the ending is the
- * speaker's own. The feminine form is the headline, as everywhere else in the
- * starter set.
+ * Greetings are where the speaker/listener axis earns its keep. Almost every
+ * card here changes its ending to match the person being addressed, so the
+ * variants are written as `toL` — the wording a woman uses to a man leads,
+ * because that is the perspective this app defaults to. A man says these
+ * exactly as a woman does, so his two perspectives point at hers rather than
+ * repeating them.
  *
- * Several pairs are written identically because the ـك ending goes unvowelled
- * in everyday writing, so only the transliteration tells كيفِك from كيفَك.
+ * "Good / fine" is the exception: there the ending is the speaker's own, so it
+ * is written as `bySp` and the woman's form leads.
+ *
+ * Several Arabic pairs are written identically because the ـك ending goes
+ * unvowelled in everyday writing; only the transliteration tells كيفِك from
+ * كيفَك, which is exactly why both are shown rather than one.
  */
 const GREETING_DECKS: SeedDeck[] = [
   {
@@ -210,13 +329,13 @@ const GREETING_DECKS: SeedDeck[] = [
       c('hello', ['שלום', 'shalom'], ['مرحبا', 'marḥaba'], { ar: 'The everyday spoken form; the written مرحباً is textbook Arabic.' }),
       c('hello (warm reply)', ['שלום שלום', 'shalom shalom'], ['مرحبتين', 'marḥabtēn'], { ar: 'Literally "two hellos" — a common reply to مرحبا, though مرحبا or أهلا can come back just as well.' }),
       c('hi / hey', ['אהלן', 'ahalan'], ['أهلا', 'ahlan'], { he: 'Borrowed straight from Arabic and just as casual in Hebrew.' }),
-      c('welcome', ['ברוכה הבאה', 'brukha haba\'a', 'ברוך הבא', 'barukh haba'], ['أهلا وسهلا', 'ahlan w sahlan'], { ar: 'Said to a guest arriving; the Arabic form does not change.' }),
+      c('welcome', toL(['ברוך הבא', 'barukh haba'], ['ברוכה הבאה', 'brukha haba\'a']), ['أهلا وسهلا', 'ahlan w sahlan'], { he: 'The ending follows the guest you are welcoming.', ar: 'Said to a guest arriving; the Arabic form does not change.' }),
       c('peace be upon you', ['שלום עליכם', 'shalom ʿalekhem'], ['السلام عليكم', 'as-salāmu ʿalēkum'], { ar: 'A little more formal or religious than مرحبا, and always welcome.' }),
       c('and upon you peace (reply)', ['עליכם שלום', 'ʿalekhem shalom'], ['وعليكم السلام', 'w ʿalēkum as-salām']),
       c('goodbye', ['להתראות', 'lehitra\'ot'], ['مع السلامة', 'maʿ as-salāme'], { ar: 'Said to the person leaving.' }),
       c('bye', ['ביי', 'bay'], ['يلا باي', 'yalla bāy'], { ar: 'Very casual, and extremely common.' }),
-      c('see you later', ['נתראה', 'nitra\'e'], ['بشوفك بعدين', 'bashūfik baʿdēn', 'بشوفك بعدين', 'bashūfak baʿdēn'], { ar: 'The ending follows whoever you are speaking to.' }),
-      c('take care', ['תשמרי על עצמך', 'tishmeri ʿal ʿatsmekh', 'תשמור על עצמך', 'tishmor ʿal ʿatsmekha'], ['ديري بالك', 'dīri bālik', 'دير بالك', 'dīr bālak'], { ar: 'Literally "mind yourself" — a warm way to close a conversation.' }),
+      c('see you later', ['נתראה', 'nitra\'e'], toL(['بشوفك بعدين', 'bashūfak baʿdēn'], ['بشوفك بعدين', 'bashūfik baʿdēn']), { ar: 'Written the same either way; only the ending is said differently.' }),
+      c('take care', toL(['תשמור על עצמך', 'tishmor ʿal ʿatsmekha'], ['תשמרי על עצמך', 'tishmeri ʿal ʿatsmekh']), toL(['دير بالك', 'dīr bālak'], ['ديري بالك', 'dīri bālik']), { ar: 'Literally "mind yourself" — a warm way to close a conversation.' }),
     ],
   },
   {
@@ -227,55 +346,55 @@ const GREETING_DECKS: SeedDeck[] = [
       c('good morning (warmer reply)', ['בוקר מקסים', 'boker maksim'], ['صباح الورد', 'ṣabāḥ el-ward'], { ar: '"Morning of roses" — friendlier still, and common between friends.' }),
       c('good afternoon', ['צהריים טובים', 'tsohorayim tovim'], ['مسا الخير', 'masa el-khēr'], { ar: 'Palestinian Arabic does not normally use a distinct everyday greeting for "good afternoon"; مسا الخير can cover late afternoon and evening.' }),
       c('good evening', ['ערב טוב', 'erev tov'], ['مسا الخير', 'masa el-khēr'], { ar: 'The spoken مسا, not the written مساء.' }),
-      c('good evening (reply)', ['ערב טוב גם לך', 'erev tov gam lakh'], ['مسا النور', 'masa en-nūr'], { he: 'Hebrew simply returns the greeting.' }),
-      c('good night', ['לילה טוב', 'layla tov'], ['تصبحي على خير', 'tiṣbaḥi ʿala khēr', 'تصبح على خير', 'tiṣbaḥ ʿala khēr'], { ar: 'Literally "may you wake to goodness"; said on parting for the night.' }),
-      c('good night (reply)', ['לילה טוב גם לך', 'layla tov gam lakh'], ['وإنتِ من أهل الخير', 'w inti min ahl el-khēr', 'وإنت من أهل الخير', 'w inte min ahl el-khēr'], { ar: 'The set answer to تصبح على خير.' }),
+      c('good evening (reply)', toL(['ערב טוב גם לך', 'erev tov gam lekha'], ['ערב טוב גם לך', 'erev tov gam lakh']), ['مسا النور', 'masa en-nūr'], { he: 'Hebrew simply returns the greeting; written the same either way, and only לך is said differently.' }),
+      c('good night', ['לילה טוב', 'layla tov'], toL(['تصبح على خير', 'tiṣbaḥ ʿala khēr'], ['تصبحي على خير', 'tiṣbaḥi ʿala khēr']), { ar: 'Literally "may you wake to goodness"; said on parting for the night.' }),
+      c('good night (reply)', toL(['לילה טוב גם לך', 'layla tov gam lekha'], ['לילה טוב גם לך', 'layla tov gam lakh']), toL(['وإنت من أهل الخير', 'w inte min ahl el-khēr'], ['وإنتِ من أهل الخير', 'w inti min ahl el-khēr']), { ar: 'The set answer to تصبح على خير.' }),
       c('sweet dreams', ['חלומות פז', 'khalomot paz'], ['أحلام سعيدة', 'aḥlām saʿīde']),
-      c('have a nice day', ['יום נעים', 'yom naʿim'], ['نهارك سعيد', 'nahārik saʿīd', 'نهارك سعيد', 'nahārak saʿīd']),
+      c('have a nice day', ['יום נעים', 'yom naʿim'], toL(['نهارك سعيد', 'nahārak saʿīd'], ['نهارك سعيد', 'nahārik saʿīd'])),
     ],
   },
   {
     name: 'How are you?',
     cards: [
-      c('how are you?', ['מה שלומך', 'ma shlomekh', 'מה שלומך', 'ma shlomkha'], ['كيفك', 'kīfik', 'كيفك', 'kīfak'], { ar: 'The one greeting you will hear most; the ending matches the person you ask.' }),
+      c('how are you?', toL(['מה שלומך', 'ma shlomkha'], ['מה שלומך', 'ma shlomekh']), toL(['كيفك', 'kīfak'], ['كيفك', 'kīfik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'The one greeting you will hear most; the ending matches the person you ask, never yourself.' }),
       c('how is it going?', ['איך הולך', 'ekh holekh'], ['كيف الأمور', 'kīf el-umūr'], { ar: 'Literally "how are the matters" — asked of anyone.' }),
-      c('what\'s new?', ['מה נשמע', 'ma nishmaʿ'], ['شو أخبارك', 'shū akhbārik', 'شو أخبارك', 'shū akhbārak'], { ar: 'Literally "what is your news".' }),
-      c('good / fine', ['בסדר', 'beseder'], ['منيحة', 'mnīḥa', 'منيح', 'mnīḥ'], { ar: 'Here the ending follows the speaker: a woman says منيحة.' }),
+      c('what\'s new?', ['מה נשמע', 'ma nishmaʿ'], toL(['شو أخبارك', 'shū akhbārak'], ['شو أخبارك', 'shū akhbārik']), { ar: 'Literally "what is your news".' }),
+      c('good / fine', ['בסדר', 'beseder'], bySp(['منيحة', 'mnīḥa'], ['منيح', 'mnīḥ']), { ar: 'The one card here where the ending is your own, not theirs: a woman says منيحة to anybody.' }),
       c('thank God (I am well)', ['ברוך השם', 'barukh hashem'], ['الحمد لله', 'el-ḥamdulillah'], { ar: 'The usual answer to كيفك, whether or not the speaker is religious.' }),
-      c('and you?', ['ואת', 've\'at', 'ואתה', 've\'ata'], ['وإنتِ', 'w inti', 'وإنت', 'w inte']),
+      c('and you?', toL(['ואתה', 've\'ata'], ['ואת', 've\'at']), toL(['وإنت', 'w inte'], ['وإنتِ', 'w inti'])),
       c('thank you', ['תודה', 'toda'], ['شكرا', 'shukran']),
-      c('you\'re welcome', ['בבקשה', 'bevakasha'], ['ولا يهمّك', 'wala yhimmik', 'ولا يهمّك', 'wala yhimmak'], { ar: 'Literally "don\'t worry about it"; عفوا is the more formal option.' }),
-      c('please', ['בבקשה', 'bevakasha'], ['من فضلك', 'min faḍlik', 'من فضلك', 'min faḍlak']),
-      c('excuse me / sorry', ['סליחה', 'slikha'], ['لو سمحتي', 'law samaḥti', 'لو سمحت', 'law samaḥt'], { ar: 'Getting someone\'s attention; آسف is the apology.' }),
+      c('you\'re welcome', ['בבקשה', 'bevakasha'], toL(['ولا يهمّك', 'wala yhimmak'], ['ولا يهمّك', 'wala yhimmik']), { ar: 'Literally "don\'t worry about it"; عفوا is the more formal option.' }),
+      c('please', ['בבקשה', 'bevakasha'], toL(['من فضلك', 'min faḍlak'], ['من فضلك', 'min faḍlik'])),
+      c('excuse me / sorry', ['סליחה', 'slikha'], toL(['لو سمحت', 'law samaḥt'], ['لو سمحتي', 'law samaḥti']), { ar: 'Getting someone\'s attention; آسف is the apology.' }),
     ],
   },
   {
     name: 'Meeting someone new',
     cards: [
-      c('what is your name?', ['איך קוראים לך', 'ekh kor\'im lakh', 'איך קוראים לך', 'ekh kor\'im lekha'], ['شو اسمك', 'shū ismik', 'شو اسمك', 'shū ismak'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'Written the same either way; only the ending is said differently.' }),
+      c('what is your name?', toL(['איך קוראים לך', 'ekh kor\'im lekha'], ['איך קוראים לך', 'ekh kor\'im lakh']), toL(['شو اسمك', 'shū ismak'], ['شو اسمك', 'shū ismik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
       c('my name is...', ['קוראים לי', 'kor\'im li'], ['اسمي', 'ismi'], { he: 'Literally "they call me", which is how the introduction is normally made.' }),
       c('nice to meet you', ['נעים מאוד', 'na\'im me\'od'], ['تشرّفنا', 'tsharrafna'], { ar: 'Literally "we are honoured"; one form whoever is speaking.' }),
-      c('where are you from?', ['מאיפה את', 'me\'eifo at', 'מאיפה אתה', 'me\'eifo ata'], ['من وين إنتِ', 'min wēn inti', 'من وين إنت', 'min wēn inte']),
+      c('where are you from?', toL(['מאיפה אתה', 'me\'eifo ata'], ['מאיפה את', 'me\'eifo at']), toL(['من وين إنت', 'min wēn inte'], ['من وين إنتِ', 'min wēn inti'])),
       c('I am from...', ['אני מ', 'ani mi'], ['أنا من', 'ana min']),
-      c('how old are you?', ['בת כמה את', 'bat kama at', 'בן כמה אתה', 'ben kama ata'], ['قدّيش عمرك', 'addēsh ʿumrik', 'قدّيش عمرك', 'addēsh ʿumrak'], { ar: 'Written the same either way; only the ending is said differently.' }),
-      c('do you speak Arabic?', ['את מדברת ערבית', 'at medaberet aravit', 'אתה מדבר ערבית', 'ata medaber aravit'], ['بتحكي عربي', 'btiḥki ʿarabi'], { ar: 'The Arabic verb ends the same way whoever is asked.' }),
-      c('I do not understand', ['אני לא מבינה', 'ani lo mevina', 'אני לא מבין', 'ani lo mevin'], ['أنا مش فاهمة', 'ana mish fāhme', 'أنا مش فاهم', 'ana mish fāhem'], { ar: 'Here the ending follows the speaker.' }),
-      c('can you repeat that?', ['תוכלי לחזור', 'tukhli lakhzor', 'תוכל לחזור', 'tukhal lakhzor'], ['ممكن تعيدي', 'mumkin tʿīdi', 'ممكن تعيد', 'mumkin tʿīd']),
-      c('speak slowly, please', ['דברי לאט בבקשה', 'dabri le\'at bevakasha', 'דבר לאט בבקשה', 'daber le\'at bevakasha'], ['احكي شوي شوي', 'iḥki shwayy shwayy'], { ar: 'Literally "speak little by little"; the verb ends the same way for anyone.' }),
+      c('how old are you?', toL(['בן כמה אתה', 'ben kama ata'], ['בת כמה את', 'bat kama at']), toL(['قدّيش عمرك', 'addēsh ʿumrak'], ['قدّيش عمرك', 'addēsh ʿumrik']), { ar: 'Written the same either way; only the ending is said differently.' }),
+      c('do you speak Arabic?', toL(['אתה מדבר ערבית', 'ata medaber aravit'], ['את מדברת ערבית', 'at medaberet aravit']), ['بتحكي عربي', 'btiḥki ʿarabi'], { ar: 'The Arabic verb ends the same way whoever is asked.' }),
+      c('I do not understand', bySp(['אני לא מבינה', 'ani lo mevina'], ['אני לא מבין', 'ani lo mevin']), bySp(['أنا مش فاهمة', 'ana mish fāhme'], ['أنا مش فاهم', 'ana mish fāhem']), { he: 'The ending is your own here, not theirs.', ar: 'The ending is your own here, not theirs.' }),
+      c('can you repeat that?', toL(['תוכל לחזור', 'tukhal lakhzor'], ['תוכלי לחזור', 'tukhli lakhzor']), toL(['ممكن تعيد', 'mumkin tʿīd'], ['ممكن تعيدي', 'mumkin tʿīdi'])),
+      c('speak slowly, please', toL(['דבר לאט בבקשה', 'daber le\'at bevakasha'], ['דברי לאט בבקשה', 'dabri le\'at bevakasha']), ['احكي شوي شوي', 'iḥki shwayy shwayy'], { ar: 'Literally "speak little by little"; the verb ends the same way for anyone.' }),
     ],
   },
   {
     name: 'Wishes and blessings',
     cards: [
       c('congratulations', ['מזל טוב', 'mazal tov'], ['مبروك', 'mabrūk']),
-      c('God bless you (reply)', ['תבורכי', 'tevorkhi', 'תבורך', 'tevorakh'], ['الله يبارك فيكي', 'allah ybārik fīki', 'الله يبارك فيك', 'allah ybārik fīk'], { ar: 'The set answer to مبروك.' }),
+      c('God bless you (reply)', toL(['תבורך', 'tevorakh'], ['תבורכי', 'tevorkhi']), toL(['الله يبارك فيك', 'allah ybārik fīk'], ['الله يبارك فيكي', 'allah ybārik fīki']), { ar: 'The set answer to مبروك.' }),
       c('good luck', ['בהצלחה', 'behatslakha'], ['بالتوفيق', 'bit-tawfīq']),
       c('happy birthday', ['יום הולדת שמח', 'yom huledet sameakh'], ['عيد ميلاد سعيد', 'ʿīd mīlād saʿīd']),
       c('happy holiday', ['חג שמח', 'khag sameakh'], ['عيد مبارك', 'ʿīd mubārak']),
-      c('get well soon', ['רפואה שלמה', 'refu\'a shlema'], ['سلامتك', 'salāmtik', 'سلامتك', 'salāmtak'], { ar: 'Literally "your wellbeing"; written the same either way.' }),
+      c('get well soon', ['רפואה שלמה', 'refu\'a shlema'], toL(['سلامتك', 'salāmtak'], ['سلامتك', 'salāmtik']), { ar: 'Literally "your wellbeing"; written the same either way.' }),
       c('God willing', ['בעזרת השם', 'be\'ezrat hashem'], ['إن شاء الله', 'in shāʾ allah'], { ar: 'Said of anything still to come, whether or not the speaker is religious.' }),
-      c('may God protect you', ['אלוהים ישמור עלייך', 'elohim yishmor alayikh', 'אלוהים ישמור עליך', 'elohim yishmor alekha'], ['الله يحميكي', 'allah yiḥmīki', 'الله يحميك', 'allah yiḥmīk']),
-      c('welcome back (safe return)', ['ברוכה השבה', 'brukha hashava', 'ברוך השב', 'barukh hashav'], ['الحمد لله عالسلامة', 'el-ḥamdulillah ʿas-salāme'], { ar: 'Said to someone home from a journey; the Arabic does not change.' }),
+      c('may God protect you', toL(['אלוהים ישמור עליך', 'elohim yishmor alekha'], ['אלוהים ישמור עלייך', 'elohim yishmor alayikh']), toL(['الله يحميك', 'allah yiḥmīk'], ['الله يحميكي', 'allah yiḥmīki'])),
+      c('welcome back (safe return)', toL(['ברוך השב', 'barukh hashav'], ['ברוכה השבה', 'brukha hashava']), ['الحمد لله عالسلامة', 'el-ḥamdulillah ʿas-salāme'], { he: 'The ending follows the traveller you are greeting.', ar: 'Said to someone home from a journey; the Arabic does not change.' }),
       c('enjoy your meal', ['בתיאבון', 'beteavon'], ['صحتين', 'ṣaḥtēn'], { ar: 'Literally "two healths"; said to anyone eating.' }),
     ],
   },
@@ -299,14 +418,16 @@ const PRONOUN_DECKS: SeedDeck[] = [
     name: 'Personal pronouns',
     cards: [
       c('I', ['אני', 'ani'], ['أنا', 'ana'], { ar: 'One word, whoever is speaking.' }),
-      c('you (one person)', ['את', 'at', 'אתה', 'ata'], ['إنتِ', 'inti', 'إنت', 'inte']),
+      c('you (one person)', toL(['אתה', 'ata'], ['את', 'at']), toL(['إنت', 'inte'], ['إنتِ', 'inti'])),
       c('she', ['היא', 'hi'], ['هيّ', 'hiyye']),
       c('he', ['הוא', 'hu'], ['هوّ', 'huwwe']),
       c('we', ['אנחנו', 'anakhnu'], ['إحنا', 'iḥna']),
       c('you (more than one)', ['אתן', 'aten', 'אתם', 'atem'], ['إنتو', 'intu'], { ar: 'Spoken Palestinian Arabic uses one plural for a group of any gender.' }),
       c('they', ['הן', 'hen', 'הם', 'hem'], ['هُمّ', 'humme'], { ar: 'Again one form; Hebrew keeps a feminine and a masculine plural.' }),
       c('my', ['שלי', 'sheli'], ['تبعي', 'tabaʿi'], { ar: 'Possession is usually a suffix — بيتي "my house" — and تبعي is the form that stands on its own.' }),
-      c('your', ['שלך', 'shelakh', 'שלך', 'shelkha'], ['تبعك', 'tabaʿik', 'تبعك', 'tabaʿak'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'Written the same either way; only the ending is said differently.' }),
+      c('your', toL(['שלך', 'shelkha'], ['שלך', 'shelakh']), toL(['تبعك', 'tabaʿak'], ['تبعك', 'tabaʿik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
+      // The pair here is the owner — a third person — so it stays a word-form
+      // pair rather than becoming a speaker/listener variant.
       c('hers / his', ['שלה', 'shela', 'שלו', 'shelo'], ['تبعها', 'tabaʿha', 'تبعه', 'tabaʿo'], { ar: 'Here the ending follows the owner, not the person spoken to.' }),
     ],
   },
@@ -314,7 +435,7 @@ const PRONOUN_DECKS: SeedDeck[] = [
     name: 'Saying it is mine',
     cards: [
       c('my house', ['הבית שלי', 'habayit sheli'], ['بيتي', 'bēti'], { ar: 'Possession is a suffix on the noun: بيت plus ـي.' }),
-      c('your house', ['הבית שלך', 'habayit shelakh', 'הבית שלך', 'habayit shelkha'], ['بيتك', 'bētik', 'بيتك', 'bētak'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'Written the same either way; only the ending is said differently.' }),
+      c('your house', toL(['הבית שלך', 'habayit shelkha'], ['הבית שלך', 'habayit shelakh']), toL(['بيتك', 'bētak'], ['بيتك', 'bētik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
       c('her house / his house', ['הבית שלה', 'habayit shela', 'הבית שלו', 'habayit shelo'], ['بيتها', 'bētha', 'بيته', 'bēto'], { ar: 'Here the ending follows the owner.' }),
       c('our house', ['הבית שלנו', 'habayit shelanu'], ['بيتنا', 'bētna']),
       c('your house (more than one)', ['הבית שלכן', 'habayit shelakhen', 'הבית שלכם', 'habayit shelakhem'], ['بيتكم', 'bētkom'], { ar: 'Spoken Palestinian Arabic uses one plural ending for a group of any gender.' }),
@@ -360,7 +481,7 @@ const TITLE_DECKS: SeedDeck[] = [
       c('professor', ['פרופסור', 'profesor'], ['بروفيسور', 'brōfēsōr'], { ar: 'أستاذ دكتور is the formal academic version.' }),
       c('teacher / sir', ['מורה', 'mora', 'מורה', 'more'], ['أستاذة', 'ustāze', 'أستاذ', 'ustāz'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'أستاذ doubles as a polite "sir" for a man you address by name.' }),
       c('engineer', ['מהנדסת', 'mehandeset', 'מהנדס', 'mehandes'], ['مهندسة', 'muhandise', 'مهندس', 'muhandis'], { ar: 'Used as a title in front of a name, much like "doctor".' }),
-      c('madam / sir (polite address)', ['גברתי', 'gvirti', 'אדוני', 'adoni'], ['حضرتك', 'ḥaḍirtik', 'حضرتك', 'ḥaḍirtak'], { ar: 'Literally "your presence"; the ending follows the person spoken to and goes unvowelled in everyday writing.' }),
+      c('madam / sir (polite address)', toL(['אדוני', 'adoni'], ['גברתי', 'gvirti']), toL(['حضرتك', 'ḥaḍirtak'], ['حضرتك', 'ḥaḍirtik']), { ar: 'Literally "your presence"; the ending follows the person spoken to and goes unvowelled in everyday writing.' }),
       c('queen / king', ['מלכה', 'malka', 'מלך', 'melekh'], ['ملكة', 'malake', 'ملك', 'malik']),
       c('princess / prince', ['נסיכה', 'nesikha', 'נסיך', 'nasikh'], ['أميرة', 'amīre', 'أمير', 'amīr']),
       c('president', ['נשיאה', 'nesi\'a', 'נשיא', 'nasi'], ['رئيسة', 'raʾīse', 'رئيس', 'raʾīs']),
@@ -380,13 +501,15 @@ const ANIMAL_DECKS: SeedDeck[] = [
   {
     name: 'Pets',
     cards: [
-      c('dog', ['כלב', 'kelev'], ['كلب', 'kalb']),
-      c('cat', ['חתול', 'khatul'], ['قطّة', 'quṭṭa'], { ar: 'بسّة (bisse) is just as common in Palestinian homes.' }),
+      // An animal noun has a feminine and a masculine word of its own, so the
+      // pair here is the creature — nothing to do with who is speaking.
+      c('dog', ['כלבה', 'kalba', 'כלב', 'kelev'], ['كلبة', 'kalbe', 'كلب', 'kalb']),
+      c('cat', ['חתולה', 'khatula', 'חתול', 'khatul'], ['قطّة', 'qiṭṭa', 'قطّ', 'qiṭṭ'], { ar: 'بسّة (bisse) is just as common in Palestinian homes.' }),
       c('puppy', ['גור כלבים', 'gur klavim'], ['جرو', 'jarw']),
       c('kitten', ['חתלתול', 'khataltul'], ['قطّة صغيرة', 'quṭṭa zghīre'], { ar: 'Literally "small cat"; spoken Arabic rarely uses a separate word.' }),
-      c('bird', ['ציפור', 'tsipor'], ['عصفور', 'ʿaṣfūr']),
+      c('bird', ['ציפור', 'tsipor'], ['عصفورة', 'ʿaṣfūra', 'عصفور', 'ʿaṣfūr'], { he: 'ציפור is a feminine word in Hebrew whatever the bird.' }),
       c('fish', ['דג', 'dag'], ['سمكة', 'samake'], { ar: 'One fish; سمك is fish in general.' }),
-      c('rabbit', ['ארנב', 'arnav'], ['أرنب', 'arnab']),
+      c('rabbit', ['ארנבת', 'arnevet', 'ארנב', 'arnav'], ['أرنبة', 'arnabe', 'أرنب', 'arnab']),
       c('turtle', ['צב', 'tsav'], ['سلحفاة', 'sulaḥfa']),
       c('parrot', ['תוכי', 'tuki'], ['ببغا', 'babaghā'], { ar: 'The spoken form; ببغاء is the written one.' }),
       c('hamster', ['אוגר', 'oger'], ['هامستر', 'hāmster'], { ar: 'A borrowed word, said as it is in English.' }),
@@ -400,8 +523,8 @@ const ANIMAL_DECKS: SeedDeck[] = [
       c('goat', ['עז', 'ez'], ['عنزة', 'ʿanze']),
       c('hen', ['תרנגולת', 'tarnegolet'], ['دجاجة', 'djāje'], { ar: 'The live bird; جاج on a menu is chicken to eat.' }),
       c('rooster', ['תרנגול', 'tarnegol'], ['ديك', 'dīk']),
-      c('donkey', ['חמור', 'khamor'], ['حمار', 'ḥmār']),
-      c('horse', ['סוס', 'sus'], ['حصان', 'ḥṣān']),
+      c('donkey', ['חמור', 'khamor'], ['حمارة', 'ḥmāra', 'حمار', 'ḥmār'], { he: 'Hebrew has אתון for a jenny, but it is a separate word rather than a paired form.' }),
+      c('horse', ['סוסה', 'susa', 'סוס', 'sus'], ['حصان', 'ḥṣān'], { ar: 'A mare is فرس — its own word, not a form of حصان.' }),
       c('duck', ['ברווז', 'barvaz'], ['بطّة', 'baṭṭa']),
       c('camel', ['גמל', 'gamal'], ['جمل', 'jamal']),
       c('pigeon', ['יונה', 'yona'], ['حمامة', 'ḥamāme'], { he: 'The same word covers a dove.' }),
@@ -410,16 +533,16 @@ const ANIMAL_DECKS: SeedDeck[] = [
   {
     name: 'Wild animals',
     cards: [
-      c('lion', ['אריה', 'arye'], ['أسد', 'asad']),
-      c('wolf', ['זאב', 'ze\'ev'], ['ذيب', 'dīb'], { ar: 'Said dīb in Palestinian Arabic; ذئب is the written spelling.' }),
-      c('fox', ['שועל', 'shu\'al'], ['ثعلب', 'taʿlab'], { ar: 'The ث is said as a t in most Palestinian speech.' }),
-      c('bear', ['דוב', 'dov'], ['دبّ', 'dubb']),
+      c('lion', ['לביאה', 'levi\'a', 'אריה', 'arye'], ['لبوة', 'labwe', 'أسد', 'asad']),
+      c('wolf', ['זאבה', 'ze\'eva', 'זאב', 'ze\'ev'], ['ذيبة', 'dībe', 'ذيب', 'dīb'], { ar: 'Said dīb in Palestinian Arabic; ذئب is the written spelling.' }),
+      c('fox', ['שועלה', 'shu\'ala', 'שועל', 'shu\'al'], ['ثعلبة', 'taʿlabe', 'ثعلب', 'taʿlab'], { ar: 'The ث is said as a t in most Palestinian speech.' }),
+      c('bear', ['דובה', 'duba', 'דוב', 'dov'], ['دبّة', 'dubbe', 'دبّ', 'dubb']),
       c('snake', ['נחש', 'nakhash'], ['حيّة', 'ḥayye'], { ar: 'The everyday word; ثعبان is the more formal one.' }),
       c('monkey', ['קוף', 'kof'], ['قرد', 'qird']),
-      c('elephant', ['פיל', 'pil'], ['فيل', 'fīl']),
-      c('gazelle', ['צבי', 'tsvi'], ['غزال', 'ghazāl']),
+      c('elephant', ['פילה', 'pila', 'פיל', 'pil'], ['فيلة', 'fīle', 'فيل', 'fīl']),
+      c('gazelle', ['צבייה', 'tsviya', 'צבי', 'tsvi'], ['غزالة', 'ghazāle', 'غزال', 'ghazāl']),
       c('giraffe', ['ג\'ירפה', 'jirafa'], ['زرافة', 'zarāfe']),
-      c('mouse', ['עכבר', 'akhbar'], ['فار', 'fār']),
+      c('mouse', ['עכברה', 'akhbara', 'עכבר', 'akhbar'], ['فارة', 'fāra', 'فار', 'fār']),
     ],
   },
 ];
@@ -494,46 +617,49 @@ const WANT_DECKS: SeedDeck[] = [
   {
     name: 'I want and I need',
     cards: [
-      c('I want', ['אני רוצה', 'ani rotsa', 'אני רוצה', 'ani rotse'], ['أنا بدّي', 'ana biddi'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'بدّي is said the same by a woman or a man.' }),
-      c('I need', ['אני צריכה', 'ani tsrikha', 'אני צריך', 'ani tsarikh'], ['أنا لازمني', 'ana lāzimni'], { ar: 'Literally "it is necessary for me".' }),
+      c('I want', bySp(['אני רוצה', 'ani rotsa'], ['אני רוצה', 'ani rotse']), ['أنا بدّي', 'ana biddi'], { he: 'Written the same either way; only the ending is said differently.', ar: 'بدّي is said the same by a woman or a man.' }),
+      c('I need', bySp(['אני צריכה', 'ani tsrikha'], ['אני צריך', 'ani tsarikh']), ['أنا لازمني', 'ana lāzimni'], { ar: 'Literally "it is necessary for me".' }),
       c('I have', ['יש לי', 'yesh li'], ['عندي', 'ʿindi'], { he: 'Literally "there is to me"; Hebrew has no verb for "have".' }),
-      c('I see', ['אני רואה', 'ani ro\'a', 'אני רואה', 'ani ro\'e'], ['أنا بشوف', 'ana bashūf'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
-      c('I feel', ['אני מרגישה', 'ani margisha', 'אני מרגיש', 'ani margish'], ['أنا بحسّ', 'ana baḥiss']),
-      c('I miss', ['אני מתגעגעת', 'ani mitga\'aga\'at', 'אני מתגעגע', 'ani mitga\'age\'a'], ['أنا مشتاقة', 'ana mushtāqa', 'أنا مشتاق', 'ana mushtāq'], { ar: 'One of the few Arabic forms here that follows the speaker: a woman says مشتاقة.' }),
-      c('I know', ['אני יודעת', 'ani yoda\'at', 'אני יודע', 'ani yode\'a'], ['أنا بعرف', 'ana baʿref']),
-      c('I love', ['אני אוהבת', 'ani ohevet', 'אני אוהב', 'ani ohev'], ['أنا بحبّ', 'ana baḥibb'], { ar: 'The same verb covers loving a person and liking a thing.' }),
-      c('I can', ['אני יכולה', 'ani yekhola', 'אני יכול', 'ani yakhol'], ['أنا بقدر', 'ana baqdar']),
-      c('I don\'t want', ['אני לא רוצה', 'ani lo rotsa', 'אני לא רוצה', 'ani lo rotse'], ['أنا ما بدّي', 'ana ma biddi'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'ما is the everyday spoken negative in front of بدّي.' }),
+      c('I see', bySp(['אני רואה', 'ani ro\'a'], ['אני רואה', 'ani ro\'e']), ['أنا بشوف', 'ana bashūf'], { he: 'Written the same either way; only the ending is said differently.' }),
+      c('I feel', bySp(['אני מרגישה', 'ani margisha'], ['אני מרגיש', 'ani margish']), ['أنا بحسّ', 'ana baḥiss']),
+      c('I miss', bySp(['אני מתגעגעת', 'ani mitga\'aga\'at'], ['אני מתגעגע', 'ani mitga\'age\'a']), bySp(['أنا مشتاقة', 'ana mushtāqa'], ['أنا مشتاق', 'ana mushtāq']), { ar: 'One of the few Arabic forms here that follows the speaker: a woman says مشتاقة.' }),
+      c('I know', bySp(['אני יודעת', 'ani yoda\'at'], ['אני יודע', 'ani yode\'a']), ['أنا بعرف', 'ana baʿref']),
+      c('I love', bySp(['אני אוהבת', 'ani ohevet'], ['אני אוהב', 'ani ohev']), ['أنا بحبّ', 'ana baḥibb'], { ar: 'The same verb covers loving a person and liking a thing.' }),
+      c('I can', bySp(['אני יכולה', 'ani yekhola'], ['אני יכול', 'ani yakhol']), ['أنا بقدر', 'ana baqdar']),
+      c('I don\'t want', bySp(['אני לא רוצה', 'ani lo rotsa'], ['אני לא רוצה', 'ani lo rotse']), ['أنا ما بدّي', 'ana ma biddi'], { he: 'Written the same either way; only the ending is said differently.', ar: 'ما is the everyday spoken negative in front of بدّي.' }),
     ],
   },
   {
     name: 'You, he and she',
     cards: [
-      c('you want', ['את רוצה', 'at rotsa', 'אתה רוצה', 'ata rotse'], ['بدِّك', 'biddik', 'بدَّك', 'biddak'], { ar: 'Written بدك either way — only the transliteration tells the two endings apart.' }),
+      c('you want', toL(['אתה רוצה', 'ata rotse'], ['את רוצה', 'at rotsa']), toL(['بدَّك', 'biddak'], ['بدِّك', 'biddik']), { ar: 'Written بدك either way — only the transliteration tells the two endings apart.' }),
       c('he wants', ['הוא רוצה', 'hu rotse'], ['هوّ بدّه', 'huwwe biddo']),
       c('she wants', ['היא רוצה', 'hi rotsa'], ['هيّ بدّها', 'hiyye bidha']),
       c('we want', ['אנחנו רוצות', 'anakhnu rotsot', 'אנחנו רוצים', 'anakhnu rotsim'], ['إحنا بدّنا', 'iḥna bidna'], { he: 'Hebrew splits the plural; a group with any man in it takes רוצים.' }),
       c('they want', ['הן רוצות', 'hen rotsot', 'הם רוצים', 'hem rotsim'], ['هُمّ بدّهم', 'humme bidhom'], { ar: 'One plural form for a group of any gender.' }),
-      c('you need', ['את צריכה', 'at tsrikha', 'אתה צריך', 'ata tsarikh'], ['لازمك', 'lāzmik', 'لازمك', 'lāzmak'], { ar: 'Written the same either way; only the ending is said differently.' }),
+      c('you need', toL(['אתה צריך', 'ata tsarikh'], ['את צריכה', 'at tsrikha']), toL(['لازمك', 'lāzmak'], ['لازمك', 'lāzmik']), { ar: 'Written the same either way; only the ending is said differently.' }),
       c('he needs', ['הוא צריך', 'hu tsarikh'], ['لازمه', 'lāzmo']),
       c('she needs', ['היא צריכה', 'hi tsrikha'], ['لازمها', 'lāzimha']),
       c('she has / he has', ['יש לה', 'yesh la', 'יש לו', 'yesh lo'], ['عندها', 'ʿindha', 'عنده', 'ʿindo'], { ar: 'Here the ending follows the owner, not the person spoken to.' }),
-      c('what do you want?', ['מה את רוצה', 'ma at rotsa', 'מה אתה רוצה', 'ma ata rotse'], ['شو بدِّك', 'shū biddik', 'شو بدَّك', 'shū biddak']),
+      c('what do you want?', toL(['מה אתה רוצה', 'ma ata rotse'], ['מה את רוצה', 'ma at rotsa']), toL(['شو بدَّك', 'shū biddak'], ['شو بدِّك', 'shū biddik'])),
     ],
   },
   {
     name: 'Saying what you want',
     cards: [
-      c('I want water', ['אני רוצה מים', 'ani rotsa mayim', 'אני רוצה מים', 'ani rotse mayim'], ['بدّي ميّة', 'biddi mayye'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'أنا can be left off — بدّي already says who wants.' }),
-      c('I need help', ['אני צריכה עזרה', 'ani tsrikha ezra', 'אני צריך עזרה', 'ani tsarikh ezra'], ['لازمني مساعدة', 'lāzimni musāʿade']),
-      c('I want to eat', ['אני רוצה לאכול', 'ani rotsa le\'ekhol', 'אני רוצה לאכול', 'ani rotse le\'ekhol'], ['بدّي آكل', 'biddi ākol'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
-      c('I want to go home', ['אני רוצה ללכת הביתה', 'ani rotsa lalekhet habayta', 'אני רוצה ללכת הביתה', 'ani rotse lalekhet habayta'], ['بدّي أروح عالبيت', 'biddi arūḥ ʿal-bēt'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'عالبيت is عَ الْبيت run together, the way it is actually said.' }),
-      c('I miss you', ['אני מתגעגעת אלייך', 'ani mitga\'aga\'at elayikh', 'אני מתגעגעת אליך', 'ani mitga\'aga\'at elekha'], ['اشتقتلك', 'ishtaqtillik', 'اشتقتلك', 'ishtaqtillak'], { he: 'A woman speaking; the pair here is the person she says it to.', ar: 'Written the same either way; only the ending is said differently.' }),
-      c('I feel tired', ['אני מרגישה עייפה', 'ani margisha ayefa', 'אני מרגיש עייף', 'ani margish ayef'], ['أنا تعبانة', 'ana taʿbāne', 'أنا تعبان', 'ana taʿbān'], { ar: 'Arabic simply says "I am tired"; here the pair is the speaker.' }),
+      c('I want water', bySp(['אני רוצה מים', 'ani rotsa mayim'], ['אני רוצה מים', 'ani rotse mayim']), ['بدّي ميّة', 'biddi mayye'], { he: 'Written the same either way; only the ending is said differently.', ar: 'أنا can be left off — بدّي already says who wants.' }),
+      c('I need help', bySp(['אני צריכה עזרה', 'ani tsrikha ezra'], ['אני צריך עזרה', 'ani tsarikh ezra']), ['لازمني مساعدة', 'lāzimni musāʿade']),
+      c('I want to eat', bySp(['אני רוצה לאכול', 'ani rotsa le\'ekhol'], ['אני רוצה לאכול', 'ani rotse le\'ekhol']), ['بدّي آكل', 'biddi ākol'], { he: 'Written the same either way; only the ending is said differently.' }),
+      c('I want to go home', bySp(['אני רוצה ללכת הביתה', 'ani rotsa lalekhet habayta'], ['אני רוצה ללכת הביתה', 'ani rotse lalekhet habayta']), ['بدّي أروح عالبيت', 'biddi arūḥ ʿal-bēt'], { he: 'Written the same either way; only the ending is said differently.', ar: 'عالبيت is عَ الْبيت run together, the way it is actually said.' }),
+      // The one card in the deck where both halves of the conversation show up
+      // in the same Hebrew sentence: the verb is the speaker's, the suffix on
+      // אלי- is the listener's, so all four perspectives really do differ.
+      c('I miss you', both4(['אני מתגעגעת אליך', 'ani mitga\'aga\'at elekha'], ['אני מתגעגעת אלייך', 'ani mitga\'aga\'at elayikh'], ['אני מתגעגע אלייך', 'ani mitga\'age\'a elayikh'], ['אני מתגעגע אליך', 'ani mitga\'age\'a elekha']), toL(['اشتقتلك', 'ishtaqtillak'], ['اشتقتلك', 'ishtaqtillik']), { he: 'The verb follows you, the ending follows them.', ar: 'Written the same either way; only the ending is said differently.' }),
+      c('I feel tired', bySp(['אני מרגישה עייפה', 'ani margisha ayefa'], ['אני מרגיש עייף', 'ani margish ayef']), bySp(['أنا تعبانة', 'ana taʿbāne'], ['أنا تعبان', 'ana taʿbān']), { ar: 'Arabic simply says "I am tired"; the ending is your own.' }),
       c('I have time', ['יש לי זמן', 'yesh li zman'], ['عندي وقت', 'ʿindi waqt']),
       c('I have a question', ['יש לי שאלה', 'yesh li she\'ela'], ['عندي سؤال', 'ʿindi suʾāl']),
-      c('do you want tea?', ['את רוצה תה', 'at rotsa te', 'אתה רוצה תה', 'ata rotse te'], ['بدِّك شاي', 'biddik shāy', 'بدَّك شاي', 'biddak shāy']),
-      c('what do you need?', ['מה את צריכה', 'ma at tsrikha', 'מה אתה צריך', 'ma ata tsarikh'], ['شو لازمك', 'shū lāzmik', 'شو لازمك', 'shū lāzmak'], { ar: 'Written the same either way; only the ending is said differently.' }),
+      c('do you want tea?', toL(['אתה רוצה תה', 'ata rotse te'], ['את רוצה תה', 'at rotsa te']), toL(['بدَّك شاي', 'biddak shāy'], ['بدِّك شاي', 'biddik shāy'])),
+      c('what do you need?', toL(['מה אתה צריך', 'ma ata tsarikh'], ['מה את צריכה', 'ma at tsrikha']), toL(['شو لازمك', 'shū lāzmak'], ['شو لازمك', 'shū lāzmik']), { ar: 'Written the same either way; only the ending is said differently.' }),
     ],
   },
 ];
@@ -573,30 +699,29 @@ const CUSTOM_DECKS: SeedDeck[] = [
       ),
       c(
         'I want to help you at your home, mom',
-        ['אני רוצה לעזור לך בבית שלך אמא', 'ani rotse laʿazor lakh babayit shelakh ima'],
+        // Said by her, to her mother: a woman speaking to a woman throughout.
+        // The verb was masculine here until the perspectives went in, which is
+        // exactly the mistake this axis exists to stop.
+        ['אני רוצה לעזור לך בבית שלך אמא', 'ani rotsa laʿazor lakh babayit shelakh ima'],
         ['أنا بدي أساعدك بالبيت ماما', 'ana biddi asāʿdek bil-bēt māma'],
-        { ar: 'أساعدِك is the feminine "help you"; drop بالبيت and it is simply "I want to help you".' },
+        { he: 'רוצה is said rotsa by a woman; לך and שלך take the feminine endings for her mother.', ar: 'أساعدِك is the feminine "help you"; drop بالبيت and it is simply "I want to help you".' },
       ),
       c(
         'do you want?',
-        ['את רוצה', 'at rotsa', 'אתה רוצה', 'ata rotse'],
-        ['بدِّك', 'biddek', 'بدَّك', 'biddak'],
+        toL(['אתה רוצה', 'ata rotse'], ['את רוצה', 'at rotsa']),
+        toL(['بدَّك', 'biddak'], ['بدِّك', 'biddek']),
         { ar: 'Written بدك either way — only the transliteration tells the two endings apart.' },
       ),
       c(
         'may I ask — are you Jewish or Arab?',
-        [
-          'אפשר לשאול, את יהודייה או ערבייה',
-          'efshar lish\'ol, at yehudiya o araviya',
-          'אפשר לשאול, אתה יהודי או ערבי',
-          'efshar lish\'ol, ata yehudi o aravi',
-        ],
-        [
-          'لو سمحتي، إنتِ يهودية ولا عربية',
-          'law samaḥti, inti yahūdiyye walla ʿarabiyye',
-          'لو سمحت، إنت يهودي ولا عربي',
-          'law samaḥt, inta yahūdi walla ʿarabi',
-        ],
+        toL(
+          ['אפשר לשאול, אתה יהודי או ערבי', 'efshar lish\'ol, ata yehudi o aravi'],
+          ['אפשר לשאול, את יהודייה או ערבייה', 'efshar lish\'ol, at yehudiya o araviya'],
+        ),
+        toL(
+          ['لو سمحت، إنت يهودي ولا عربي', 'law samaḥt, inta yahūdi walla ʿarabi'],
+          ['لو سمحتي، إنتِ يهودية ولا عربية', 'law samaḥti, inti yahūdiyye walla ʿarabiyye'],
+        ),
         {
           he: 'אפשר לשאול ("may I ask") is what keeps this polite; the bare את יהודייה או ערבייה is blunt. The opener says nothing about who is asking, so it reads the same whoever you are.',
           ar: 'لو سمحتي is the feminine "excuse me", said to a woman; لو سمحت to a man. ولا is the spoken "or" inside a question — أم belongs to written Arabic.',
@@ -604,7 +729,7 @@ const CUSTOM_DECKS: SeedDeck[] = [
       ),
       c(
         'do you speak Hebrew?',
-        ['את מדברת עברית', 'at medaberet ivrit', 'אתה מדבר עברית', 'ata medaber ivrit'],
+        toL(['אתה מדבר עברית', 'ata medaber ivrit'], ['את מדברת עברית', 'at medaberet ivrit']),
         ['بتحكي عبري', 'btiḥki ʿibri'],
         {
           ar: 'بتحكي is said the same way to a woman or to a man — verbs whose stem already ends in -i keep one form. عبري is the everyday name of the language; العبرية is the formal one.',
@@ -612,13 +737,13 @@ const CUSTOM_DECKS: SeedDeck[] = [
       ),
       c(
         'do you speak Arabic?',
-        ['את מדברת ערבית', 'at medaberet aravit', 'אתה מדבר ערבית', 'ata medaber aravit'],
+        toL(['אתה מדבר ערבית', 'ata medaber aravit'], ['את מדברת ערבית', 'at medaberet aravit']),
         ['بتحكي عربي', 'btiḥki ʿarabi'],
         { ar: 'One form of بتحكي whether you are asking a woman or a man.' },
       ),
       c(
         'do you speak English?',
-        ['את מדברת אנגלית', 'at medaberet anglit', 'אתה מדבר אנגלית', 'ata medaber anglit'],
+        toL(['אתה מדבר אנגלית', 'ata medaber anglit'], ['את מדברת אנגלית', 'at medaberet anglit']),
         ['بتحكي إنجليزي', 'btiḥki inglīzi'],
         { ar: 'إنجليزي is the spoken form; انكليزي is what you hear further north.' },
       ),
@@ -687,13 +812,13 @@ export const SEED_CATEGORIES: SeedCategory[] = [
           c('restaurant', ['מסעדה', 'mis\'ada'], ['مطعم', 'maṭʿam']),
           c('menu', ['תפריט', 'tafrit'], ['منيو', 'menyu'], { ar: 'The everyday spoken word; قائمة الطعام is the written one.' }),
           c('waitress / waiter', ['מלצרית', 'meltsarit', 'מלצר', 'meltsar'], ['نادلة', 'nādle', 'نادل', 'nādel']),
-          c('I would like...', ['אני רוצה', 'ani rotsa', 'אני רוצה', 'ani rotse'], ['بدي', 'biddi'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'One word whoever is ordering.' }),
+          c('I would like...', bySp(['אני רוצה', 'ani rotsa'], ['אני רוצה', 'ani rotse']), ['بدي', 'biddi'], { he: 'Written the same either way; only the ending is said differently.', ar: 'One word whoever is ordering.' }),
           c('plate', ['צלחת', 'tsalakhat'], ['صحن', 'ṣaḥn']),
           c('glass', ['כוס', 'kos'], ['كاسة', 'kāse']),
           c('fork', ['מזלג', 'mazleg'], ['شوكة', 'shōke']),
           c('knife', ['סכין', 'sakin'], ['سكّينة', 'sikkīne']),
           c('spoon', ['כף', 'kaf'], ['معلقة', 'maʿlaʾa'], { ar: 'The spoken Palestinian form of ملعقة.' }),
-          c('the bill, please', ['החשבון בבקשה', 'hakheshbon bevakasha'], ['الحساب لو سمحتي', 'el-ḥsāb law samaḥti', 'الحساب لو سمحت', 'el-ḥsāb law samaḥt']),
+          c('the bill, please', ['החשבון בבקשה', 'hakheshbon bevakasha'], toL(['الحساب لو سمحت', 'el-ḥsāb law samaḥt'], ['الحساب لو سمحتي', 'el-ḥsāb law samaḥti'])),
         ],
       },
     ],
@@ -736,11 +861,11 @@ export const SEED_CATEGORIES: SeedCategory[] = [
         name: 'Talking about family',
         cards: [
           c('I have a sister', ['יש לי אחות', 'yesh li akhot'], ['عندي أخت', 'ʿindi ukht'], { he: 'Literally "there is to me a sister", which is how Hebrew says it.' }),
-          c('how many brothers do you have?', ['כמה אחים יש לך', 'kama akhim yesh lakh', 'כמה אחים יש לך', 'kama akhim yesh lekha'], ['كم أخ عندك', 'kam akh ʿindik', 'كم أخ عندك', 'kam akh ʿindak'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'Written the same either way; only the ending is said differently.' }),
-          c('are you married?', ['את נשואה', 'at nesu\'a', 'אתה נשוי', 'ata nasui'], ['إنتِ متجوّزة', 'inti mitjawwze', 'إنت متجوّز', 'inte mitjawwez']),
-          c('I am married', ['אני נשואה', 'ani nesu\'a', 'אני נשוי', 'ani nasui'], ['أنا متجوّزة', 'ana mitjawwze', 'أنا متجوّز', 'ana mitjawwez'], { ar: 'Here the ending follows the speaker.' }),
-          c('I am not married', ['אני לא נשואה', 'ani lo nesu\'a', 'אני לא נשוי', 'ani lo nasui'], ['أنا مش متجوّزة', 'ana mish mitjawwze', 'أنا مش متجوّز', 'ana mish mitjawwez'], { ar: 'How it is normally said; عزباء belongs to the written language.' }),
-          c('do you have children?', ['יש לך ילדים', 'yesh lakh yeladim', 'יש לך ילדים', 'yesh lekha yeladim'], ['عندك ولاد', 'ʿindik wlād', 'عندك ولاد', 'ʿindak wlād'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'Written the same either way; only the ending is said differently.' }),
+          c('how many brothers do you have?', toL(['כמה אחים יש לך', 'kama akhim yesh lekha'], ['כמה אחים יש לך', 'kama akhim yesh lakh']), toL(['كم أخ عندك', 'kam akh ʿindak'], ['كم أخ عندك', 'kam akh ʿindik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
+          c('are you married?', toL(['אתה נשוי', 'ata nasui'], ['את נשואה', 'at nesu\'a']), toL(['إنت متجوّز', 'inte mitjawwez'], ['إنتِ متجوّزة', 'inti mitjawwze'])),
+          c('I am married', bySp(['אני נשואה', 'ani nesu\'a'], ['אני נשוי', 'ani nasui']), bySp(['أنا متجوّزة', 'ana mitjawwze'], ['أنا متجوّز', 'ana mitjawwez']), { ar: 'Here the ending is your own, not theirs.' }),
+          c('I am not married', bySp(['אני לא נשואה', 'ani lo nesu\'a'], ['אני לא נשוי', 'ani lo nasui']), bySp(['أنا مش متجوّزة', 'ana mish mitjawwze'], ['أنا مش متجوّز', 'ana mish mitjawwez']), { ar: 'How it is normally said; عزباء belongs to the written language.' }),
+          c('do you have children?', toL(['יש לך ילדים', 'yesh lekha yeladim'], ['יש לך ילדים', 'yesh lakh yeladim']), toL(['عندك ولاد', 'ʿindak wlād'], ['عندك ولاد', 'ʿindik wlād']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
           c('my family is big', ['המשפחה שלי גדולה', 'hamishpakha sheli gdola'], ['عيلتي كبيرة', 'ʿēlti kbīre']),
           c('she is my sister', ['היא אחותי', 'hi akhoti'], ['هيّ أختي', 'hiyye ukhti']),
           c('he is my brother', ['הוא אחי', 'hu akhi'], ['هوّ أخوي', 'huwwe akhūy']),
@@ -985,15 +1110,15 @@ export const SEED_CATEGORIES: SeedCategory[] = [
       {
         name: 'Saying what hurts',
         cards: [
-          c('I am ill', ['אני חולה', 'ani khola', 'אני חולה', 'ani khole'], ['أنا مريضة', 'ana marīḍa', 'أنا مريض', 'ana marīḍ'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'Here the ending follows the speaker.' }),
+          c('I am ill', bySp(['אני חולה', 'ani khola'], ['אני חולה', 'ani khole']), bySp(['أنا مريضة', 'ana marīḍa'], ['أنا مريض', 'ana marīḍ']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Here the ending is your own, not theirs.' }),
           c('my head hurts', ['כואב לי הראש', 'ko\'ev li harosh'], ['راسي بيوجعني', 'rāsi byūjaʿni']),
           c('my stomach hurts', ['כואבת לי הבטן', 'ko\'evet li habeten'], ['بطني بتوجعني', 'baṭni btūjaʿni']),
           c('I have a fever', ['יש לי חום', 'yesh li khom'], ['عندي حرارة', 'ʿindi ḥarāra']),
           c('I have a cough', ['יש לי שיעול', 'yesh li shi\'ul'], ['عندي كحّة', 'ʿindi kaḥḥa']),
           c('I feel dizzy', ['יש לי סחרחורת', 'yesh li skharkhoret'], ['راسي بيلفّ', 'rāsi byliff'], { ar: 'Literally "my head is spinning".' }),
-          c('where does it hurt?', ['איפה כואב', 'eifo ko\'ev'], ['وين بيوجعك', 'wēn byūjaʿik', 'وين بيوجعك', 'wēn byūjaʿak'], { ar: 'Written the same either way; only the ending is said differently.' }),
+          c('where does it hurt?', ['איפה כואב', 'eifo ko\'ev'], toL(['وين بيوجعك', 'wēn byūjaʿak'], ['وين بيوجعك', 'wēn byūjaʿik']), { ar: 'Written the same either way; only the ending is said differently.' }),
           c('since when?', ['מתי זה התחיל', 'matai ze hitkhil'], ['من إيمتى', 'min ēmta']),
-          c('I need a doctor', ['אני צריכה רופא', 'ani tsrikha rofe', 'אני צריך רופא', 'ani tsarikh rofe'], ['بدي دكتور', 'biddi doktōr'], { ar: 'One word for "I want / I need", whoever is speaking.' }),
+          c('I need a doctor', bySp(['אני צריכה רופא', 'ani tsrikha rofe'], ['אני צריך רופא', 'ani tsarikh rofe']), ['بدي دكتور', 'biddi doktōr'], { ar: 'One word for "I want / I need", whoever is speaking.' }),
           c('it hurts a lot', ['כואב מאוד', 'ko\'ev me\'od'], ['بيوجع كتير', 'byūjaʿ ktīr']),
         ],
       },
@@ -1029,23 +1154,24 @@ export const SEED_CATEGORIES: SeedCategory[] = [
           c('emergency', ['חירום', 'kheirum'], ['طوارئ', 'ṭawāreʾ']),
           c('accident', ['תאונה', 'te\'una'], ['حادث', 'ḥādeth']),
           c('lost', ['אבודה', 'avuda', 'אבוד', 'avud'], ['ضايعة', 'ḍāyʿa', 'ضايع', 'ḍāyeʿ']),
-          c('stop!', ['עצרי', 'itsri', 'עצור', 'atsor'], ['وقّفي', 'waʾʾfi', 'وقّف', 'waʾʾef']),
-          c('call!', ['תתקשרי', 'titkasheri', 'תתקשר', 'titkasher'], ['اتّصلي', 'ittiṣli', 'اتّصل', 'ittiṣil']),
+          // Commands are aimed at somebody, so the ending is always theirs.
+          c('stop!', toL(['עצור', 'atsor'], ['עצרי', 'itsri']), toL(['وقّف', 'waʾʾef'], ['وقّفي', 'waʾʾfi'])),
+          c('call!', toL(['תתקשר', 'titkasher'], ['תתקשרי', 'titkasheri']), toL(['اتّصل', 'ittiṣil'], ['اتّصلي', 'ittiṣli'])),
         ],
       },
       {
         name: 'Calling for help',
         cards: [
-          c('help me!', ['תעזרי לי', 'ta\'azri li', 'תעזור לי', 'ta\'azor li'], ['ساعديني', 'sāʿdīni', 'ساعدني', 'sāʿidni'], { ar: 'The ending follows the person being asked.' }),
-          c('call the police', ['תתקשרי למשטרה', 'titkasheri lamishtara', 'תתקשר למשטרה', 'titkasher lamishtara'], ['اتّصلي بالشرطة', 'ittiṣli bish-shurṭa', 'اتّصل بالشرطة', 'ittiṣil bish-shurṭa']),
-          c('I need help', ['אני צריכה עזרה', 'ani tsrikha ezra', 'אני צריך עזרה', 'ani tsarikh ezra'], ['بدي مساعدة', 'biddi musāʿade'], { ar: 'One word for "I want / I need", whoever is speaking.' }),
+          c('help me!', toL(['תעזור לי', 'ta\'azor li'], ['תעזרי לי', 'ta\'azri li']), toL(['ساعدني', 'sāʿidni'], ['ساعديني', 'sāʿdīni']), { ar: 'The ending follows the person being asked.' }),
+          c('call the police', toL(['תתקשר למשטרה', 'titkasher lamishtara'], ['תתקשרי למשטרה', 'titkasheri lamishtara']), toL(['اتّصل بالشرطة', 'ittiṣil bish-shurṭa'], ['اتّصلي بالشرطة', 'ittiṣli bish-shurṭa'])),
+          c('I need help', bySp(['אני צריכה עזרה', 'ani tsrikha ezra'], ['אני צריך עזרה', 'ani tsarikh ezra']), ['بدي مساعدة', 'biddi musāʿade'], { ar: 'One word for "I want / I need", whoever is speaking.' }),
           c('there is a fire', ['יש שריפה', 'yesh srefa'], ['في حريقة', 'fī ḥarīʾa']),
           c('someone is hurt', ['מישהו נפגע', 'mishehu nifga'], ['في حدا انصاب', 'fī ḥada inṣāb']),
           c('where is the hospital?', ['איפה בית החולים', 'eifo beit hakholim'], ['وين المستشفى', 'wēn el-mustashfa']),
-          c('I am lost', ['הלכתי לאיבוד', 'halakhti le\'ibud'], ['أنا ضايعة', 'ana ḍāyʿa', 'أنا ضايع', 'ana ḍāyeʿ'], { he: 'Literally "I went to lostness"; said the same way by anyone.', ar: 'Here the ending follows the speaker.' }),
+          c('I am lost', ['הלכתי לאיבוד', 'halakhti le\'ibud'], bySp(['أنا ضايعة', 'ana ḍāyʿa'], ['أنا ضايع', 'ana ḍāyeʿ']), { he: 'Literally "I went to lostness"; said the same way by anyone.', ar: 'Here the ending is your own, not theirs.' }),
           c('quickly!', ['מהר', 'maher'], ['بسرعة', 'bi-surʿa']),
-          c('be careful', ['תיזהרי', 'tizahari', 'תיזהר', 'tizaher'], ['انتبهي', 'intibhi', 'انتبه', 'intibih']),
-          c('do not worry', ['אל תדאגי', 'al tid\'agi', 'אל תדאג', 'al tid\'ag'], ['ما تقلقي', 'mā tiqlaqi', 'ما تقلق', 'mā tiqlaq']),
+          c('be careful', toL(['תיזהר', 'tizaher'], ['תיזהרי', 'tizahari']), toL(['انتبه', 'intibih'], ['انتبهي', 'intibhi'])),
+          c('do not worry', toL(['אל תדאג', 'al tid\'ag'], ['אל תדאגי', 'al tid\'agi']), toL(['ما تقلق', 'mā tiqlaq'], ['ما تقلقي', 'mā tiqlaqi'])),
         ],
       },
       {
@@ -1054,13 +1180,13 @@ export const SEED_CATEGORIES: SeedCategory[] = [
           c('thief', ['גנבת', 'ganevet', 'גנב', 'ganav'], ['حرامية', 'ḥarāmiyye', 'حرامي', 'ḥarāmi']),
           c('theft', ['גניבה', 'gneva'], ['سرقة', 'sirqa']),
           c('safe', ['בטוחה', 'btukha', 'בטוח', 'batuakh'], ['آمنة', 'āmne', 'آمن', 'āmen']),
-          c('afraid', ['מפחדת', 'mefakhedet', 'מפחד', 'mefakhed'], ['خايفة', 'khāyfe', 'خايف', 'khāyef'], { ar: 'Here the ending follows the speaker.' }),
+          c('afraid', bySp(['מפחדת', 'mefakhedet'], ['מפחד', 'mefakhed']), bySp(['خايفة', 'khāyfe'], ['خايف', 'khāyef']), { ar: 'Said of yourself, so the ending is your own.' }),
           c('problem', ['בעיה', 'be\'aya'], ['مشكلة', 'mushkile']),
           c('no problem', ['אין בעיה', 'ein be\'aya'], ['ما في مشكلة', 'mā fī mushkile']),
           c('keys', ['מפתחות', 'maftekhot'], ['مفاتيح', 'mafātīḥ']),
           c('identity card', ['תעודת זהות', 'te\'udat zehut'], ['هويّة', 'hawiyye']),
           c('passport', ['דרכון', 'darkon'], ['جواز سفر', 'jawāz safar']),
-          c('wait here', ['חכי כאן', 'khaki kan', 'חכה כאן', 'khake kan'], ['استنّي هون', 'istanni hōn', 'استنّى هون', 'istanna hōn']),
+          c('wait here', toL(['חכה כאן', 'khake kan'], ['חכי כאן', 'khaki kan']), toL(['استنّى هون', 'istanna hōn'], ['استنّي هون', 'istanni hōn'])),
         ],
       },
     ],
@@ -1352,9 +1478,9 @@ export const SEED_CATEGORIES: SeedCategory[] = [
         cards: [
           c('how do I get there?', ['איך מגיעים לשם', 'ekh magi\'im lesham'], ['كيف بوصل لهنيك', 'kīf bōṣal la-hnīk']),
           c('is it far from here?', ['זה רחוק מכאן', 'ze rakhok mikan'], ['بعيد عن هون', 'baʿīd ʿan hōn']),
-          c('turn right', ['פני ימינה', 'pni yamina', 'פנה ימינה', 'pne yamina'], ['لفّي عاليمين', 'liffi ʿal-yamīn', 'لفّ عاليمين', 'liff ʿal-yamīn']),
-          c('turn left', ['פני שמאלה', 'pni smola', 'פנה שמאלה', 'pne smola'], ['لفّي عالشمال', 'liffi ʿash-shimāl', 'لفّ عالشمال', 'liff ʿash-shimāl']),
-          c('go straight', ['סעי ישר', 'si\'i yashar', 'סע ישר', 'sa yashar'], ['امشي دغري', 'imshi dughri'], { ar: 'The Arabic ends the same way whoever is being told.' }),
+          c('turn right', toL(['פנה ימינה', 'pne yamina'], ['פני ימינה', 'pni yamina']), toL(['لفّ عاليمين', 'liff ʿal-yamīn'], ['لفّي عاليمين', 'liffi ʿal-yamīn'])),
+          c('turn left', toL(['פנה שמאלה', 'pne smola'], ['פני שמאלה', 'pni smola']), toL(['لفّ عالشمال', 'liff ʿash-shimāl'], ['لفّي عالشمال', 'liffi ʿash-shimāl'])),
+          c('go straight', toL(['סע ישר', 'sa yashar'], ['סעי ישר', 'si\'i yashar']), ['امشي دغري', 'imshi dughri'], { ar: 'The Arabic ends the same way whoever is being told.' }),
           c('next to', ['ליד', 'leyad'], ['جنب', 'janb']),
           c('opposite', ['מול', 'mul'], ['مقابل', 'muqābel']),
           c('between', ['בין', 'bein'], ['بين', 'bēn']),
@@ -1419,8 +1545,8 @@ export const SEED_CATEGORIES: SeedCategory[] = [
           c('how much is this?', ['כמה זה עולה', 'kama ze ole'], ['قدّيش هاد', 'addēsh hād']),
           c('it is expensive', ['זה יקר', 'ze yakar'], ['هاد غالي', 'hād ghāli']),
           c('it is cheap', ['זה זול', 'ze zol'], ['هاد رخيص', 'hād rakhīṣ']),
-          c('do you have...?', ['יש לך', 'yesh lakh', 'יש לך', 'yesh lekha'], ['عندك', 'ʿindik', 'عندك', 'ʿindak'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'Written the same either way; only the ending is said differently.' }),
-          c('I want this', ['אני רוצה את זה', 'ani rotsa et ze', 'אני רוצה את זה', 'ani rotse et ze'], ['بدي هاد', 'biddi hād'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'One word for "I want", whoever is speaking.' }),
+          c('do you have...?', toL(['יש לך', 'yesh lekha'], ['יש לך', 'yesh lakh']), toL(['عندك', 'ʿindak'], ['عندك', 'ʿindik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
+          c('I want this', bySp(['אני רוצה את זה', 'ani rotsa et ze'], ['אני רוצה את זה', 'ani rotse et ze']), ['بدي هاد', 'biddi hād'], { he: 'Written the same either way; only the ending is said differently.', ar: 'One word for "I want", whoever is speaking.' }),
           c('can I try it on?', ['אפשר למדוד', 'efshar limdod'], ['ممكن أقيسه', 'mumkin aqīso']),
           c('discount', ['הנחה', 'hanakha'], ['خصم', 'khaṣm']),
           c('change (money back)', ['עודף', 'odef'], ['باقي', 'bāqi']),

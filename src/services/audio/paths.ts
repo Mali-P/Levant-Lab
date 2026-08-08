@@ -1,14 +1,25 @@
-import type { GenderedForm, LanguageSide } from '../../types';
+import {
+  SPEECH_PERSPECTIVES,
+  type GenderedForm,
+  type LanguageSide,
+} from '../../types';
+import { speechWordForms } from '../../utils/wordForms';
 
 export type AudioLanguage = 'hebrew' | 'arabic';
 
 /**
- * Which of a word's forms a clip belongs to. `neutral` is the single form of a
- * word that everyone says the same way — never an invented third variant of a
- * word that does have a feminine/masculine pair.
+ * Which of a word's forms a clip belongs to.
+ *
+ * `neutral` is the single form of a word everyone says the same way — never an
+ * invented third variant of a word that does have a feminine/masculine pair.
+ * `feminine` and `masculine` are grammatical forms. Anything else is a
+ * speaker/listener variant, named for every perspective sharing that exact
+ * wording: `f2m`, or `f2m+m2m` where two perspectives say the same thing and
+ * therefore need one recording between them rather than two.
  */
-export type FormName = 'feminine' | 'masculine' | 'neutral';
+export type FormName = string;
 
+/** The names a word without speaker/listener variants can take. */
 export const FORM_NAMES: readonly FormName[] = ['feminine', 'masculine', 'neutral'];
 
 /** Directory segment per language, matching `assets/audio/he` and `.../ar`. */
@@ -101,15 +112,38 @@ export type ClipSpec = {
 };
 
 /**
- * Every clip one side of one word needs: a feminine/masculine pair when the
- * two differ, otherwise a single neutral clip. Words with only one valid form
- * never get a fabricated second one.
+ * Every clip one side of one word needs.
+ *
+ * A word with speaker/listener variants is recorded once per *distinct spoken
+ * form* across all four perspectives — not once per perspective. Two
+ * perspectives worded identically resolve to a single entry whose name carries
+ * both (`f2m+m2m`), so they share one asset and the generator is never asked
+ * to record the same sentence twice.
+ *
+ * Otherwise: a feminine/masculine pair when the two differ, else a single
+ * neutral clip. Words with one valid form never get a fabricated second one.
  */
 export function clipsForSide(
   audioId: string,
   language: AudioLanguage,
   side: LanguageSide,
 ): ClipSpec[] {
+  if (side.speechForms) {
+    // All four, because a recording has to exist for a perspective before the
+    // learner can switch to it — the *selection* narrows what she is shown and
+    // graded on, never what the app is able to say.
+    return speechWordForms(side, SPEECH_PERSPECTIVES).map((form) => ({
+      audioId,
+      language,
+      form: form.key,
+      text: form.script,
+      spoken: textToSpeak(form),
+      transliteration: form.transliteration,
+      path: clipPath(audioId, language, form.key),
+      key: clipKey(audioId, language, form.key),
+    }));
+  }
+
   const entries: Array<[FormName, GenderedForm | LanguageSide]> = side.forms
     ? [
         ['feminine', side.forms.feminine],

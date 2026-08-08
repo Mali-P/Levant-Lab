@@ -1,11 +1,90 @@
 import { describe, expect, it } from 'vitest';
 import { wordForms } from './wordForms';
+import { expectedAnswers } from '../services/answerValidation';
 import { CUSTOM_CATEGORY, CUSTOM_DECK, SEED_CATEGORIES } from '../constants/seed';
+import type { LanguageSide } from '../types';
+
+/** "How are you?" — the ending follows the listener, not the speaker. */
+const HOW_ARE_YOU: LanguageSide = {
+  script: 'كيفك',
+  transliteration: 'kīfak',
+  speechForms: {
+    femaleToMale: { script: 'كيفك', transliteration: 'kīfak' },
+    femaleToFemale: { script: 'كيفك', transliteration: 'kīfik' },
+    maleToFemale: { sameAs: 'femaleToFemale' },
+    maleToMale: { sameAs: 'femaleToMale' },
+  },
+};
+
+describe('speaker and listener perspectives', () => {
+  it('leads with the female-speaker form whatever order the setting is in', () => {
+    const forms = wordForms(HOW_ARE_YOU, ['maleToMale', 'femaleToFemale', 'femaleToMale']);
+    expect(forms.map((f) => f.transliteration)).toEqual(['kīfak', 'kīfik']);
+  });
+
+  it('collapses perspectives that share a wording into one form', () => {
+    // ♀→♂ and ♂→♂ are the same words, so they are one line carrying both
+    // markers rather than two identical lines.
+    const forms = wordForms(HOW_ARE_YOU, ['femaleToMale', 'maleToMale']);
+    expect(forms).toHaveLength(1);
+    expect(forms[0].perspectives).toEqual(['femaleToMale', 'maleToMale']);
+    expect(forms[0].marker).toBeUndefined();
+  });
+
+  it('marks a form only when there is another form to tell it from', () => {
+    const forms = wordForms(HOW_ARE_YOU, ['femaleToMale', 'femaleToFemale']);
+    expect(forms.map((f) => f.marker)).toEqual(['♀→♂', '♀→♀']);
+  });
+
+  it('grades only against the perspectives the learner enabled', () => {
+    const onlyToMen = expectedAnswers(HOW_ARE_YOU, { perspectives: ['femaleToMale'] });
+    // Written identically, so the script is all that can be checked — what
+    // matters is that no *extra* wording sneaks in from a perspective she has
+    // not turned on.
+    expect(onlyToMen).toEqual(['كيفك']);
+  });
+
+  it('skips a perspective a phrase is not said in', () => {
+    const forms = wordForms(
+      {
+        script: 'x',
+        speechForms: {
+          femaleToMale: { script: 'x' },
+          femaleToFemale: { notApplicable: true },
+        },
+      },
+      ['femaleToMale', 'femaleToFemale'],
+    );
+    expect(forms).toHaveLength(1);
+  });
+
+  it('falls back to the word itself rather than looping on a circular sameAs', () => {
+    const forms = wordForms(
+      {
+        script: 'base',
+        speechForms: {
+          femaleToMale: { sameAs: 'femaleToFemale' },
+          femaleToFemale: { sameAs: 'femaleToMale' },
+        },
+      },
+      ['femaleToMale', 'femaleToFemale'],
+    );
+    expect(forms.map((f) => f.script)).toEqual(['base']);
+  });
+});
 
 describe('wordForms', () => {
   it('returns one unmarked form when a word has no gendered pair', () => {
     const forms = wordForms({ script: 'מים', transliteration: 'mayim' });
-    expect(forms).toEqual([{ script: 'מים', transliteration: 'mayim' }]);
+    expect(forms).toEqual([
+      {
+        script: 'מים',
+        transliteration: 'mayim',
+        key: 'only',
+        audioPath: undefined,
+        pronunciationText: undefined,
+      },
+    ]);
   });
 
   it('returns the feminine form first, then the masculine', () => {

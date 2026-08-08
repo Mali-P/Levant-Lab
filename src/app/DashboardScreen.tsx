@@ -46,7 +46,9 @@ export default function DashboardScreen() {
     db.sessions
       .orderBy('updatedAt')
       .reverse()
-      .filter((s) => !s.completedAt)
+      // A one-card drill is not a place to be sent back to, so it never takes
+      // over the Continue panel from the deck the learner was actually in.
+      .filter((s) => !s.completedAt && !s.drill)
       .first()
       .then((s) => setOpen(s ?? null));
   }, []);
@@ -187,9 +189,16 @@ export default function DashboardScreen() {
       {weakest.length > 0 && (
         <section className="stack">
           <span className="eyebrow">Weakest cards</span>
+          {/* Tapping one asks it again. A word answered wrongly is something
+              to practise, not something to edit — the editor is a deliberate
+              trip through Manage, never where a weak card lands you. */}
           <div className="list">
             {weakest.map(({ card, p }) => (
-              <Link className="list-item" key={card.id} to={'/manage/card/' + card.id}>
+              <Link
+                className="list-item"
+                key={card.id}
+                to={'/study/' + card.deckId + '?mode=normal&card=' + card.id}
+              >
                 <span className="grow english">
                   <strong>{card.english}</strong>
                   <div className="small muted">

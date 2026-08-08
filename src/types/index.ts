@@ -42,11 +42,113 @@ export type GenderedForm = {
 /**
  * The feminine and masculine forms of one word. Set only when the two differ:
  * a noun like "water" that everybody says the same way leaves this undefined.
+ *
+ * This is *word* gender — the gender of the noun, adjective or number itself,
+ * or of whoever the word describes. It is not the conversation's perspective;
+ * see `SpeechForms` for that. A card may carry both.
  */
 export type GenderedForms = {
   feminine: GenderedForm;
   masculine: GenderedForm;
 };
+
+/**
+ * Who is speaking, and who is being spoken to.
+ *
+ * A separate axis from `GenderedForms`. "How are you?" changes its ending to
+ * match the listener; "I am tired" changes to match the speaker; a noun like
+ * "cat" changes for neither and keeps its `forms` pair instead.
+ *
+ * Female-speaker perspectives come first. Every ordering in the app follows
+ * `SPEECH_PERSPECTIVES` rather than sorting or reversing it.
+ */
+export type SpeechPerspective =
+  | 'femaleToMale'
+  | 'femaleToFemale'
+  | 'maleToFemale'
+  | 'maleToMale';
+
+/** The canonical order: ♀→♂ · ♀→♀ · ♂→♀ · ♂→♂. */
+export const SPEECH_PERSPECTIVES: readonly SpeechPerspective[] = [
+  'femaleToMale',
+  'femaleToFemale',
+  'maleToFemale',
+  'maleToMale',
+];
+
+/** The marker shown beside a form. */
+export const SPEECH_PERSPECTIVE_MARKERS: Record<SpeechPerspective, string> = {
+  femaleToMale: '♀→♂',
+  femaleToFemale: '♀→♀',
+  maleToFemale: '♂→♀',
+  maleToMale: '♂→♂',
+};
+
+/** Read in place of the marker, and used in audio button names. */
+export const SPEECH_PERSPECTIVE_LABELS: Record<SpeechPerspective, string> = {
+  femaleToMale: 'female speaking to male',
+  femaleToFemale: 'female speaking to female',
+  maleToFemale: 'male speaking to female',
+  maleToMale: 'male speaking to male',
+};
+
+/** How the choice is put to the learner in Settings. */
+export const SPEECH_PERSPECTIVE_SHORT: Record<SpeechPerspective, string> = {
+  femaleToMale: 'I am a woman, speaking to a man',
+  femaleToFemale: 'I am a woman, speaking to a woman',
+  maleToFemale: 'I am a man, speaking to a woman',
+  maleToMale: 'I am a man, speaking to a man',
+};
+
+/**
+ * One perspective's wording. Carries everything an ordinary answer carries, so
+ * a variant is never a second-class version of the headline form.
+ */
+export type LanguageForm = {
+  script: string;
+  transliteration?: string;
+  /** Sent to the speech generator instead of `script`; the learner never sees it. */
+  pronunciationText?: string;
+  /** Bundled clip for this exact wording, relative to the app base. */
+  audioPath?: string;
+  notes?: string;
+};
+
+/**
+ * A perspective worded exactly like another one. Written as a pointer rather
+ * than copied, so the content never claims a distinction that is not there and
+ * the two can share a single recording.
+ */
+export type SameAsPerspective = { sameAs: SpeechPerspective };
+
+/** A perspective this phrase is simply not said in. */
+export type PerspectiveNotApplicable = { notApplicable: true };
+
+export type SpeechVariant =
+  | LanguageForm
+  | SameAsPerspective
+  | PerspectiveNotApplicable;
+
+/**
+ * The speaker/listener variants of one side of one card.
+ *
+ * Set only where the language genuinely changes, and independently for Hebrew
+ * and Arabic — a distinction can exist in one language and not the other. A
+ * perspective left out falls back to the side's own `script`, so a phrase that
+ * is the same for everyone needs no entries at all, and a phrase that varies in
+ * only one direction carries only the entries that differ.
+ */
+export type SpeechForms = Partial<Record<SpeechPerspective, SpeechVariant>>;
+
+export function isSameAs(variant: SpeechVariant): variant is SameAsPerspective {
+  return 'sameAs' in variant;
+}
+
+export function isNotApplicable(
+  variant: SpeechVariant,
+): variant is PerspectiveNotApplicable {
+  return 'notApplicable' in variant;
+}
 
 export type LanguageSide = {
   /** The headline form. Mirrors `forms.feminine` when a gendered pair is set. */
@@ -55,6 +157,12 @@ export type LanguageSide = {
   /** Sent to TTS instead of `script` when present. Lets niqqud / respelling drive audio. */
   pronunciationText?: string;
   forms?: GenderedForms;
+  /**
+   * Speaker/listener variants, where this phrase has any. Independent of
+   * `forms`: a card can carry a grammatical pair and a set of perspectives at
+   * once, and most cards carry neither.
+   */
+  speechForms?: SpeechForms;
   /**
    * Bundled clip for the single form of a word that has no gendered pair.
    * A word with `forms` carries its clips on the forms themselves instead.
@@ -169,6 +277,13 @@ export type StudySession = {
   id: string;
   deckId: string;
 
+  /**
+   * A one-card drill on a weak word rather than a run through the deck. It is
+   * kept out of the "Continue" panel and out of every resume query, and it
+   * never stamps the deck as completed — only the card's own progress moves.
+   */
+  drill?: boolean;
+
   mode: StudyMode;
   promptDirection: PromptDirection;
   answerMode: AnswerMode;
@@ -230,6 +345,18 @@ export type Settings = {
    * to. Absent on installs made before starter content was versioned.
    */
   starterContentVersion?: number;
+
+  /**
+   * Which conversation perspectives the learner is studying, in the order they
+   * should be met. Never empty: the settings screen refuses to clear the last
+   * one, because an empty set would leave gendered cards with nothing to show
+   * and nothing to grade.
+   *
+   * Changing it is purely a display and grading filter. No progress row is
+   * keyed by perspective, so a learner can widen or narrow this at any point
+   * without losing a single score.
+   */
+  speechPerspectives: SpeechPerspective[];
 
   // Study
   defaultMode: StudyMode;

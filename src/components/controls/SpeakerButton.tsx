@@ -25,7 +25,7 @@ export default function SpeakerButton({ form, language, label, className }: Prop
   const { play, isPlaying } = usePronunciation(settings);
 
   const playing = isPlaying(form, language);
-  const name = label ?? pronunciationLabel(language, form.gender);
+  const name = label ?? pronunciationLabel(language, form);
 
   return (
     <button
