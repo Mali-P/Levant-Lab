@@ -148,17 +148,18 @@ export default function MemoriseCard(props: MemoriseCardProps) {
    * Four forms and two labels turned over always fit one face, because the face
    * sets itself smaller until they do rather than scrolling to them.
    *
-   * A learner studying one language turns the card over onto half as many
-   * lines, and these sizes were chosen for the full face — so واحد stood in the
-   * middle of a tablet set as though Hebrew were underneath it, with a band of
-   * empty card below where the other language would have been. On that face the
-   * fit works the other way and sets the script up until it reaches the card's
-   * edge. The front is left alone either way: it holds one English word, and it
-   * is the flip that is being waited for rather than the word being read.
+   * Every face also sets itself *up* until it reaches the card's edge. The
+   * sizes in the stylesheet were chosen for the fullest back there is, so any
+   * face carrying less than that — one language rather than two, or the front
+   * with its single English word — was reading at a size chosen for lines it
+   * does not have, marooned in the middle of a tablet with a band of empty card
+   * under it. One measurement settles the whole face either way: `--fit` is the
+   * only size on this card, and setting it up is the same act as setting it
+   * down.
    */
   const face = useFitToBox<HTMLElement>(
     [card.id, flipped, showOthers, perspectives, sides.length],
-    flipped && sides.length === 1,
+    true,
   );
 
   /**

@@ -24,10 +24,13 @@ const STEP = 0.04;
  *
  * A card carrying one script instead of two has half the lines and the same box,
  * and left at `--fit: 1` it set a word the size of a caption in the middle of a
- * tablet. This is the ceiling that stops the other extreme: one short word blown
- * up until the card reads as a poster rather than as one of a deck.
+ * tablet. At 1.85 that face still stopped short of the card's edge with a band
+ * of empty tablet under it, so the ceiling is no longer what decides the size —
+ * the edge of the box is. What is left of it stops the other extreme: a single
+ * short word blown up until the card reads as a poster rather than as one of a
+ * deck.
  */
-const CEILING = 1.85;
+const CEILING = 2.8;
 
 /**
  * Sets `--fit` on an element until its content stops overflowing it.
@@ -67,10 +70,19 @@ export function useFitToBox<T extends HTMLElement>(
     let scale = 1;
     el.style.setProperty('--fit', '1');
 
-    // A pixel of slack, so sub-pixel layout rounding does not read a face that
-    // fits exactly as one that overflows and shrink it for nothing. Reading
-    // scrollHeight forces the reflow each next measurement depends on.
-    const overflows = () => el.scrollHeight - el.clientHeight > 1;
+    /*
+     * Both axes. Height is what usually gives — a face is a column of lines —
+     * but a single long Arabic word is one unbreakable run, and a face grown
+     * until that run passed the card's edge was measured as fitting the whole
+     * time: the card hides its overflow, so nothing showed but a word with its
+     * end cut off. Width is the quieter half of the same question.
+     *
+     * A pixel of slack on each, so sub-pixel layout rounding does not read a
+     * face that fits exactly as one that overflows and shrink it for nothing.
+     * Reading these forces the reflow each next measurement depends on.
+     */
+    const overflows = () =>
+      el.scrollHeight - el.clientHeight > 1 || el.scrollWidth - el.clientWidth > 1;
 
     if (!overflows() && grow) {
       /*

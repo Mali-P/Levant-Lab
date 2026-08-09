@@ -784,6 +784,18 @@ textarea.input {
    */
   overflow: hidden;
   --fit: 1;
+  /*
+   * The speaker button's side, in one place because two rules need to agree on
+   * it: the button's own size and the column the form row reserves for it.
+   *
+   * It follows `--fit` only part of the way. Type is what the fit is for — a
+   * face that has room sets its *words* larger — and a control that grew with
+   * them ended up an 84px disc on a sparse card, wider than the column reserved
+   * for it and sitting on top of the romanisation beside it. Floored at the 24px
+   * WCAG 2.5.8 target and capped at the 44px one, which is as large as a
+   * secondary control on this card ever needs to be.
+   */
+  --speaker: clamp(24px, calc(26px * var(--fit)), 44px);
 }
 
 .card-prompt {
@@ -1385,10 +1397,14 @@ a.btn-primary:visited {
  */
 .card .lang-label .btn,
 .card .btn.speaker {
-  min-height: max(24px, calc(30px * var(--fit)));
-  min-width: max(24px, calc(30px * var(--fit)));
+  min-height: var(--speaker);
+  min-width: var(--speaker);
+  width: var(--speaker);
+  height: var(--speaker);
   padding: 0;
-  font-size: calc(0.78rem * var(--fit));
+  /* The glyph is capped with its button, or it would outgrow the disc holding
+     it the moment the face had room to spare. */
+  font-size: clamp(0.6rem, calc(0.7rem * var(--fit)), 0.95rem);
   border-radius: 999px;
 }
 
@@ -2294,15 +2310,45 @@ a.btn-primary:visited {
 }
 
 /*
- * One form per row: the word on the left, its speaker on the right. The row is
- * LTR so the ♀ / ♂ marker and the play button keep their places regardless of
- * the script between them, which isolates back into RTL on its own.
+ * One form per row: the word on the card's own axis, its speaker at the right
+ * edge. The row is LTR so the ♀ / ♂ marker and the play button keep their places
+ * regardless of the script between them, which isolates back into RTL on its
+ * own.
+ *
+ * Three columns rather than a word and a button, because with only those two the
+ * word sat left of centre by the whole width of the button — the English above
+ * it is centred, and a back hanging off the left edge under a centred front
+ * reads as two different cards. The outer columns are equal, so whatever the
+ * middle one holds is centred on the card; both are floored at the button's own
+ * side — the same `--speaker` the button is drawn at, rather than a guess at it,
+ * because a floor narrower than the button is a button drawn over the word next
+ * to it.
+ *
+ * The middle column is `minmax(0, auto)`: it takes what the form needs when the
+ * form fits and gives way when it does not, so a long one wraps inside its
+ * column instead of running out over the speaker.
  */
 .memorise-form {
-  display: flex;
+  display: grid;
+  grid-template-columns:
+    minmax(var(--speaker), 1fr)
+    minmax(0, auto)
+    minmax(var(--speaker), 1fr);
   align-items: center;
   gap: 8px;
   direction: ltr;
+}
+
+/* The word takes the middle column; the speaker keeps to the card's right edge
+   rather than trailing the form it belongs to. */
+.memorise-form > .grow {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.memorise-form > :last-child {
+  grid-column: 3;
+  justify-self: end;
 }
 
 /*
@@ -2336,6 +2382,7 @@ a.btn-primary:visited {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
+  justify-content: center;
   gap: calc(2px * var(--fit)) 10px;
 }
 
@@ -2891,6 +2938,18 @@ a.btn-primary:active {
 
 .memorise-card .lang-label {
   color: var(--card-muted-ink);
+  /* The label heads a centred column, so it is centred over it rather than
+     pushed to the left edge the way a label with a control opposite it is. */
+  justify-content: center;
+  /*
+   * Set lighter and smaller than the study card's label. This one names the
+   * language of the script directly under it, which is a caption; at 800 and
+   * full size it grew with the rest of the face and came out heavier than the
+   * word it was captioning. The tracking does the work instead — small caps
+   * spaced this wide read as a label at any weight.
+   */
+  font-weight: 600;
+  font-size: max(0.55rem, calc(0.52rem * var(--fit)));
 }
 
 .memorise-card .lang-label.hebrew-label { color: var(--lapis); }
