@@ -1,39 +1,41 @@
-import type { ThemeMode } from '../../types';
 import { useSettings } from '../../stores/settingsStore';
-import Icon, { type IconName } from '../ornament/Icon';
+import { resolveTheme, usePrefersLight } from '../../hooks/useAppearance';
+import Icon from '../ornament/Icon';
 
 /*
- * Cycling rather than a plain on/off switch, because "match the system" is a
- * real third state: a binary toggle can only strand the user on one scheme
- * once they have touched it, and they would have to go to Settings to hand
- * the choice back to the device.
+ * A plain day/night switch: one press, the other scheme, every time.
+ *
+ * It used to cycle system → light → dark, which meant a press did not always
+ * change anything you could see. Sitting on `system` with a device already in
+ * daylight, the first press set an explicit `light` — the same screen — and the
+ * scheme only moved on the second. The fix is to steer by the scheme actually
+ * being rendered rather than by the stored mode, so the button is never a
+ * no-op.
+ *
+ * That costs the third state, and it is the right thing to lose here: "match
+ * the system" is a preference you set once, not something you reach for from a
+ * toolbar mid-session. It keeps its place in Settings → Appearance, which is
+ * still the full three-way choice and the way back to the device.
  */
-const ORDER: ThemeMode[] = ['system', 'light', 'dark'];
-
-const FACE: Record<ThemeMode, { icon: IconName; label: string }> = {
-  system: { icon: 'half-disc', label: 'Theme: matching the system' },
-  light: { icon: 'sun', label: 'Theme: light' },
-  dark: { icon: 'moon', label: 'Theme: dark' },
-};
-
 export default function ThemeToggle() {
   const theme = useSettings((s) => s.settings.theme);
   const update = useSettings((s) => s.update);
 
-  const next = ORDER[(ORDER.indexOf(theme) + 1) % ORDER.length];
-  const face = FACE[theme];
+  const resolved = resolveTheme(theme, usePrefersLight());
+  const next = resolved === 'dark' ? 'light' : 'dark';
 
   return (
     <button
       type="button"
       className="btn btn-ghost btn-icon"
       onClick={() => update({ theme: next })}
-      // The current scheme is carried by the label, not by the icon alone, so
-      // a screen reader announces the state and not just a picture of a moon.
-      aria-label={face.label + '. Switch to ' + FACE[next].label.toLowerCase() + '.'}
-      title={face.label}
+      // The icon shows the scheme you are in; the name has to carry both that
+      // and what the press will do, so a screen reader gets the state and the
+      // consequence rather than just a picture of a moon.
+      aria-label={`Theme: ${resolved}. Switch to ${next}.`}
+      title={`Theme: ${resolved}`}
     >
-      <Icon name={face.icon} />
+      <Icon name={resolved === 'dark' ? 'moon' : 'sun'} />
     </button>
   );
 }

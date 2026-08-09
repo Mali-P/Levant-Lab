@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import type { Settings, ThemeMode } from '../types';
 
 /**
@@ -7,15 +7,41 @@ import type { Settings, ThemeMode } from '../types';
  */
 export const THEME_STORAGE_KEY = 'theme';
 
-/** The `--bg` of each scheme, for the browser chrome that cannot read CSS. */
+/**
+ * The `--bg` of each scheme, for the browser chrome that cannot read CSS.
+ * These are `--stone-bg` written out twice over, so they have to be kept in
+ * step with the palette in `global.css` and with the boot script in
+ * `index.html`, which paints the same two values before this ever runs.
+ */
 const CHROME_COLOUR: Record<'light' | 'dark', string> = {
-  light: '#f2f0ec',
-  dark: '#0e1116',
+  light: '#d3c8b3',
+  dark: '#191510',
 };
 
 export function resolveTheme(theme: ThemeMode, prefersLight: boolean): 'light' | 'dark' {
   if (theme === 'system') return prefersLight ? 'light' : 'dark';
   return theme;
+}
+
+const PREFERS_LIGHT = '(prefers-color-scheme: light)';
+
+/**
+ * Whether the device is currently asking for the light scheme. A control that
+ * offers to flip the scheme has to know which one is actually on screen, and
+ * under `theme: 'system'` the setting alone does not say — so this is read from
+ * the device and subscribed to, not derived from `settings`.
+ */
+export function usePrefersLight(): boolean {
+  return useSyncExternalStore(
+    (notify) => {
+      const query = window.matchMedia(PREFERS_LIGHT);
+      query.addEventListener('change', notify);
+      return () => query.removeEventListener('change', notify);
+    },
+    () => window.matchMedia(PREFERS_LIGHT).matches,
+    // No device to ask on the server; the app's default scheme is night stone.
+    () => false,
+  );
 }
 
 /**
