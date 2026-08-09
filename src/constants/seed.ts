@@ -829,6 +829,15 @@ const CUSTOM_DECKS: SeedDeck[] = [
  *
  * Adding a category here needs no code change anywhere else.
  */
+/**
+ * The one category whose decks are held in an order worth being asked for.
+ *
+ * "What comes after six" is a real question; "what comes after thank you" is
+ * not. Only the numbers are a sequence the learner has to be able to recite, so
+ * only they get the ordering drill — see `features/ordering`.
+ */
+export const SEQUENCED_CATEGORY = 'Counting and numbers';
+
 export const SEED_CATEGORIES: SeedCategory[] = [
   {
     name: 'Greetings',
@@ -836,7 +845,7 @@ export const SEED_CATEGORIES: SeedCategory[] = [
     decks: GREETING_DECKS,
   },
   {
-    name: 'Counting and numbers',
+    name: SEQUENCED_CATEGORY,
     icon: '🔢',
     decks: NUMBER_DECKS,
   },

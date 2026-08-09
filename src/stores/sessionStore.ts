@@ -11,6 +11,7 @@ import type {
 import {
   answerCurrentCard,
   createSession,
+  finishOrdering as finishOrderingStep,
   flipIntroCard,
   isLadderSession,
   nextIntroCard,
@@ -32,6 +33,8 @@ type StartParams = {
   perfectRunsRequired: number;
   /** A single weak card being drilled, rather than a run through the deck. */
   drill?: boolean;
+  /** Whether this deck runs in an order, and so gets the ordering interlude. */
+  sequenced?: boolean;
 };
 
 /**
@@ -84,6 +87,16 @@ type SessionState = {
   flipIntro: () => Promise<void>;
   nextIntro: () => Promise<void>;
   prevIntro: () => Promise<void>;
+
+  /**
+   * Ends one language of the ordering interlude: Hebrew hands over to Arabic,
+   * Arabic hands back to the rounds.
+   *
+   * Persisted like every other step of the run, and scoring nothing. A learner
+   * who closes the tab mid-column comes back to the same column rather than to
+   * a round she has not been dealt.
+   */
+  finishOrdering: () => Promise<void>;
   /**
    * Takes back the last answer and returns to the card that was asked.
    *
@@ -144,6 +157,7 @@ export const useSession = create<SessionState>((set, get) => ({
         ? 0
         : (stored?.perfectRunsCompleted ?? 0),
       drill: params.drill,
+      sequenced: params.sequenced,
       now: new Date().toISOString(),
     });
 
@@ -224,6 +238,10 @@ export const useSession = create<SessionState>((set, get) => ({
       });
     } else if (
       outcome.event === 'perfect-round' ||
+      // A round that also brought the ordering interlude round is still a
+      // banked round, and it is banked here rather than after the interlude:
+      // walking away mid-column must not cost her the round that earned it.
+      outcome.event === 'ordering-due' ||
       outcome.event === 'round-ended'
     ) {
       await data.saveDeckProgress(deckId, {
@@ -276,6 +294,20 @@ export const useSession = create<SessionState>((set, get) => ({
     await stepIntro(set, get, (s) =>
       previousIntroCard(s, new Date().toISOString()),
     );
+  },
+
+  async finishOrdering() {
+    const session = get().session;
+    if (!session || session.phase !== 'ordering') return;
+
+    const next = finishOrderingStep(session, { now: new Date().toISOString() });
+    if (next === session) return;
+
+    await db.sessions.put(next);
+    // The interlude marks nothing on the deck and nothing on a card. It is
+    // consolidation sat between rounds, and the rounds it sits between are the
+    // things that count.
+    set({ session: next, lastOutcome: null, awaitingAdvance: false });
   },
 
   async stepBack() {

@@ -14,6 +14,7 @@ import {
   isLadderSession,
   type StudyEvent,
 } from '../features/study/engine';
+import { isSequencedDeck } from '../features/ordering/sequenced';
 import { gateDecks, nextDeck } from '../features/review/unlock';
 import { db } from '../services/database/db';
 import { fireFeedback } from '../services/audio/feedback';
@@ -23,6 +24,7 @@ import AnswerFeedback from '../components/feedback/AnswerFeedback';
 import Confetti from '../components/feedback/Confetti';
 import StageBanner from '../components/progress/StageBanner';
 import ScreenHeader from '../components/controls/ScreenHeader';
+import DeckOrdering from '../components/ordering/DeckOrdering';
 
 const EMPTY_VALUES = { hebrew: '', arabic: '' };
 
@@ -68,6 +70,7 @@ export default function StudyScreen() {
   const flipIntro = useSession((s) => s.flipIntro);
   const nextIntro = useSession((s) => s.nextIntro);
   const prevIntro = useSession((s) => s.prevIntro);
+  const finishOrdering = useSession((s) => s.finishOrdering);
   // The store only fills its history in normal mode, so this is already false
   // in hard and brutal without the screen having to know why.
   const canStepBack = useSession((s) => s.history.length > 0);
@@ -216,6 +219,11 @@ export default function StudyScreen() {
           promptDirection: direction,
           perfectRunsRequired: deck.perfectRunsRequired,
           drill: Boolean(drillCardId),
+          // Only a deck that runs in an order gets the ordering interlude, and
+          // the decision is written onto the session rather than looked up each
+          // round: a run in progress should not change shape because a
+          // category was renamed halfway through it.
+          sequenced: isSequencedDeck(deck, categories),
         });
       }
       if (!cancelled) setBooting(false);
@@ -291,7 +299,10 @@ export default function StudyScreen() {
       } else if (outcome.event === 'deck-mastered') {
         fireFeedback('deck-mastered', settings);
         setCelebrate(true);
-      } else if (outcome.event === 'perfect-round') {
+      } else if (
+        outcome.event === 'perfect-round' ||
+        outcome.event === 'ordering-due'
+      ) {
         fireFeedback('perfect-run', settings);
         setCelebrate(true);
       } else if (
@@ -649,6 +660,75 @@ export default function StudyScreen() {
             unlocked. Without this the sheet reporting "Stage cleared" would be
             skipped entirely, and the last answer of every stage would pass
             unmarked. */}
+        {awaitingAdvance && lastOutcome && gradedCard && (
+          <AnswerFeedback
+            outcome={lastOutcome}
+            card={gradedCard}
+            onContinue={continueNext}
+          />
+        )}
+      </div>
+    );
+  }
+
+  /*
+   * The consolidation step, part-way through the flawless rounds.
+   *
+   * Ten perfect rounds establish that she knows what each word means. Not one
+   * of them ever asks what comes after what, and for a deck of numbers that is
+   * most of the point — so the run stops here, once, and asks for the sequence
+   * itself. Hebrew, then Arabic on the same screen, then straight back into the
+   * rounds with every banked one intact. Nothing here is scored: it cannot cost
+   * her the deck, and it is not meant to.
+   */
+  if (session && session.phase === 'ordering') {
+    const language = session.orderingLanguage ?? 'hebrew';
+    // In the session's own order, which for a sequenced deck is the answer.
+    const ordered = session.deckCardIds
+      .map((id) => deckCards.find((c) => c.id === id))
+      .filter((card): card is Flashcard => Boolean(card));
+
+    return (
+      <div className="screen study">
+        <ScreenHeader title={deck.name} eyebrow={eyebrow} back />
+
+        <StageBanner session={session} />
+
+        <div className="panel">
+          <div className="headline">
+            {language === 'hebrew' ? 'Now put them in order' : 'And again in Arabic'}
+          </div>
+          <p className="small muted">
+            {language === 'hebrew'
+              ? 'Drag each word onto the number it belongs to. Put one in the wrong place and it goes back to the pile.'
+              : 'The same ten, the other language. Counting in Hebrew and counting in Arabic are two things to know.'}
+          </p>
+        </div>
+
+        <DeckOrdering
+          // Keyed by language so the pile is dealt again rather than carried
+          // across from the Hebrew column.
+          key={language}
+          cards={ordered}
+          language={language}
+          perspectives={perspectives}
+          lead={lead}
+          showTransliteration={showTransliteration}
+          reducedMotion={settings.reducedMotion}
+          onFeedback={(kind) => fireFeedback(kind, settings)}
+          onDone={({ solved }) => {
+            if (solved && language === 'arabic') {
+              fireFeedback('perfect-run', settings);
+            }
+            void finishOrdering();
+          }}
+          doneLabel={
+            language === 'hebrew' ? 'Now in Arabic' : 'Back to the rounds'
+          }
+        />
+
+        {/* The answer that brought the interlude round is still waiting to be
+            acknowledged, and the session has already moved on past it. */}
         {awaitingAdvance && lastOutcome && gradedCard && (
           <AnswerFeedback
             outcome={lastOutcome}

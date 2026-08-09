@@ -6,10 +6,12 @@ import {
   createSession,
   currentIntroCardId,
   describeStage,
+  finishOrdering,
   flipIntroCard,
   introRemaining,
   isLadderSession,
   nextIntroCard,
+  ORDER_INTERLUDE_AFTER,
   previousIntroCard,
   stageProgress,
   type AnswerOutcome,
@@ -28,6 +30,7 @@ type StartOptions = {
   perfectRoundsCompleted?: number;
   perfectRunsRequired?: number;
   drill?: boolean;
+  sequenced?: boolean;
 };
 
 function start(o: StartOptions = {}): StudySession {
@@ -41,6 +44,7 @@ function start(o: StartOptions = {}): StudySession {
     perfectRunsRequired: o.perfectRunsRequired ?? 10,
     perfectRoundsCompleted: o.perfectRoundsCompleted,
     drill: o.drill,
+    sequenced: o.sequenced,
     now: T,
   });
 }
@@ -550,5 +554,122 @@ describe('describeStage', () => {
     const s = climbToMastery(start(), r);
     const out = answerCurrentCard(s, NEITHER, { now: T, rng: r });
     expect(describeStage(out.session).detail).toContain('will not count');
+  });
+});
+
+describe('the ordering interlude', () => {
+  const rng = () => mulberry32(6);
+
+  /** Plays flawless rounds until something other than a perfect one comes back. */
+  function playUntilInterlude(s: StudySession, r: RNG): AnswerOutcome {
+    let cur = s;
+    let out: AnswerOutcome | undefined;
+    for (let round = 1; round <= ORDER_INTERLUDE_AFTER; round++) {
+      out = playRound(cur, r);
+      cur = out.session;
+    }
+    return out!;
+  }
+
+  it('stops the run once the banked rounds reach the interlude', () => {
+    const r = rng();
+    const out = playUntilInterlude(climbToMastery(start({ sequenced: true }), r), r);
+
+    expect(out.event).toBe('ordering-due');
+    expect(out.session.phase).toBe('ordering');
+    expect(out.session.orderingLanguage).toBe('hebrew');
+    expect(out.session.perfectRounds).toBe(ORDER_INTERLUDE_AFTER);
+    // Nothing is dealt while she is dragging: the round after the interlude is
+    // opened on the way out of it.
+    expect(out.session.currentCardId).toBeUndefined();
+    expect(out.session.roundQueue).toEqual([]);
+  });
+
+  it('leaves a deck of words alone', () => {
+    const r = rng();
+    const out = playUntilInterlude(climbToMastery(start(), r), r);
+
+    expect(out.event).toBe('perfect-round');
+    expect(out.session.phase).toBe('fullDeckMastery');
+  });
+
+  it('goes Hebrew, then Arabic, then back to the rounds', () => {
+    const r = rng();
+    const paused = playUntilInterlude(
+      climbToMastery(start({ sequenced: true }), r),
+      r,
+    ).session;
+
+    const arabic = finishOrdering(paused, { now: T, rng: r });
+    expect(arabic.phase).toBe('ordering');
+    expect(arabic.orderingLanguage).toBe('arabic');
+    expect(arabic.orderingDone).toBeUndefined();
+
+    const back = finishOrdering(arabic, { now: T, rng: r });
+    expect(back.phase).toBe('fullDeckMastery');
+    expect(back.orderingLanguage).toBeUndefined();
+    expect(back.orderingDone).toBe(true);
+    expect([...back.roundQueue].sort()).toEqual([...DECK].sort());
+    // Consolidation, not a test: the rounds she has banked are untouched.
+    expect(back.perfectRounds).toBe(ORDER_INTERLUDE_AFTER);
+  });
+
+  it('asks for it once in a run, and still masters the deck at ten', () => {
+    const r = rng();
+    let s = climbToMastery(start({ sequenced: true }), r);
+    let out = playUntilInterlude(s, r);
+
+    s = finishOrdering(finishOrdering(out.session, { now: T, rng: r }), {
+      now: T,
+      rng: r,
+    });
+
+    for (let round = ORDER_INTERLUDE_AFTER + 1; round <= 10; round++) {
+      out = playRound(s, r);
+      s = out.session;
+      expect(s.phase).not.toBe('ordering');
+      if (round < 10) expect(out.event).toBe('perfect-round');
+    }
+
+    expect(out.event).toBe('deck-mastered');
+    expect(s.deckMastered).toBe(true);
+  });
+
+  it('still asks a short deck, before its last round rather than after it', () => {
+    const r = rng();
+    // Three flawless rounds, so the usual fifth would fall past the end of the
+    // deck and the interlude would never happen at all.
+    let s = climbToMastery(start({ sequenced: true, perfectRunsRequired: 3 }), r);
+    let out = playRound(s, r);
+    expect(out.event).toBe('perfect-round');
+
+    out = playRound(out.session, r);
+    expect(out.event).toBe('ordering-due');
+    expect(out.session.perfectRounds).toBe(2);
+
+    s = finishOrdering(finishOrdering(out.session, { now: T, rng: r }), {
+      now: T,
+      rng: r,
+    });
+    expect(playRound(s, r).event).toBe('deck-mastered');
+  });
+
+  it('is nothing to a session that is not in it', () => {
+    const r = rng();
+    const s = climbToMastery(start({ sequenced: true }), r);
+    expect(finishOrdering(s, { now: T, rng: r })).toBe(s);
+  });
+
+  it('says which language it is asking for', () => {
+    const r = rng();
+    const paused = playUntilInterlude(
+      climbToMastery(start({ sequenced: true }), r),
+      r,
+    ).session;
+
+    expect(describeStage(paused).label).toContain('Hebrew');
+    expect(
+      describeStage(finishOrdering(paused, { now: T, rng: r })).label,
+    ).toContain('Arabic');
   });
 });

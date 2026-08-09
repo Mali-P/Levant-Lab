@@ -2,7 +2,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { statusFor } from '../features/review/mastery';
-import { gateDecks } from '../features/review/unlock';
+import { gateDecks, isDeckMastered } from '../features/review/unlock';
+import { isSequencedCategory } from '../features/ordering/sequenced';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import PerfectRuns from '../components/progress/PerfectRuns';
 import Icon from '../components/ornament/Icon';
@@ -104,6 +105,27 @@ export default function DeckScreen() {
   const thisDeckId = deck.id;
   const inMemorise = settings.memoriseDeckIds?.includes(thisDeckId) ?? false;
 
+  /*
+   * The ordering drill, and only where there is an order to recall.
+   *
+   * Ten perfect runs establish that the learner knows what each word means; not
+   * one of them ever asks what comes after what, and for a counting deck that
+   * is most of the point. For a deck of greetings there is nothing there to
+   * ask: its ten cards sit in the order somebody wrote them down, and marking
+   * her wrong for putting one before another would be testing the file rather
+   * than the language. So the numbers get this, the alphabets get their own,
+   * and every other deck is left alone.
+   *
+   * The main run offers it too, part-way through the flawless rounds. This is
+   * the same drill, on its own, for a learner who wants another go at it.
+   */
+  const sequenced = isSequencedCategory(category);
+  const progress = deckProgress[deck.id];
+  const finalTest = isDeckMastered(deck, progress);
+  const orderPasses = (['hebrew', 'arabic'] as const).filter(
+    (language) => progress?.orderRecallPassedAt?.[language],
+  );
+
   function toggleMemorise() {
     const current = settings.memoriseDeckIds ?? [];
     const next = inMemorise
@@ -159,6 +181,42 @@ export default function DeckScreen() {
                 </span>
               </Link>
             ))}
+
+            {/* The one mode that asks about the deck rather than about a word.
+                It leads once the perfect runs are banked, because at that point
+                it is the only question left. */}
+            {sequenced && (
+              <Link
+                className={'mode-choice' + (finalTest ? ' lead' : '')}
+                to={'/order/' + deck.id}
+              >
+                <span className="mode-choice-icon" aria-hidden="true">
+                  <Icon name="columns" />
+                </span>
+                <span className="grow">
+                  <span className="mode-choice-name">
+                    {finalTest
+                      ? 'Final test — put them in order'
+                      : 'Put them in order'}
+                  </span>
+                  <span className="small muted">
+                    {orderPasses.length === 2
+                      ? 'Passed in both languages. Take it again whenever you like.'
+                      : orderPasses.length === 1
+                        ? 'Passed in ' +
+                          (orderPasses[0] === 'hebrew' ? 'Hebrew' : 'Arabic') +
+                          '. The other language is still waiting.'
+                        : 'Drag each word onto its number. Hebrew, then Arabic.'}
+                  </span>
+                </span>
+                {orderPasses.length > 0 && (
+                  <span className="chip chip-ok">{orderPasses.length} / 2</span>
+                )}
+                <span className="mode-choice-go" aria-hidden="true">
+                  <Icon name="forward" />
+                </span>
+              </Link>
+            )}
 
             {/* Not another way to study but a standing choice about the deck,
                 so it ticks in place instead of leading anywhere. It sits with

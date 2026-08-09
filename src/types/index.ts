@@ -335,6 +335,17 @@ export type DeckProgress = {
   normalModeCompletedAt?: string;
   hardModePassedAt?: string;
   lastStudiedAt?: string;
+  /**
+   * When the deck's words were last put back into their right order from
+   * memory, per language.
+   *
+   * Kept per language because it is genuinely two pieces of knowledge:
+   * counting to ten in Hebrew says nothing about counting to ten in Arabic, and
+   * one stamp for both would let a learner claim the deck on half the work.
+   * Separate from `perfectRunsCompleted` for the same reason — being asked
+   * "what is six?" ten times over never once asks what comes after six.
+   */
+  orderRecallPassedAt?: Partial<Record<Language, string>>;
   /** See `CardProgress.updatedAt`. */
   updatedAt?: string;
 };
@@ -363,7 +374,14 @@ export type StudyPhase =
   | 'introducing'
   | 'testing'
   | 'fullDeckMastery'
-  | 'completed';
+  | 'completed'
+  /**
+   * The ordering interlude, sat part-way through the flawless rounds. Not a
+   * rung of the ladder and not scored: the deck pauses while the learner puts
+   * it back in order, first in Hebrew and then in Arabic, and the rounds pick
+   * up exactly where they left off.
+   */
+  | 'ordering';
 
 export type StudySession = {
   id: string;
@@ -378,6 +396,28 @@ export type StudySession = {
    * to, so it opens straight in `testing` and one correct answer ends it.
    */
   drill?: boolean;
+
+  /**
+   * Whether this deck runs in an order worth being asked for — the numbers, and
+   * nothing else. It decides one thing only: whether the ordering interlude
+   * happens part-way through the flawless rounds. A deck of greetings has no
+   * order to recall, so it never sees it.
+   *
+   * Written onto the session at the start rather than looked up each time, so a
+   * run in progress cannot change shape because a category was renamed halfway
+   * through it.
+   */
+  sequenced?: boolean;
+
+  /**
+   * The language the ordering interlude is asking for right now. Hebrew first,
+   * then Arabic — counting in one says nothing about counting in the other —
+   * and unset in every other phase.
+   */
+  orderingLanguage?: Language;
+
+  /** The interlude has been sat, both languages. Once per run through a deck. */
+  orderingDone?: boolean;
 
   mode: StudyMode;
   promptDirection: PromptDirection;

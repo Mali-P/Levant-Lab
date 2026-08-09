@@ -1,5 +1,6 @@
 import type {
   AnswerMode,
+  Language,
   PromptDirection,
   StudyMode,
   StudyPhase,
@@ -40,6 +41,8 @@ export type StudyEvent =
   | 'round-reset'
   /** A flawless full-deck round, with more still required. */
   | 'perfect-round'
+  /** A flawless round that also brought the ordering interlude round. */
+  | 'ordering-due'
   /** The required flawless rounds are all in. The deck is mastered. */
   | 'deck-mastered'
   /** A one-card drill was answered correctly. */
@@ -70,6 +73,12 @@ export type CreateSessionParams = {
   perfectRoundsCompleted?: number;
   /** A single weak card being drilled, rather than a climb through the deck. */
   drill?: boolean;
+  /**
+   * Whether this deck's own order is worth recalling — the numbers, and nothing
+   * else. Decided by the caller, which is the only place that knows what
+   * category the deck sits in; see `features/ordering/sequenced`.
+   */
+  sequenced?: boolean;
   now: string;
   // No `rng`: a new session opens on the deck's own first three cards, in the
   // deck's own order, and nothing is drawn until the first stage is read.
@@ -98,6 +107,8 @@ export function createSession(params: CreateSessionParams): StudySession {
     mode: params.mode,
     promptDirection: params.promptDirection,
     answerMode: params.answerMode,
+
+    sequenced: params.sequenced,
 
     phase: 'introducing',
     deckCardIds,
@@ -181,6 +192,97 @@ function openTesting(s: StudySession, rng: RNG): void {
     rng,
   });
   s.lastAskedCardId = undefined;
+}
+
+/**
+ * How many flawless rounds are banked before the deck is asked to be put back
+ * in order.
+ *
+ * Half way, near enough. Earlier than this and the words are not secure enough
+ * to be worth sequencing — she would be arranging shapes she is still working
+ * out. Later and it is a victory lap rather than the consolidation it is meant
+ * to be: the point of dropping it in the middle of the flawless rounds is that
+ * it is the one question those rounds never ask, and the rounds that follow it
+ * are answered by a learner who has now had to hold the whole deck at once.
+ */
+export const ORDER_INTERLUDE_AFTER = 5;
+
+/**
+ * Which banked round brings the interlude round, for this deck.
+ *
+ * Five, unless the deck asks for so few flawless rounds that five would fall
+ * after the end of it — a deck of three rounds would then be mastered without
+ * ever being put in order, which is the one outcome this must not have. Such a
+ * deck gets it on its second-to-last round instead: still inside the climb,
+ * still with a round left to answer afterwards.
+ */
+function interludeAt(s: StudySession): number {
+  return Math.min(ORDER_INTERLUDE_AFTER, Math.max(1, s.perfectRunsRequired - 1));
+}
+
+/** Whether the ordering interlude falls due now. */
+function orderingDue(s: StudySession): boolean {
+  return Boolean(
+    s.sequenced && !s.drill && !s.orderingDone && s.perfectRounds >= interludeAt(s),
+  );
+}
+
+/**
+ * Pauses the rounds and hands the deck over to be put in order.
+ *
+ * Hebrew first. Nothing is dealt: the round that follows is opened by
+ * `finishOrdering`, once both languages have been sat, so the deck cannot be
+ * halfway through a pass while the learner is dragging tiles.
+ */
+function openOrdering(s: StudySession): void {
+  s.phase = 'ordering';
+  s.orderingLanguage = 'hebrew';
+  s.currentCardId = undefined;
+  s.roundQueue = [];
+  s.roundIndex = 0;
+  s.stageCorrect = [];
+  s.stageIncorrect = [];
+}
+
+/**
+ * Ends one language of the interlude.
+ *
+ * Hebrew hands over to Arabic — the same ten words, the same column, one toggle
+ * and no menu in between, because counting in Hebrew and counting in Arabic are
+ * two things to know and she is here to do both. Arabic hands back to the
+ * rounds, which deal again from where they stopped with every banked round
+ * intact. Nothing here is scored: the interlude consolidates, it does not
+ * judge, and a deck is never lost on it.
+ */
+export function finishOrdering(
+  session: StudySession,
+  opts: { now: string; rng?: RNG },
+): StudySession {
+  if (session.phase !== 'ordering') return session;
+
+  const s: StudySession = {
+    ...session,
+    roundQueue: [...session.roundQueue],
+    stageCorrect: [],
+    stageIncorrect: [],
+    updatedAt: opts.now,
+  };
+
+  if (s.orderingLanguage === 'hebrew') {
+    s.orderingLanguage = 'arabic';
+    return s;
+  }
+
+  s.orderingDone = true;
+  s.orderingLanguage = undefined;
+  s.phase = 'fullDeckMastery';
+  openRound(s, opts.rng ?? Math.random);
+  return s;
+}
+
+/** The language the interlude is asking for, or undefined outside one. */
+export function orderingLanguage(s: StudySession): Language | undefined {
+  return s.phase === 'ordering' ? s.orderingLanguage : undefined;
 }
 
 /** Deals a fresh shuffled full-deck round. */
@@ -457,6 +559,15 @@ function advanceRound(s: StudySession, now: string, rng: RNG): StudyEvent {
     return 'deck-mastered';
   }
 
+  // The consolidation step, and only for a deck that runs in an order. It sits
+  // between the rounds rather than after them: a deck already mastered has
+  // nothing left to consolidate, and the round dealt on the way out of it is
+  // answered by a learner who has just had to hold the whole sequence at once.
+  if (orderingDue(s)) {
+    openOrdering(s);
+    return 'ordering-due';
+  }
+
   openRound(s, rng);
   return 'perfect-round';
 }
@@ -526,6 +637,16 @@ export function describeStage(s: StudySession): StageDescription {
         phase: s.phase,
       };
     }
+
+    case 'ordering':
+      return {
+        label:
+          s.orderingLanguage === 'arabic'
+            ? 'In order — Arabic'
+            : 'In order — Hebrew',
+        detail: 'Nothing is scored here. Your ' + s.perfectRounds + ' rounds stand.',
+        phase: s.phase,
+      };
 
     case 'fullDeckMastery':
       return {

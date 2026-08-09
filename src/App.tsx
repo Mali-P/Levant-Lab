@@ -25,6 +25,7 @@ import AlphabetProgressScreen from './app/AlphabetProgressScreen';
 import AlphabetPractiseScreen from './app/AlphabetPractiseScreen';
 import AlphabetSessionScreen from './app/AlphabetSessionScreen';
 import AlphabetWriteScreen from './app/AlphabetWriteScreen';
+import OrderRecallScreen from './app/OrderRecallScreen';
 import SplashScreen from './app/SplashScreen';
 import { useAlphabet } from './stores/alphabetStore';
 import Icon, { type IconName } from './components/ornament/Icon';
@@ -135,6 +136,10 @@ export default function App() {
         <Route path="/memorise" element={<MemoriseScreen />} />
         <Route path="/memorise/:deckId" element={<MemoriseScreen />} />
         <Route path="/study/:deckId" element={<StudyScreen />} />
+        {/* Putting a deck back in order. Its own route rather than a study
+            mode: it asks about the deck's sequence rather than about any one
+            card, and it grades neither Hebrew nor Arabic accuracy. */}
+        <Route path="/order/:deckId" element={<OrderRecallScreen />} />
         {/* The alphabets sit beside the decks, never in front of them: nothing
             here gates the vocabulary. */}
         <Route path="/alphabets" element={<AlphabetsScreen />} />

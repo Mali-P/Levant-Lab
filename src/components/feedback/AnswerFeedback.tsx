@@ -66,6 +66,7 @@ function headlineFor(outcome: AnswerOutcome): string {
     case 'round-ended':
       return 'Round over';
     case 'perfect-round':
+    case 'ordering-due':
       return 'Perfect round';
     case 'deck-mastered':
       return 'Deck mastered';
@@ -122,6 +123,12 @@ function detailFor(outcome: AnswerOutcome): string | null {
       );
     case 'perfect-round':
       return 'Perfect rounds: ' + banked + '. Reshuffling.';
+    case 'ordering-due':
+      return (
+        'Perfect rounds: ' +
+        banked +
+        '. Before the next one: put the deck back in order, first in Hebrew and then in Arabic. Nothing is scored.'
+      );
     case 'deck-mastered':
       return (
         s.perfectRunsRequired +
