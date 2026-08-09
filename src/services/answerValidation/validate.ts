@@ -1,6 +1,7 @@
 import type {
   AnswerResult,
   Flashcard,
+  Language,
   LanguageAnswerResult,
   LanguageSide,
   SpeechPerspective,
@@ -16,6 +17,12 @@ export type ValidationOptions = NormaliseOptions & {
    * speaker/listener variants is graded against these and no others.
    */
   perspectives?: readonly SpeechPerspective[];
+  /**
+   * The languages she is studying. A language left out is never asked for and
+   * so is never marked either way — see `gradePlan`, which is where that is
+   * applied. Absent means both, which is what every existing caller means.
+   */
+  languages?: readonly Language[];
 };
 
 /**

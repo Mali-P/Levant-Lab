@@ -26,6 +26,87 @@ const GOOD: LanguageSide = {
   },
 };
 
+/** "tired" — the same shape of pair, but decided by whoever is speaking. */
+const TIRED: LanguageSide = {
+  script: 'تعبانة',
+  transliteration: 'taʿbāne',
+  forms: {
+    feminine: { script: 'تعبانة', transliteration: 'taʿbāne' },
+    masculine: { script: 'تعبان', transliteration: 'taʿbān' },
+  },
+  agreement: 'speaker',
+};
+
+/** A title, which follows the person it is said to. */
+const USTAZ: LanguageSide = {
+  script: 'أستاذة',
+  transliteration: 'ustāze',
+  forms: {
+    feminine: { script: 'أستاذة', transliteration: 'ustāze' },
+    masculine: { script: 'أستاذ', transliteration: 'ustāz' },
+  },
+  agreement: 'listener',
+};
+
+describe('a pair that follows somebody in the conversation', () => {
+  it('shows a woman only her own form, whoever she is speaking to', () => {
+    const forms = wordForms(TIRED, ['femaleToFemale', 'femaleToMale']);
+    expect(forms.map((f) => f.script)).toEqual(['تعبانة']);
+  });
+
+  it('shows a man his, from the same untouched pair', () => {
+    const forms = wordForms(TIRED, ['maleToFemale'], 'masculine');
+    expect(forms.map((f) => f.script)).toEqual(['تعبان']);
+  });
+
+  it('drops the marker once there is nothing left to contrast', () => {
+    const [only] = wordForms(TIRED, ['femaleToFemale']);
+    expect(only.marker).toBeUndefined();
+    expect(only.label).toBeUndefined();
+    // Kept, because audio is filed under them and Memorise matches on them.
+    expect(only.gender).toBe('feminine');
+    expect(only.key).toBe('feminine');
+  });
+
+  it('follows the listener where the listener is what the word agrees with', () => {
+    expect(wordForms(USTAZ, ['femaleToFemale']).map((f) => f.script)).toEqual([
+      'أستاذة',
+    ]);
+    expect(wordForms(USTAZ, ['femaleToMale']).map((f) => f.script)).toEqual([
+      'أستاذ',
+    ]);
+  });
+
+  it('swaps a listener-agreeing form when only who she speaks to changes', () => {
+    const toWomen = wordForms(USTAZ, ['femaleToFemale']);
+    const toMen = wordForms(USTAZ, ['femaleToMale']);
+    expect(toWomen[0].script).not.toBe(toMen[0].script);
+    // Nothing was removed to achieve it: the pair on the card is still whole.
+    expect(USTAZ.forms).toBeDefined();
+  });
+
+  it('keeps both where she practises in both directions and needs both', () => {
+    const forms = wordForms(USTAZ, ['femaleToMale', 'femaleToFemale']);
+    expect(forms.map((f) => f.script)).toEqual(['أستاذة', 'أستاذ']);
+    expect(forms.map((f) => f.marker)).toEqual(['♀', '♂']);
+  });
+
+  it('leaves a word-gender pair alone, because nothing about her decides it', () => {
+    expect(wordForms(GOOD, ['femaleToFemale'])).toHaveLength(2);
+  });
+
+  it('shows the whole pair to a caller with no learner in front of it', () => {
+    expect(wordForms(TIRED)).toHaveLength(2);
+    expect(wordForms(TIRED, [])).toHaveLength(2);
+  });
+
+  it('still offers both halves to grading, so neither is ever marked wrong', () => {
+    const expected = expectedAnswers(TIRED, { perspectives: ['femaleToFemale'] });
+    expect(expected).toContain('تعبانة');
+    expect(expected).toContain('تعبان');
+  });
+});
+
 describe('speaker and listener perspectives', () => {
   it('leads with the female-speaker form whatever order the setting is in', () => {
     const forms = wordForms(HOW_ARE_YOU, ['maleToMale', 'femaleToFemale', 'femaleToMale']);

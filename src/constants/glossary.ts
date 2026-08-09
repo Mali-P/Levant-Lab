@@ -318,6 +318,21 @@ export const CURATED_GLOSSES: Record<GlossLanguage, Record<string, string>> = {
     lalekhet: 'to go',
     "mitga'aga'at": 'missing (f)',
     "mitga'age'a": 'missing (m)',
+
+    // --- telling somebody to do something ------------------------------------
+    // Everyday Hebrew gives its orders in the future tense, and the ending is
+    // the person being told — which is the whole point of the cards these
+    // words come from.
+    tishtefi: 'wash (to a woman)',
+    tishtof: 'wash (to a man)',
+    tetsakhtsekhi: 'brush (to a woman)',
+    tetsakhtseakh: 'brush (to a man)',
+    tokhli: 'eat (to a woman)',
+    tokhal: 'eat (to a man)',
+    takhzeri: 'come back (to a woman)',
+    takhzor: 'come back (to a man)',
+    lekh: 'go (to a man)',
+    lishon: 'to sleep',
   },
 
   arabic: {
@@ -555,5 +570,35 @@ export const CURATED_GLOSSES: Record<GlossLanguage, Record<string, string>> = {
     bidhom: 'they want',
     ākol: 'I eat',
     arūḥ: 'I go',
+    biddo: 'he wants',
+
+    // --- the "I" form, where it only ever shows up inside a phrase -----------
+    baḥḍar: 'I watch',
+    batlāqa: 'I meet',
+    baquṣṣ: 'I cut',
+    shaʿri: 'my hair',
+    "ḍawāfri": 'my nails',
+    btiḥki: 'you speak (to a man) / she speaks',
+
+    // --- telling somebody to do something ------------------------------------
+    // The Arabic imperative marks the person addressed twice over: once in the
+    // verb ending and again in any possessive hanging off it, which is why
+    // both halves of "wash your face" change.
+    ilbasi: 'wear (to a woman)',
+    ilbas: 'wear (to a man)',
+    "tyābik": 'your clothes (to a woman)',
+    "tyābak": 'your clothes (to a man)',
+    ighsili: 'wash (to a woman)',
+    ighsil: 'wash (to a man)',
+    wijhik: 'your face (to a woman)',
+    wijhak: 'your face (to a man)',
+    farrshi: 'brush (to a woman)',
+    farresh: 'brush (to a man)',
+    "snānik": 'your teeth (to a woman)',
+    "snānak": 'your teeth (to a man)',
+    "rūḥi": 'go (to a woman)',
+    "rūḥ": 'go (to a man)',
+    "irjaʿi": 'come back (to a woman)',
+    "irjaʿ": 'come back (to a man)',
   },
 };

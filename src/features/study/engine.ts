@@ -1,10 +1,13 @@
-import type {
-  AnswerMode,
-  PromptDirection,
-  StudyMode,
-  StudyPhase,
-  StudySession,
+import {
+  LANGUAGES,
+  type AnswerMode,
+  type Language,
+  type PromptDirection,
+  type StudyMode,
+  type StudyPhase,
+  type StudySession,
 } from '../../types';
+import { LANGUAGE_LONG_LABEL } from '../../utils/languageSelection';
 import type { RNG } from '../../utils/random';
 import { buildRound, nextStageSize, pickNextCard, stageSizes } from './ladder';
 
@@ -592,7 +595,15 @@ export type StageDescription = {
  * "2 of 3 recalled" underneath, where it reads as progress through what is in
  * front of her rather than as the size of a test.
  */
-export function describeStage(s: StudySession): StageDescription {
+export function describeStage(
+  s: StudySession,
+  /**
+   * The languages being studied, for the one line that names them. Nothing
+   * about the ladder turns on this — the interlude is one sitting whether it
+   * holds one column or two — so it is a label and only a label.
+   */
+  languages: readonly Language[] = LANGUAGES,
+): StageDescription {
   const total = s.activeCardIds.length;
   const deckSize = s.deckCardIds.length;
   const full = total >= deckSize;
@@ -628,7 +639,10 @@ export function describeStage(s: StudySession): StageDescription {
 
     case 'ordering':
       return {
-        label: 'In order — both languages',
+        label:
+          languages.length > 1
+            ? 'In order — both languages'
+            : 'In order — ' + LANGUAGE_LONG_LABEL[languages[0]],
         detail: 'Nothing is scored here. Your ' + s.perfectRounds + ' rounds stand.',
         phase: s.phase,
       };

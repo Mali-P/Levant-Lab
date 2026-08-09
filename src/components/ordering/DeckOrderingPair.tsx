@@ -1,5 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
-import type { Flashcard, Language, SpeechPerspective } from '../../types';
+import {
+  LANGUAGES,
+  type Flashcard,
+  type Language,
+  type SpeechPerspective,
+} from '../../types';
 import DeckOrdering from './DeckOrdering';
 
 /** What one language's column came to. */
@@ -9,6 +14,13 @@ type Props = {
   /** The deck in its own order, which for a sequenced deck is the answer. */
   cards: Flashcard[];
   perspectives?: readonly SpeechPerspective[];
+  /**
+   * The languages being studied — one column each. With one language it is a
+   * single column and the "both in order" verdict becomes a verdict about that
+   * one; the drill is otherwise unchanged, because the columns were never
+   * locked together in the first place. Absent means both.
+   */
+  languages?: readonly Language[];
   lead: 'feminine' | 'masculine';
   showTransliteration: boolean;
   reducedMotion: boolean;
@@ -20,13 +32,12 @@ type Props = {
   onDone: (summary: {
     solved: boolean;
     slips: number;
-    byLanguage: Record<Language, OrderingResult>;
+    /** Only the languages that had a column. */
+    byLanguage: Partial<Record<Language, OrderingResult>>;
   }) => void;
   /** What the button underneath says once both columns are in. */
   doneLabel: string;
 };
-
-const LANGUAGES: readonly Language[] = ['hebrew', 'arabic'];
 
 /**
  * The same deck put in order twice, side by side.
@@ -51,6 +62,7 @@ const LANGUAGES: readonly Language[] = ['hebrew', 'arabic'];
 export default function DeckOrderingPair({
   cards,
   perspectives,
+  languages = LANGUAGES,
   lead,
   showTransliteration,
   reducedMotion,
@@ -103,9 +115,11 @@ export default function DeckOrderingPair({
     [onFeedback],
   );
 
-  const hebrew = results.hebrew;
-  const arabic = results.arabic;
-  const both = hebrew && arabic;
+  /** Every column asked for has been handed in. */
+  const settled = languages.map((language) => results[language]);
+  const both = settled.every(Boolean);
+  const allSolved = both && settled.every((r) => r!.solved);
+  const slips = settled.reduce((n, r) => n + (r?.slips ?? 0), 0);
 
   return (
     <>
@@ -113,7 +127,7 @@ export default function DeckOrderingPair({
           rather than to the screen. */}
       <div className="order-pair-shell">
         <div className="order-pair">
-          {LANGUAGES.map((language) => (
+          {languages.map((language) => (
             <div className="order-column" key={language}>
               <DeckOrdering
                 cards={cards}
@@ -150,21 +164,25 @@ export default function DeckOrderingPair({
       {both && (
         <div className="panel verdict-panel">
           <strong>
-            {hebrew.solved && arabic.solved ? 'Both in order' : 'That is how they run'}
+            {allSolved
+              ? languages.length > 1
+                ? 'Both in order'
+                : 'In order'
+              : 'That is how they run'}
           </strong>
           <div className="small muted">
-            {hebrew.solved && arabic.solved
-              ? 'Both columns, in the order they are counted in.'
-              : 'One of them was shown rather than worked out. Read it through before you go.'}
+            {allSolved
+              ? languages.length > 1
+                ? 'Both columns, in the order they are counted in.'
+                : 'In the order they are counted in.'
+              : languages.length > 1
+                ? 'One of them was shown rather than worked out. Read it through before you go.'
+                : 'It was shown rather than worked out. Read it through before you go.'}
           </div>
           <button
             className="btn btn-primary btn-block"
             onClick={() =>
-              onDone({
-                solved: hebrew.solved && arabic.solved,
-                slips: hebrew.slips + arabic.slips,
-                byLanguage: { hebrew, arabic },
-              })
+              onDone({ solved: allSolved, slips, byLanguage: results })
             }
           >
             {doneLabel}

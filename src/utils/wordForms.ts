@@ -6,10 +6,12 @@ import {
   SPEECH_PERSPECTIVE_MARKERS,
   type LanguageForm,
   type LanguageSide,
+  type PersonGender,
   type SpeechForms,
   type SpeechPerspective,
   type TtsPronunciation,
 } from '../types';
+import { PERSPECTIVE_LISTENER, PERSPECTIVE_SPEAKER } from './speechIdentity';
 
 export type WordForm = {
   script: string;
@@ -166,6 +168,43 @@ export function speechWordForms(
   }));
 }
 
+/** A person's gender, as the name of the word form that agrees with them. */
+const AGREEING_FORM: Record<PersonGender, 'feminine' | 'masculine'> = {
+  female: 'feminine',
+  male: 'masculine',
+};
+
+/**
+ * Which halves of a `forms` pair the learner actually needs, or `null` when the
+ * question does not apply and both stand.
+ *
+ * The controller named by `side.agreement` is looked up in each selected
+ * perspective, so From answers a speaker-agreeing pair and To answers a
+ * listener-agreeing one. Practising in both directions selects two
+ * perspectives and can therefore still want both forms — that is the setting
+ * being honoured, not ignored.
+ *
+ * `null` for a pair with no declared controller, and for a caller that passed
+ * no perspectives at all: a list or a search index has no learner in front of
+ * it, and quietly halving the word there would hide content from the one
+ * screen whose job is to show all of it.
+ */
+function agreeingForms(
+  side: LanguageSide,
+  selected: readonly SpeechPerspective[] | undefined,
+): Set<'feminine' | 'masculine'> | null {
+  const agreement = side.agreement ?? 'word';
+  if (agreement === 'word') return null;
+  if (!selected || selected.length === 0) return null;
+
+  const who = agreement === 'speaker' ? PERSPECTIVE_SPEAKER : PERSPECTIVE_LISTENER;
+  const wanted = new Set(selected.map((p) => AGREEING_FORM[who[p]]));
+  // An unrecognised perspective list could in principle name nobody. Falling
+  // through to both forms is the same never-empty guard the identity layer
+  // keeps: a card with nothing on it teaches nothing.
+  return wanted.size > 0 ? wanted : null;
+}
+
 /**
  * The forms of one word, in the order they should be read.
  *
@@ -174,17 +213,20 @@ export function speechWordForms(
  * a side has none, this falls back to the grammatical pair — or to a single
  * unmarked form.
  *
- * `lead` orders that grammatical pair, and comes from the learner's *identity*
- * rather than from the perspective being rendered: which of her own forms she
- * should read first is a fact about her, and it must not flip mid-drill when a
- * prompt asks her to say something to a man. It is a display preference only —
- * both forms are returned either way, and grading never sees it.
+ * That grammatical pair is now filtered too, wherever the side says whose
+ * gender picks between its halves. A `speaker`-agreeing pair answers to From
+ * and a `listener`-agreeing one to To, so a woman practising with women is
+ * shown the one form she would say and not the one she would not. A pair with
+ * no declared controller is word gender or a third person — a cat, a colour,
+ * "her house" — and both halves stay, because nothing about her decides
+ * between them. Nothing is ever dropped from the card: changing the setting
+ * brings the other form straight back, and Memorise can still reveal it.
  *
- * Honest for pairs the speaker controls, which is most of them and all the ones
- * the ordering is visibly wrong on today. A noun-controlled pair is ordered by
- * the same rule for want of a declared controller; `LanguageSide.agreement`
- * (Phase 1) is what makes it exact, and until a side declares one this ordering
- * never reaches grading or a flip step.
+ * `lead` orders the pair, and comes from the learner's *identity* rather than
+ * from the perspective being rendered: which of her own forms she should read
+ * first is a fact about her, and it must not flip mid-drill when a prompt asks
+ * her to say something to a man. It is a display preference only, and grading
+ * never sees it.
  *
  * Every surface goes through here rather than reading `script`, which mirrors
  * only the leading form and would quietly teach half the card.
@@ -237,5 +279,19 @@ export function wordForms(
     tts: side.forms.masculine.tts,
   };
 
-  return lead === 'masculine' ? [masculine, feminine] : [feminine, masculine];
+  const pair =
+    lead === 'masculine' ? [masculine, feminine] : [feminine, masculine];
+
+  const wanted = agreeingForms(side, selected);
+  if (!wanted) return pair;
+
+  const kept = pair.filter((form) => wanted.has(form.gender!));
+  if (kept.length === 0) return pair;
+
+  // One survivor has nothing left to be contrasted with, so the ♀ beside it
+  // would be answering a question the screen is no longer asking. `gender` and
+  // `key` stay — audio is filed under them, and Memorise finds the form it is
+  // holding back by comparing exactly these.
+  if (kept.length === 1) return [{ ...kept[0], marker: undefined, label: undefined }];
+  return kept;
 }

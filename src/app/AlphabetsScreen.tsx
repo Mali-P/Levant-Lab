@@ -6,6 +6,7 @@ import {
   alphabetCounts,
 } from '../data/alphabets';
 import { PAIR_DECK_SIZE } from '../features/alphabet/pairDecks';
+import { useSettings } from '../stores/settingsStore';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon from '../components/ornament/Icon';
 
@@ -19,6 +20,12 @@ const pairCount = LETTER_PAIRS.length;
  * decks, so somebody who already reads Hebrew never has to pass through it.
  */
 export default function AlphabetsScreen() {
+  // The same choice, one level down: a learner studying Hebrew alone is not
+  // offered the Arabic letters, and the paired course — which is a course
+  // *about* the pairing — has nothing left to pair.
+  const languages = useSettings((s) => s.languages);
+  const scripts = ALPHABET_SCRIPTS.filter((script) => languages.includes(script));
+
   return (
     <div className="screen">
       <ScreenHeader title="Alphabets" eyebrow="Learn to read the letters" />
@@ -28,21 +35,23 @@ export default function AlphabetsScreen() {
             rather than a reference: ten paired sounds at a time, the first
             deck open and the rest waiting on it. A learner who wants one
             script alone still has it, one row down. */}
-        <Link className="list-item" to="/alphabet/both">
-          <span className="icon script-icon both" aria-hidden="true">
-            א<span className="script-icon-join">ع</span>
-          </span>
-          <span className="grow">
-            <strong>Both Alphabets</strong>
-            <div className="small muted">
-              {pairCount} paired sounds · decks of {PAIR_DECK_SIZE} · Hebrew and
-              Arabic together
-            </div>
-          </span>
-          <Icon name="forward" className="chevron" />
-        </Link>
+        {languages.length > 1 && (
+          <Link className="list-item" to="/alphabet/both">
+            <span className="icon script-icon both" aria-hidden="true">
+              א<span className="script-icon-join">ع</span>
+            </span>
+            <span className="grow">
+              <strong>Both Alphabets</strong>
+              <div className="small muted">
+                {pairCount} paired sounds · decks of {PAIR_DECK_SIZE} · Hebrew
+                and Arabic together
+              </div>
+            </span>
+            <Icon name="forward" className="chevron" />
+          </Link>
+        )}
 
-        {ALPHABET_SCRIPTS.map((script) => {
+        {scripts.map((script) => {
           const counts = alphabetCounts(script);
           const extras = [
             counts.letters + ' letters',

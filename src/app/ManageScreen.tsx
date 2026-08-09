@@ -34,6 +34,7 @@ const FILTERS: { value: Filter; label: string }[] = [
 export default function ManageScreen() {
   const navigate = useNavigate();
   const settings = useSettings((s) => s.settings);
+  const languages = useSettings((s) => s.languages);
   const cards = useData((s) => s.cards);
   const decks = useData((s) => s.decks);
   const categories = useData((s) => s.categories);
@@ -91,7 +92,7 @@ export default function ManageScreen() {
         break;
       case 'due':
         rows = rows.filter((c) => {
-          const status = statusFor(p(c.id), now, settings.enableMasteryDecay);
+          const status = statusFor(p(c.id), now, settings.enableMasteryDecay, languages);
           return status === 'rusty' || status === 'needs-review' || status === 'forgotten';
         });
         break;

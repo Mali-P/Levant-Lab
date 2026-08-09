@@ -33,23 +33,32 @@ function everySide(): Entry[] {
 const SIDES = everySide();
 
 /**
- * Decks whose feminine/masculine pair is a third-person verb — "she reads /
- * he reads". That is the subject's gender, not the conversation's, so these
- * stay word pairs. Listed by name so a later sweep that converts one to a
- * speaker/listener variant has to argue with this test first.
+ * Verb decks and the person each one is written in.
+ *
+ * They were all third-person once — بتصحى, "she wakes up" — sitting under bare
+ * English prompts like "wake up". A learner reading that card and saying what
+ * it showed her was describing somebody else. Naming the person here is what
+ * stops that returning: a card can only be third person if its English says so.
  */
-const THIRD_PERSON_DECKS = [
-  'Morning to night',
-  'Things you do',
-  'Out and about',
-  'Sport and play',
-  'Cleaning the house',
-  'Looking after yourself',
-  'Using a phone',
-  'Power and connection',
-  'Core verbs',
-  'More everyday verbs',
-];
+/**
+ * Cards inside those decks that are not verbs at all, and whose pair really is
+ * the word's own gender. Named individually so the exemption stays a decision
+ * rather than a hole the next adjective can wander into.
+ */
+const WORD_GENDER_IN_VERB_DECKS = ['clean (describing something)'];
+
+const VERB_DECK_PERSON: Record<string, 'first' | 'imperative'> = {
+  'Morning to night': 'imperative',
+  'Things you do': 'first',
+  'Out and about': 'first',
+  'Sport and play': 'first',
+  'Cleaning the house': 'first',
+  'Looking after yourself': 'first',
+  'Using a phone': 'first',
+  'Power and connection': 'first',
+  'Core verbs': 'first',
+  'More everyday verbs': 'first',
+};
 
 describe('the starter table', () => {
   it('leads every gendered pair with the feminine form', () => {
@@ -134,10 +143,72 @@ describe('the starter table', () => {
     }
   });
 
-  it('keeps third-person conjugations as word pairs', () => {
+  it('only claims an agreement where there is a pair to choose between', () => {
+    for (const { where, side } of SIDES) {
+      if ((side as LanguageSide).agreement === undefined) continue;
+      expect((side as LanguageSide).forms, where).toBeDefined();
+    }
+  });
+
+  it('says who every verb-deck pair belongs to', () => {
+    // The rule the decks were re-authored under: a gendered pair on a verb
+    // card is somebody in the conversation, and it has to name which. An
+    // untagged pair here would be a third-person conjugation again.
     for (const category of SEED_CATEGORIES) {
       for (const deck of category.decks) {
-        if (!THIRD_PERSON_DECKS.includes(deck.name)) continue;
+        const person = VERB_DECK_PERSON[deck.name];
+        if (!person) continue;
+        const wanted = person === 'imperative' ? 'listener' : 'speaker';
+        for (const card of deck.cards) {
+          if (WORD_GENDER_IN_VERB_DECKS.includes(card.english)) continue;
+          for (const side of [card.hebrew, card.arabic]) {
+            if (!side.forms) continue;
+            expect(side.agreement, deck.name + ' › ' + card.english).toBe(wanted);
+          }
+        }
+      }
+    }
+  });
+
+  it('writes an English prompt that admits which person it teaches', () => {
+    // "wake up" over a third-person verb is how this went wrong. A first
+    // person card has to say "I", and a command is left bare — but a bare
+    // prompt is only allowed where the forms really are imperatives.
+    for (const category of SEED_CATEGORIES) {
+      for (const deck of category.decks) {
+        const person = VERB_DECK_PERSON[deck.name];
+        if (!person) continue;
+        for (const card of deck.cards) {
+          if (WORD_GENDER_IN_VERB_DECKS.includes(card.english)) continue;
+          const at = deck.name + ' › ' + card.english;
+          const verbCard = Boolean(card.hebrew.forms ?? card.arabic.forms);
+          if (!verbCard) continue;
+          expect(/^I\b/.test(card.english), at).toBe(person === 'first');
+        }
+      }
+    }
+  });
+
+  it('never manufactures a pair where the language has none', () => {
+    // Palestinian Arabic says "I read" one way for everybody. Splitting that
+    // into a feminine and a masculine to match Hebrew would be inventing a
+    // distinction and then teaching it.
+    for (const category of SEED_CATEGORIES) {
+      for (const deck of category.decks) {
+        if (VERB_DECK_PERSON[deck.name] !== 'first') continue;
+        for (const card of deck.cards) {
+          if (WORD_GENDER_IN_VERB_DECKS.includes(card.english)) continue;
+          const at = deck.name + ' › ' + card.english;
+          expect(card.arabic.forms, at).toBeUndefined();
+        }
+      }
+    }
+  });
+
+  it('keeps verb conjugations out of the speaker/listener variant table', () => {
+    for (const category of SEED_CATEGORIES) {
+      for (const deck of category.decks) {
+        if (!VERB_DECK_PERSON[deck.name]) continue;
         for (const card of deck.cards) {
           const at = deck.name + ' › ' + card.english;
           expect(card.hebrew.speechForms, at).toBeUndefined();

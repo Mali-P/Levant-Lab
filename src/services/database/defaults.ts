@@ -4,6 +4,13 @@ export const DEFAULT_SETTINGS: Settings = {
   id: 'settings',
 
   /**
+   * Both, which is the app this document describes: a card is not learned
+   * until it is learned twice. One language is a deliberate narrowing, and
+   * nobody should be narrowed by default.
+   */
+  studyLanguages: 'both',
+
+  /**
    * A woman speaking to both, which derives ♀→♂ · ♀→♀ with ♀→♂ leading.
    *
    * This app is written for a woman, so the forms she will actually say are

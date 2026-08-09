@@ -152,14 +152,18 @@ export default function MemoriseScreen() {
   // one. Never a form she is not studying.
   const flipped = session?.flipped ?? false;
   const perspectives = useSettings((s) => s.perspectives);
+  const languages = useSettings((s) => s.languages);
   const lead = useSettings((s) => s.lead);
   useEffect(() => {
     if (!flipped || !currentCard) return;
-    if (settings.autoPlayHebrew) {
+    // Never a language she has switched off, whatever its auto-play toggle
+    // says: that setting decides when a language is spoken, not whether it is
+    // one of hers.
+    if (settings.autoPlayHebrew && languages.includes('hebrew')) {
       const [first] = wordForms(currentCard.hebrew, perspectives, lead);
       if (first) void play(first, 'hebrew');
     }
-    if (settings.autoPlayArabic) {
+    if (settings.autoPlayArabic && languages.includes('arabic')) {
       const [first] = wordForms(currentCard.arabic, perspectives, lead);
       if (first) void play(first, 'arabic');
     }
@@ -167,6 +171,7 @@ export default function MemoriseScreen() {
     flipped,
     currentCard,
     perspectives,
+    languages,
     lead,
     settings.autoPlayHebrew,
     settings.autoPlayArabic,
@@ -377,6 +382,7 @@ export default function MemoriseScreen() {
         card={currentCard}
         flipped={session.flipped}
         perspectives={perspectives}
+        languages={languages}
         lead={lead}
         showTransliteration={settings.showTransliteration}
         animationIntensity={settings.cardAnimationIntensity}

@@ -4,6 +4,7 @@ import type { StudySession } from '../types';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { db } from '../services/database/db';
+import { LANGUAGE_LABEL } from '../utils/languageSelection';
 import { accuracy, statusFor, STATUS_LABELS } from '../features/review/mastery';
 import { describeStage, isLadderSession } from '../features/study/engine';
 import ThemeToggle from '../components/controls/ThemeToggle';
@@ -36,6 +37,7 @@ function greeting(hour: number): string {
 
 export default function DashboardScreen() {
   const settings = useSettings((s) => s.settings);
+  const languages = useSettings((s) => s.languages);
   const categories = useData((s) => s.categories);
   const decks = useData((s) => s.decks);
   const cards = useData((s) => s.cards);
@@ -68,15 +70,23 @@ export default function DashboardScreen() {
   const hebrewPct = hebrewTotal ? Math.round((hebrewCorrect / hebrewTotal) * 100) : 0;
   const arabicPct = arabicTotal ? Math.round((arabicCorrect / arabicTotal) * 100) : 0;
 
+  // With one language on, the comparison panels become a single figure about
+  // it. The other language's totals are still sitting in the rows above,
+  // untouched — they are simply not what she is being shown.
+  const both = languages.length > 1;
+  const only = languages[0];
+  const onlyPct = only === 'arabic' ? arabicPct : hebrewPct;
+  const onlyTotal = only === 'arabic' ? arabicTotal : hebrewTotal;
+
   const masteredCount = cards.filter(
-    (c) => statusFor(cardProgress[c.id], now, settings.enableMasteryDecay) === 'mastered',
+    (c) => statusFor(cardProgress[c.id], now, settings.enableMasteryDecay, languages) === 'mastered',
   ).length;
 
   const dueDecks = decks
     .map((deck) => {
       const deckCards = cards.filter((c) => c.deckId === deck.id);
       const due = deckCards.filter((c) => {
-        const status = statusFor(cardProgress[c.id], now, settings.enableMasteryDecay);
+        const status = statusFor(cardProgress[c.id], now, settings.enableMasteryDecay, languages);
         return status === 'rusty' || status === 'needs-review' || status === 'forgotten';
       }).length;
       return { deck, due, total: deckCards.length };
@@ -85,14 +95,18 @@ export default function DashboardScreen() {
     .sort((a, b) => b.due - a.due)
     .slice(0, 4);
 
+  // Weakest in the languages she is studying. A card whose Arabic she keeps
+  // missing is not a weak card to a learner studying Hebrew — it is a card she
+  // has never been asked about in Arabic at all.
+  const misses = (p: (typeof progressList)[number]) =>
+    languages.reduce((n, language) => n + p[language].incorrect, 0);
+  const strength = (p: (typeof progressList)[number]) =>
+    languages.reduce((n, language) => n + accuracy(p[language]), 0);
+
   const weakest = cards
     .map((card) => ({ card, p: cardProgress[card.id] }))
-    .filter((row) => row.p && row.p.hebrew.incorrect + row.p.arabic.incorrect > 0)
-    .sort(
-      (a, b) =>
-        accuracy(a.p!.hebrew) + accuracy(a.p!.arabic) -
-        (accuracy(b.p!.hebrew) + accuracy(b.p!.arabic)),
-    )
+    .filter((row) => row.p && misses(row.p) > 0)
+    .sort((a, b) => strength(a.p!) - strength(b.p!))
     .slice(0, 3);
 
   const openDeck = open ? decks.find((d) => d.id === open.deckId) : undefined;
@@ -123,7 +137,7 @@ export default function DashboardScreen() {
           {/* Where she left the ladder, in the same words the study screen
               uses — "Testing 5 words", not a fraction of ten she never
               agreed to sit. */}
-          <span className="small muted">{describeStage(open).label}</span>
+          <span className="small muted">{describeStage(open, languages).label}</span>
         </Link>
       )}
 
@@ -133,36 +147,53 @@ export default function DashboardScreen() {
           <span className="value">{masteredCount}</span>
           <span className="small muted">of {cards.length}</span>
         </div>
-        <div className="tile">
-          <span className="eyebrow">Weakest language</span>
-          <span className="value">
-            {hebrewTotal + arabicTotal === 0
-              ? '—'
-              : hebrewPct <= arabicPct
-                ? 'Hebrew'
-                : 'Arabic'}
-          </span>
-          <span className="small muted">
-            {hebrewTotal + arabicTotal === 0
-              ? 'No answers yet'
-              : Math.min(hebrewPct, arabicPct) + '% accuracy'}
-          </span>
-        </div>
+        {/* "Weakest language" is a comparison, so it needs two of them. With
+            one language on, the same tile says how that one is going — which
+            is the honest version of the question. */}
+        {both ? (
+          <div className="tile">
+            <span className="eyebrow">Weakest language</span>
+            <span className="value">
+              {hebrewTotal + arabicTotal === 0
+                ? '—'
+                : hebrewPct <= arabicPct
+                  ? 'Hebrew'
+                  : 'Arabic'}
+            </span>
+            <span className="small muted">
+              {hebrewTotal + arabicTotal === 0
+                ? 'No answers yet'
+                : Math.min(hebrewPct, arabicPct) + '% accuracy'}
+            </span>
+          </div>
+        ) : (
+          <div className="tile">
+            <span className="eyebrow">{LANGUAGE_LABEL[only]} accuracy</span>
+            <span className="value">{onlyTotal === 0 ? '—' : onlyPct + '%'}</span>
+            <span className="small muted">
+              {onlyTotal === 0 ? 'No answers yet' : onlyTotal + ' answered'}
+            </span>
+          </div>
+        )}
       </div>
 
-      <section className="panel">
-        <span className="eyebrow">Hebrew versus Arabic</span>
-        <div className="spread small">
-          <span>Hebrew</span>
-          <span>{hebrewPct}%</span>
-        </div>
-        <div className="bar he"><span style={{ width: hebrewPct + '%' }} /></div>
-        <div className="spread small">
-          <span>Arabic</span>
-          <span>{arabicPct}%</span>
-        </div>
-        <div className="bar ar"><span style={{ width: arabicPct + '%' }} /></div>
-      </section>
+      {/* Two bars to compare, or none: a single bar under the heading "Hebrew
+          versus Arabic" would be comparing a language to nothing. */}
+      {both && (
+        <section className="panel">
+          <span className="eyebrow">Hebrew versus Arabic</span>
+          <div className="spread small">
+            <span>Hebrew</span>
+            <span>{hebrewPct}%</span>
+          </div>
+          <div className="bar he"><span style={{ width: hebrewPct + '%' }} /></div>
+          <div className="spread small">
+            <span>Arabic</span>
+            <span>{arabicPct}%</span>
+          </div>
+          <div className="bar ar"><span style={{ width: arabicPct + '%' }} /></div>
+        </section>
+      )}
 
       {dueDecks.length > 0 && (
         <section className="stack">
@@ -202,9 +233,17 @@ export default function DashboardScreen() {
                 <span className="grow english">
                   <strong>{card.english}</strong>
                   <div className="small muted">
-                    Hebrew {Math.round(accuracy(p!.hebrew) * 100)}% · Arabic{' '}
-                    {Math.round(accuracy(p!.arabic) * 100)}% ·{' '}
-                    {STATUS_LABELS[statusFor(p, now, settings.enableMasteryDecay)]}
+                    {languages
+                      .map(
+                        (language) =>
+                          LANGUAGE_LABEL[language] +
+                          ' ' +
+                          Math.round(accuracy(p![language]) * 100) +
+                          '%',
+                      )
+                      .join(' · ')}{' '}
+                    ·{' '}
+                    {STATUS_LABELS[statusFor(p, now, settings.enableMasteryDecay, languages)]}
                   </div>
                 </span>
               </Link>

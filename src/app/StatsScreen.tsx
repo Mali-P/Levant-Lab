@@ -3,6 +3,7 @@ import type { StudySession } from '../types';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { db } from '../services/database/db';
+import { LANGUAGE_LABEL } from '../utils/languageSelection';
 import { accuracy, statusFor, STATUS_LABELS } from '../features/review/mastery';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon from '../components/ornament/Icon';
@@ -16,6 +17,7 @@ function CategoryMark({ category }: { category: { name: string; icon: string } }
 
 export default function StatsScreen() {
   const settings = useSettings((s) => s.settings);
+  const languages = useSettings((s) => s.languages);
   const cards = useData((s) => s.cards);
   const categories = useData((s) => s.categories);
   const cardProgress = useData((s) => s.cardProgress);
@@ -48,6 +50,11 @@ export default function StatsScreen() {
     sessions.flatMap((s) => s.answers.map((a) => a.at.slice(0, 10))),
   );
 
+  // Wrong answers in the languages she is studying. A card missed only in the
+  // language she has switched off is not a card she is getting wrong.
+  const misses = (p: (typeof rows)[number]) =>
+    languages.reduce((n, language) => n + p[language].incorrect, 0);
+
   const pct = (correct: number, wrong: number) =>
     correct + wrong === 0 ? 0 : Math.round((correct / (correct + wrong)) * 100);
 
@@ -55,8 +62,7 @@ export default function StatsScreen() {
     .map((category) => {
       const owned = cards.filter((c) => c.categoryId === category.id);
       const stats = owned.map((c) => cardProgress[c.id]).filter(Boolean);
-      const wrong = stats.reduce(
-        (n, p) => n + p!.hebrew.incorrect + p!.arabic.incorrect, 0);
+      const wrong = stats.reduce((n, p) => n + misses(p!), 0);
       return { category, wrong, studied: stats.length };
     })
     .filter((row) => row.wrong > 0)
@@ -66,12 +72,8 @@ export default function StatsScreen() {
   const mostMissed = cards
     .map((card) => ({ card, p: cardProgress[card.id] }))
     .filter((row) => row.p)
-    .sort(
-      (a, b) =>
-        b.p!.hebrew.incorrect + b.p!.arabic.incorrect -
-        (a.p!.hebrew.incorrect + a.p!.arabic.incorrect),
-    )
-    .filter((row) => row.p!.hebrew.incorrect + row.p!.arabic.incorrect > 0)
+    .sort((a, b) => misses(b.p!) - misses(a.p!))
+    .filter((row) => misses(row.p!) > 0)
     .slice(0, 8);
 
   return (
@@ -79,18 +81,28 @@ export default function StatsScreen() {
       <ScreenHeader title="Statistics" eyebrow="All local, never uploaded" />
 
       <div className="tile-grid">
+        {/* One tile per language studied. The other language's figures are
+            still on the rows underneath — they are simply not hers today, and
+            printing "Arabic 0%" for a language nobody has asked her about
+            would read as a failure rather than as an absence. */}
+        {languages.includes('hebrew') && (
+          <div className="tile">
+            <span className="eyebrow">Hebrew accuracy</span>
+            <span className="value">{pct(heCorrect, heWrong)}%</span>
+            <span className="small muted">{heCorrect} right · {heWrong} wrong</span>
+          </div>
+        )}
+        {languages.includes('arabic') && (
+          <div className="tile">
+            <span className="eyebrow">Arabic accuracy</span>
+            <span className="value">{pct(arCorrect, arWrong)}%</span>
+            <span className="small muted">{arCorrect} right · {arWrong} wrong</span>
+          </div>
+        )}
         <div className="tile">
-          <span className="eyebrow">Hebrew accuracy</span>
-          <span className="value">{pct(heCorrect, heWrong)}%</span>
-          <span className="small muted">{heCorrect} right · {heWrong} wrong</span>
-        </div>
-        <div className="tile">
-          <span className="eyebrow">Arabic accuracy</span>
-          <span className="value">{pct(arCorrect, arWrong)}%</span>
-          <span className="small muted">{arCorrect} right · {arWrong} wrong</span>
-        </div>
-        <div className="tile">
-          <span className="eyebrow">Both correct</span>
+          <span className="eyebrow">
+            {languages.length > 1 ? 'Both correct' : 'Cards correct'}
+          </span>
           <span className="value">{bothCorrect}</span>
           <span className="small muted">of {answered} answers</span>
         </div>
@@ -137,14 +149,23 @@ export default function StatsScreen() {
                 <span className="grow english">
                   <strong>{card.english}</strong>
                   <div className="small muted">
-                    Hebrew {p!.hebrew.correct}/{p!.hebrew.correct + p!.hebrew.incorrect}{' '}
-                    ({Math.round(accuracy(p!.hebrew) * 100)}%) · Arabic{' '}
-                    {p!.arabic.correct}/{p!.arabic.correct + p!.arabic.incorrect}{' '}
-                    ({Math.round(accuracy(p!.arabic) * 100)}%)
+                    {languages
+                      .map(
+                        (language) =>
+                          LANGUAGE_LABEL[language] +
+                          ' ' +
+                          p![language].correct +
+                          '/' +
+                          (p![language].correct + p![language].incorrect) +
+                          ' (' +
+                          Math.round(accuracy(p![language]) * 100) +
+                          '%)',
+                      )
+                      .join(' · ')}
                   </div>
                 </span>
                 <span className="chip">
-                  {STATUS_LABELS[statusFor(p, now, settings.enableMasteryDecay)]}
+                  {STATUS_LABELS[statusFor(p, now, settings.enableMasteryDecay, languages)]}
                 </span>
               </div>
             ))}

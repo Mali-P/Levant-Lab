@@ -16,19 +16,32 @@ import {
  * is `identityFromLegacy`, which exists precisely to stop doing that.
  */
 
-const SPEAKER: Record<SpeechPerspective, PersonGender> = {
+/**
+ * The two people a perspective names, read out of the perspective rather than
+ * out of stored identity.
+ *
+ * Exported because `wordForms` needs the same answer when it resolves a
+ * `forms` pair against its agreement controller, and a second copy of these
+ * four rows elsewhere is exactly how the two axes drifted apart before.
+ * Reading a *rendering* decision out of a perspective is allowed; reading an
+ * *identity* out of one is what the file header forbids.
+ */
+export const PERSPECTIVE_SPEAKER: Record<SpeechPerspective, PersonGender> = {
   femaleToMale: 'female',
   femaleToFemale: 'female',
   maleToFemale: 'male',
   maleToMale: 'male',
 };
 
-const LISTENER: Record<SpeechPerspective, PersonGender> = {
+export const PERSPECTIVE_LISTENER: Record<SpeechPerspective, PersonGender> = {
   femaleToMale: 'male',
   femaleToFemale: 'female',
   maleToFemale: 'female',
   maleToMale: 'male',
 };
+
+const SPEAKER = PERSPECTIVE_SPEAKER;
+const LISTENER = PERSPECTIVE_LISTENER;
 
 /**
  * Canonical listener order: ♂ first, so `['male','female']` lines up with

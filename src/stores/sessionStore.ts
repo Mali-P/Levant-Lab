@@ -187,7 +187,7 @@ export const useSession = create<SessionState>((set, get) => ({
     const session = get().session;
     if (!session || get().awaitingAdvance) return null;
 
-    const { settings } = useSettings.getState();
+    const { settings, languages } = useSettings.getState();
     const data = useData.getState();
 
     // Taken before anything is written, and only where going back is offered:
@@ -212,10 +212,15 @@ export const useSession = create<SessionState>((set, get) => ({
 
     // Persist before anything renders, so a crash mid-feedback loses nothing.
     await db.sessions.put(outcome.session);
-    await data.recordAnswer(session.currentCardId!, {
-      hebrew: outcome.hebrewCorrect,
-      arabic: outcome.arabicCorrect,
-    });
+    // Only the languages she is studying reach the card's statistics. The
+    // engine still works in a pair — a language switched off is handed to it
+    // already correct, so the run's shape is unchanged — but a half nobody
+    // asked about must not have a right answer written against it.
+    await data.recordAnswer(
+      session.currentCardId!,
+      { hebrew: outcome.hebrewCorrect, arabic: outcome.arabicCorrect },
+      languages,
+    );
 
     const now = new Date().toISOString();
     const deckId = session.deckId;

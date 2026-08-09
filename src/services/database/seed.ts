@@ -15,7 +15,7 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 29;
+export const STARTER_CONTENT_VERSION = 31;
 
 /**
  * How many cards the official starter set contains: every taught deck is a ten,
@@ -80,7 +80,10 @@ function sidesFor(
         forms: card.hebrew.forms,
         // Carried across explicitly: a card whose variants were dropped here
         // would fall back to `script` alone, which is one perspective's
-        // wording presented as if it were everybody's.
+        // wording presented as if it were everybody's. `agreement` travels
+        // with `forms` for the same reason — a pair that arrives without it
+        // has quietly become word gender, and shows both halves for ever.
+        agreement: card.hebrew.agreement,
         speechForms: card.hebrew.speechForms,
         notes: card.hebrew.notes,
       },
@@ -92,6 +95,7 @@ function sidesFor(
         script: card.arabic.script,
         transliteration: card.arabic.transliteration,
         forms: card.arabic.forms,
+        agreement: card.arabic.agreement,
         speechForms: card.arabic.speechForms,
         dialect: card.arabic.dialect,
         notes: card.arabic.notes,

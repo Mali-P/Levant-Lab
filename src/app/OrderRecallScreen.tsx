@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { Language } from '../types';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
+import { LANGUAGE_LONG_LABEL } from '../utils/languageSelection';
 import { sortCards } from '../utils/cardOrder';
 import { gateDecks } from '../features/review/unlock';
 import { isSequencedCategory } from '../features/ordering/sequenced';
@@ -31,17 +32,13 @@ import Confetti from '../components/feedback/Confetti';
  * Only decks that run in an order ever reach here. See `features/ordering`.
  */
 
-const LANGUAGE_LABEL: Record<Language, string> = {
-  hebrew: 'Hebrew',
-  arabic: 'Levantine Arabic',
-};
-
 export default function OrderRecallScreen() {
   const { deckId = '' } = useParams();
   const navigate = useNavigate();
 
   const settings = useSettings((s) => s.settings);
   const perspectives = useSettings((s) => s.perspectives);
+  const languages = useSettings((s) => s.languages);
   const lead = useSettings((s) => s.lead);
   const decks = useData((s) => s.decks);
   const categories = useData((s) => s.categories);
@@ -169,7 +166,10 @@ export default function OrderRecallScreen() {
   /* ---- the summary ------------------------------------------------------ */
 
   if (finished) {
-    const both = passed.hebrew === true && passed.arabic === true;
+    // Every column she was asked for, not every column that exists: a learner
+    // studying Hebrew alone has put the deck in order when the Hebrew is in
+    // order.
+    const both = languages.every((language) => passed[language] === true);
 
     return (
       <div className="screen">
@@ -182,11 +182,14 @@ export default function OrderRecallScreen() {
             {both
               ? 'All ' +
                 deckCards.length +
-                ' back in the right order, in both languages.'
-              : (['hebrew', 'arabic'] as const)
+                ' back in the right order' +
+                (languages.length > 1
+                  ? ', in both languages.'
+                  : ', in ' + LANGUAGE_LONG_LABEL[languages[0]] + '.')
+              : languages
                   .map(
                     (entry) =>
-                      LANGUAGE_LABEL[entry] +
+                      LANGUAGE_LONG_LABEL[entry] +
                       ': ' +
                       (passed[entry] ? 'in order' : 'shown'),
                   )
@@ -231,6 +234,7 @@ export default function OrderRecallScreen() {
         key={attempt}
         cards={deckCards}
         perspectives={perspectives}
+        languages={languages}
         lead={lead}
         showTransliteration={settings.showTransliteration}
         reducedMotion={settings.reducedMotion}

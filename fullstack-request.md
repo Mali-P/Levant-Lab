@@ -6,6 +6,11 @@ Build a private, mobile-first flashcard application for learning **Hebrew and Le
 
 The app should feel more like a visually engaging game than a traditional study tool. It should be strict, repetitive and intentionally difficult. The core learning principle is that a card is not considered correct unless the user recalls the answer in **both Hebrew and Arabic**.
 
+> The whole of this document describes the default **Both** setting. A user may
+> choose to study one language only — see *Additional Preferences → Preference 2*
+> at the end. Every rule below then applies unchanged to the single active
+> language.
+
 The app is for personal use only. It does not need public accounts, subscriptions, payments, social features or commercial licensing infrastructure.
 
 The primary target is mobile, especially Android, but the interface should also work cleanly on desktop and tablet.
@@ -1249,3 +1254,74 @@ Repeat until the vocabulary is genuinely retained
 The app should not allow vague familiarity to count as mastery.
 
 It should be difficult enough to force real recall, but polished, tactile and visually satisfying enough that the user wants to keep going.
+
+---
+
+# Additional Preferences
+
+Amendments to the specification above, in the order they were requested.
+
+## Preference 1 — From → To gender settings
+
+Delivered. The user states who is speaking and who is being spoken to, and every
+language-specific form the app displays or grades resolves against that.
+
+## Preference 2 — Language selection
+
+Users should also be able to choose which study language(s) are active.
+
+Add a simple setting such as:
+
+**Languages I'm learning**
+
+* Hebrew
+* Levantine Arabic
+* Both
+
+Default: **Both**
+
+A dropdown, segmented control, or equivalent simple toggle is fine.
+
+This setting should control the entire learning experience, not just hide text cosmetically.
+
+If **Hebrew** is selected, study cards, tests, recall activities, audio, scoring, retry logic, and completion requirements should use Hebrew only.
+
+If **Levantine Arabic** is selected, those same systems should use Arabic only.
+
+If **Both** is selected, preserve the current dual-language behaviour.
+
+Do not delete or mutate the unused language data. This is a user preference/filter, so switching back to **Both** should immediately restore the other language.
+
+The selected language preference should persist across sessions and apply consistently to:
+
+* study cards
+* Memorise mode
+* testing/grading
+* audio buttons
+* retry/error tracking
+* activity completion scores
+* any language-specific progress calculations
+
+For example, if a user studies Hebrew only, getting the Hebrew answer correct should count as a correct card. They should not fail or be held back because an Arabic answer was not shown or tested.
+
+This should work alongside the **From → To gender settings**, so the app first determines which language(s) are active, then resolves the correct gendered form for each active language.
+
+### How this reads against the rest of the specification
+
+Everything written above this addendum — the both-languages mastery rule, the retry
+pile, Normal, Hard and Brutal mode, the perfect-run requirement, the acceptance
+criteria — describes the **Both** setting, and is unchanged there.
+
+When a single language is chosen, those same rules apply unchanged to that one
+language. Nothing is relaxed or removed; the rule simply has one language to range
+over instead of two. So:
+
+* A card counts as correct when the active language is correct.
+* A card enters the retry pile when the active language is wrong.
+* One mistake in the active language fails a hard-mode run.
+* A perfect run is a full deck answered correctly in the active language.
+* Mastery, decay and accuracy statistics are computed from the active language.
+
+The inactive language is never prompted, never spoken, never graded and never
+counted for or against the user. Its stored data and its own progress statistics
+remain untouched, so choosing **Both** again restores them intact.

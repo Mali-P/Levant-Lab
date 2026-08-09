@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  SPEECH_PERSPECTIVES,
   SPEECH_PERSPECTIVE_LABELS,
   SPEECH_PERSPECTIVE_MARKERS,
-  SPEECH_PERSPECTIVE_SHORT,
   type AnswerMode,
+  type LanguageChoice,
   type PersonGender,
-  type SpeechPerspective,
   type StudyMode,
   type ThemeMode,
 } from '../types';
 import { useSettings } from '../stores/settingsStore';
-import { derivePerspectives } from '../utils/speechIdentity';
+import { LANGUAGE_LONG_LABEL } from '../utils/languageSelection';
 import { speechService, rankVoices, type SpeechVoice } from '../services/speech';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Toggle from '../components/controls/Toggle';
@@ -75,37 +73,60 @@ export default function SettingsScreen() {
   }
 
   /**
-   * The four checkboxes, behind a disclosure and writing nothing but the
-   * override.
+   * The override is no longer something this screen can create.
    *
-   * They start from whatever is in force, so unticking from her derived pair is
-   * how an override begins; unticking the last one ends it, which is the same
-   * thing the clear control does. Identity is never touched here — that is the
-   * whole point of the field being separate — so clearing always returns her to
-   * the person she said she was.
+   * A second list of the same four perspectives, sitting under the two
+   * questions that derive them, only asked her the same thing twice — and
+   * invited her to describe herself as a checklist. The field survives for the
+   * one install that can still hold one: a legacy two-speaker list that
+   * `identityFromLegacy` preserved rather than guess at. All that is left here
+   * is the way out of it.
    */
   const override = settings.practicePerspectiveOverride;
-
-  function togglePerspective(p: SpeechPerspective, on: boolean) {
-    const next = SPEECH_PERSPECTIVES.filter((candidate) =>
-      candidate === p ? on : perspectives.includes(candidate),
-    );
-    // Ticking back to exactly what her identity implies is not an override, it
-    // is the absence of one, and storing it as an override would leave her with
-    // a banner about a difference she cannot see.
-    const usual = derivePerspectives(speaker, settings.listenerGenders);
-    const same =
-      next.length === usual.length && next.every((q) => usual.includes(q));
-    void update({ practicePerspectiveOverride: same ? undefined : next });
-  }
 
   return (
     <div className="screen">
       <ScreenHeader title="Settings" />
 
-      {/* First on the screen, not filed under Study: it decides which words
-          the app teaches at all, which is a bigger question than how they are
-          drilled. */}
+      {/* Ahead of identity, because it is answered first: this decides which
+          languages a card is resolved for at all, and identity only decides
+          which form each of those takes. */}
+      <section className="panel">
+        <span className="eyebrow">Languages I'm learning</span>
+        <Choice<LanguageChoice>
+          label="Study"
+          value={settings.studyLanguages}
+          onChange={(v) => update({ studyLanguages: v })}
+          options={[
+            { value: 'both', label: 'Both — Hebrew and Levantine Arabic' },
+            { value: 'hebrew', label: 'Hebrew only' },
+            { value: 'arabic', label: 'Levantine Arabic only' },
+          ]}
+        />
+        <p className="small muted">
+          {settings.studyLanguages === 'both'
+            ? 'A card is not correct until you have recalled it in both. ' +
+              'Everything is asked, spoken and scored twice.'
+            : 'Only ' +
+              LANGUAGE_LONG_LABEL[
+                settings.studyLanguages === 'hebrew' ? 'hebrew' : 'arabic'
+              ] +
+              ' is asked, spoken and scored. A card is correct when that ' +
+              'answer is.'}
+        </p>
+        {settings.studyLanguages !== 'both' && (
+          // Said plainly, because the obvious worry about a switch like this
+          // is that it throws the other language away.
+          <p className="small muted">
+            The other language is hidden, not deleted. Its words and its
+            accuracy are kept exactly as they stand, and choosing Both brings
+            them straight back.
+          </p>
+        )}
+      </section>
+
+      {/* Not filed under Study: it decides which words the app teaches at all,
+          which is a bigger question than how they are drilled. */}
       <section className="panel">
         <span className="eyebrow">Who are you learning to speak as, and to?</span>
         <p className="small muted">
@@ -173,25 +194,6 @@ export default function SettingsScreen() {
           </p>
         )}
 
-        {/* Folded away because the two questions are the honest ones and this
-            is the escape hatch: picking perspectives directly is useful, but
-            offering it first invites her to describe herself as a checklist. */}
-        <details className="disclosure" open={Boolean(override)}>
-          <summary className="small muted">Choose perspectives directly</summary>
-          <p className="small muted">
-            Overrides the two answers above without changing them. Editing who
-            you are while this is set changes what you would return to, not what
-            you see now.
-          </p>
-          {SPEECH_PERSPECTIVES.map((p) => (
-            <Toggle
-              key={p}
-              label={SPEECH_PERSPECTIVE_MARKERS[p] + '  ' + SPEECH_PERSPECTIVE_SHORT[p]}
-              checked={perspectives.includes(p)}
-              onChange={(on) => togglePerspective(p, on)}
-            />
-          ))}
-        </details>
       </section>
 
       <section className="panel">

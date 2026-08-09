@@ -1,5 +1,6 @@
 import type {
   ArabicDialect,
+  FormAgreement,
   GenderedForms,
   LanguageForm,
   SpeechForms,
@@ -9,6 +10,8 @@ export type SeedSide = {
   script: string;
   transliteration: string;
   forms?: GenderedForms;
+  /** Whose gender picks between the halves of `forms`. Absent means the word's own. */
+  agreement?: FormAgreement;
   speechForms?: SpeechForms;
   notes?: string;
 };
@@ -68,7 +71,45 @@ type Speech =
   | { by: 'speaker'; female: W; male: W }
   | { by: 'both'; f2m: W; f2f: W; m2f: W; m2m: W };
 
-type Entry = Word | Speech;
+/**
+ * A word pair whose gender belongs to somebody in the conversation rather than
+ * to the word.
+ *
+ * The pair itself is written exactly as an ordinary `Word`; all this adds is
+ * the answer to "which of these two is the one to say", which is what lets the
+ * From / To settings narrow the card to one form. Kept out of `Speech` on
+ * purpose: those four perspectives exist because the *wording* differs per
+ * perspective, whereas this is two wordings and a rule for choosing.
+ */
+type AgreeingWord = { pair: [string, string, string, string]; by: 'speaker' | 'listener' };
+
+type Entry = Word | Speech | AgreeingWord;
+
+/**
+ * A pair the speaker's own gender picks between — "I'm tired", "I'm hungry".
+ * A woman says the feminine one to anybody.
+ */
+function ofSpeaker(
+  fScript: string,
+  fTranslit: string,
+  mScript: string,
+  mTranslit: string,
+): AgreeingWord {
+  return { pair: [fScript, fTranslit, mScript, mTranslit], by: 'speaker' };
+}
+
+/**
+ * A pair the listener's gender picks between — an imperative, or anything said
+ * about the person being addressed.
+ */
+function ofListener(
+  fScript: string,
+  fTranslit: string,
+  mScript: string,
+  mTranslit: string,
+): AgreeingWord {
+  return { pair: [fScript, fTranslit, mScript, mTranslit], by: 'listener' };
+}
 
 function form([script, transliteration]: W): LanguageForm {
   return { script, transliteration };
@@ -122,15 +163,19 @@ function speechSide(spec: Speech): SeedSide {
   };
 }
 
-function isSpeech(entry: Entry): entry is Speech {
-  return !Array.isArray(entry);
+function isAgreeing(entry: Entry): entry is AgreeingWord {
+  return !Array.isArray(entry) && 'pair' in entry;
 }
 
-function side(entry: Entry): SeedSide {
-  if (isSpeech(entry)) return speechSide(entry);
-  const word = entry;
-  if (word.length === 2) return { script: word[0], transliteration: word[1] };
-  const [fScript, fTranslit, mScript, mTranslit] = word;
+function isSpeech(entry: Entry): entry is Speech {
+  return !Array.isArray(entry) && !isAgreeing(entry);
+}
+
+/** The pair, with whatever rule was given for choosing between its halves. */
+function pairSide(
+  [fScript, fTranslit, mScript, mTranslit]: [string, string, string, string],
+  agreement?: FormAgreement,
+): SeedSide {
   return {
     // The feminine form is the headline: this app is written for a woman, so
     // the word she says — or is described by — is the one shown first, and
@@ -141,7 +186,16 @@ function side(entry: Entry): SeedSide {
       feminine: { script: fScript, transliteration: fTranslit },
       masculine: { script: mScript, transliteration: mTranslit },
     },
+    ...(agreement ? { agreement } : {}),
   };
+}
+
+function side(entry: Entry): SeedSide {
+  if (isAgreeing(entry)) return pairSide(entry.pair, entry.by);
+  if (isSpeech(entry)) return speechSide(entry);
+  const word = entry;
+  if (word.length === 2) return { script: word[0], transliteration: word[1] };
+  return pairSide(word);
 }
 
 /**
@@ -540,12 +594,16 @@ const TITLE_DECKS: SeedDeck[] = [
   {
     name: 'Titles and forms of address',
     cards: [
-      c('Mrs / Mr', ['גברת', 'gveret', 'מר', 'mar'], ['مدام', 'madām', 'سيّد', 'sayyed'], { ar: 'مدام is the everyday address for a married woman; السيّد is the formal written title.' }),
+      // A title you put in front of somebody's name follows that somebody, so
+      // these answer to "I practise speaking to…" and show the one she would
+      // actually use. The royalty and the president further down do not: those
+      // are people talked about, and their gender is the word's own.
+      c('Mrs / Mr', ofListener('גברת', 'gveret', 'מר', 'mar'), ofListener('مدام', 'madām', 'سيّد', 'sayyed'), { ar: 'مدام is the everyday address for a married woman; السيّد is the formal written title.' }),
       c('Miss', ['גברת', 'gveret'], ['آنسة', 'ānise'], { he: 'Modern Hebrew uses גברת whether or not a woman is married.' }),
-      c('doctor (as a title)', ['ד"ר', 'doktor'], ['دكتورة', 'doktōra', 'دكتور', 'doktōr'], { he: 'Written as an abbreviation and said "doktor" for anyone.' }),
+      c('doctor (as a title)', ['ד"ר', 'doktor'], ofListener('دكتورة', 'doktōra', 'دكتور', 'doktōr'), { he: 'Written as an abbreviation and said "doktor" for anyone.' }),
       c('professor', ['פרופסור', 'profesor'], ['بروفيسور', 'brōfēsōr'], { ar: 'أستاذ دكتور is the formal academic version.' }),
-      c('teacher / sir', ['מורה', 'mora', 'מורה', 'more'], ['أستاذة', 'ustāze', 'أستاذ', 'ustāz'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'أستاذ doubles as a polite "sir" for a man you address by name.' }),
-      c('engineer', ['מהנדסת', 'mehandeset', 'מהנדס', 'mehandes'], ['مهندسة', 'muhandise', 'مهندس', 'muhandis'], { ar: 'Used as a title in front of a name, much like "doctor".' }),
+      c('teacher / sir', ofListener('מורה', 'mora', 'מורה', 'more'), ofListener('أستاذة', 'ustāze', 'أستاذ', 'ustāz'), { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'أستاذ doubles as a polite "sir" for a man you address by name.' }),
+      c('engineer', ofListener('מהנדסת', 'mehandeset', 'מהנדס', 'mehandes'), ofListener('مهندسة', 'muhandise', 'مهندس', 'muhandis'), { ar: 'Used as a title in front of a name, much like "doctor".' }),
       c('madam / sir (polite address)', toL(['אדוני', 'adoni'], ['גברתי', 'gvirti']), toL(['حضرتك', 'ḥaḍirtak'], ['حضرتك', 'ḥaḍirtik']), { ar: 'Literally "your presence"; the ending follows the person spoken to and goes unvowelled in everyday writing.' }),
       c('queen / king', ['מלכה', 'malka', 'מלך', 'melekh'], ['ملكة', 'malake', 'ملك', 'malik']),
       c('princess / prince', ['נסיכה', 'nesikha', 'נסיך', 'nasikh'], ['أميرة', 'amīre', 'أمير', 'amīr']),
@@ -840,279 +898,14 @@ export const SEQUENCED_CATEGORY = 'Counting and numbers';
 
 export const SEED_CATEGORIES: SeedCategory[] = [
   {
-    name: 'Greetings',
-    icon: '👋',
-    decks: GREETING_DECKS,
-  },
-  {
     name: SEQUENCED_CATEGORY,
     icon: '🔢',
     decks: NUMBER_DECKS,
   },
   {
-    name: 'Food and drink',
-    icon: '🍎',
-    decks: [
-      {
-        name: 'Kitchen basics',
-        cards: [
-          c('water', ['מים', 'mayim'], ['ميّة', 'mayye']),
-          c('bread', ['לחם', 'lekhem'], ['خبز', 'khubiz']),
-          c('milk', ['חלב', 'khalav'], ['حليب', 'ḥalīb']),
-          c('coffee', ['קפה', 'kafe'], ['قهوة', 'qahwe']),
-          c('tea', ['תה', 'te'], ['شاي', 'shāy']),
-          c('rice', ['אורז', 'orez'], ['رزّ', 'ruzz']),
-          c('meat', ['בשר', 'basar'], ['لحمة', 'laḥme']),
-          c('chicken', ['עוף', 'of'], ['جاج', 'jāj']),
-          c('fruit', ['פרי', 'pri'], ['فواكه', 'fawākeh']),
-          c('vegetables', ['ירקות', 'yerakot'], ['خضار', 'khuḍār']),
-        ],
-      },
-      {
-        name: 'Fruit and vegetables',
-        cards: [
-          c('apple', ['תפוח', 'tapuakh'], ['تفاح', 'tuffāḥ']),
-          c('banana', ['בננה', 'banana'], ['موز', 'mōz']),
-          c('grapes', ['ענבים', 'anavim'], ['عنب', 'ʿinab']),
-          c('orange', ['תפוז', 'tapuz'], ['برتقان', 'burtuʾān'], { ar: 'Palestinian spoken form.' }),
-          c('watermelon', ['אבטיח', 'avatiakh'], ['بطّيخ', 'baṭṭīkh']),
-          c('olives', ['זיתים', 'zeitim'], ['زيتون', 'zētūn']),
-          c('tomato', ['עגבנייה', 'agvaniya'], ['بندورة', 'bandōra'], { ar: 'The Levantine word; طماطم belongs further south and west.' }),
-          c('cucumber', ['מלפפון', 'melafefon'], ['خيار', 'khyār']),
-          c('onion', ['בצל', 'batsal'], ['بصل', 'baṣal']),
-          c('potato', ['תפוח אדמה', 'tapuakh adama'], ['بطاطا', 'baṭāṭa']),
-        ],
-      },
-      {
-        name: 'Eating out',
-        cards: [
-          c('restaurant', ['מסעדה', 'mis\'ada'], ['مطعم', 'maṭʿam']),
-          c('menu', ['תפריט', 'tafrit'], ['منيو', 'menyu'], { ar: 'The everyday spoken word; قائمة الطعام is the written one.' }),
-          c('waitress / waiter', ['מלצרית', 'meltsarit', 'מלצר', 'meltsar'], ['نادلة', 'nādle', 'نادل', 'nādel']),
-          c('I would like...', bySp(['אני רוצה', 'ani rotsa'], ['אני רוצה', 'ani rotse']), ['بدي', 'biddi'], { he: 'Written the same either way; only the ending is said differently.', ar: 'One word whoever is ordering.' }),
-          c('plate', ['צלחת', 'tsalakhat'], ['صحن', 'ṣaḥn']),
-          c('glass', ['כוס', 'kos'], ['كاسة', 'kāse']),
-          c('fork', ['מזלג', 'mazleg'], ['شوكة', 'shōke']),
-          c('knife', ['סכין', 'sakin'], ['سكّينة', 'sikkīne']),
-          c('spoon', ['כף', 'kaf'], ['معلقة', 'maʿlaʾa'], { ar: 'The spoken Palestinian form of ملعقة.' }),
-          c('the bill, please', ['החשבון בבקשה', 'hakheshbon bevakasha'], toL(['الحساب لو سمحت', 'el-ḥsāb law samaḥt'], ['الحساب لو سمحتي', 'el-ḥsāb law samaḥti'])),
-        ],
-      },
-    ],
-  },
-  {
-    name: 'Family',
-    icon: '👪',
-    decks: [
-      {
-        name: 'Close family',
-        cards: [
-          c('mother / father', ['אמא', 'ima', 'אבא', 'aba'], ['أمّ', 'imm', 'أبو', 'abu']),
-          c('sister / brother', ['אחות', 'akhot', 'אח', 'akh'], ['أخت', 'ukht', 'أخو', 'akhu']),
-          c('daughter / son', ['בת', 'bat', 'בן', 'ben'], ['بنت', 'bint', 'ابن', 'ibin']),
-          c('grandmother / grandfather', ['סבתא', 'savta', 'סבא', 'saba'], ['ستّ', 'sitt', 'سيد', 'sīd'], { ar: 'Common Palestinian family terms.' }),
-          c('paternal aunt / uncle', ['דודה', 'doda', 'דוד', 'dod'], ['عمّة', 'ʿamme', 'عمّ', 'ʿamm'], { ar: 'Arabic distinguishes the father\'s and mother\'s sides.' }),
-          c('maternal aunt / uncle', ['דודה', 'doda', 'דוד', 'dod'], ['خالة', 'khāle', 'خال', 'khāl'], { ar: 'Arabic distinguishes the father\'s and mother\'s sides.' }),
-          c('wife / husband', ['אישה', 'isha', 'בעל', 'ba\'al'], ['مَرَة', 'mara', 'جوز', 'jōz'], { ar: 'Everyday spoken forms.' }),
-          c('female cousin / male cousin', ['בת דודה', 'bat doda', 'בן דוד', 'ben dod'], ['بنت عمّ', 'bint ʿamm', 'ابن عمّ', 'ibin ʿamm'], { ar: 'Arabic example is a paternal uncle\'s child.' }),
-          c('granddaughter / grandson', ['נכדה', 'nekhda', 'נכד', 'nekhed'], ['حفيدة', 'ḥafīde', 'حفيد', 'ḥafīd']),
-          c('female partner / male partner', ['בת זוג', 'bat zug', 'בן זוג', 'ben zug'], ['شريكة', 'sharīke', 'شريك', 'sharīk'], { ar: 'Romantic or life partner.' }),
-        ],
-      },
-      {
-        name: 'Relatives and neighbours',
-        cards: [
-          c('niece / nephew', ['אחיינית', 'akhyanit', 'אחיין', 'akhyan'], ['بنت الأخت', 'bint el-ukht', 'ابن الأخت', 'ibin el-ukht'], { ar: 'A sister\'s child; a brother\'s is بنت الأخ or ابن الأخ.' }),
-          c('mother-in-law / father-in-law', ['חמות', 'khamot', 'חם', 'kham'], ['حماة', 'ḥamā', 'حما', 'ḥama']),
-          c('bride / groom', ['כלה', 'kala', 'חתן', 'khatan'], ['عروس', 'ʿarūs', 'عريس', 'ʿarīs']),
-          c('twin', ['תאומה', 'te\'oma', 'תאום', 'te\'om'], ['توأم', 'tawʾam'], { ar: 'One word for a twin of either gender.' }),
-          c('relatives', ['קרובי משפחה', 'krovei mishpakha'], ['أقارب', 'aqāreb']),
-          c('family', ['משפחה', 'mishpakha'], ['عيلة', 'ʿēle'], { ar: 'The everyday spoken word; عائلة is the written one.' }),
-          c('neighbour', ['שכנה', 'shkhena', 'שכן', 'shakhen'], ['جارة', 'jāra', 'جار', 'jār']),
-          c('friend', ['חברה', 'khavera', 'חבר', 'khaver'], ['صاحبة', 'ṣāḥbe', 'صاحب', 'ṣāḥeb'], { ar: 'The everyday word for a friend; صديقة is a shade more formal.' }),
-          c('guest', ['אורחת', 'orakhat', 'אורח', 'oreakh'], ['ضيفة', 'ḍēfe', 'ضيف', 'ḍēf']),
-          c('girl / boy', ['ילדה', 'yalda', 'ילד', 'yeled'], ['بنت', 'bint', 'ولد', 'walad']),
-        ],
-      },
-      {
-        name: 'Talking about family',
-        cards: [
-          c('I have a sister', ['יש לי אחות', 'yesh li akhot'], ['عندي أخت', 'ʿindi ukht'], { he: 'Literally "there is to me a sister", which is how Hebrew says it.' }),
-          c('how many brothers do you have?', toL(['כמה אחים יש לך', 'kama akhim yesh lekha'], ['כמה אחים יש לך', 'kama akhim yesh lakh']), toL(['كم أخ عندك', 'kam akh ʿindak'], ['كم أخ عندك', 'kam akh ʿindik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
-          c('are you married?', toL(['אתה נשוי', 'ata nasui'], ['את נשואה', 'at nesu\'a']), toL(['إنت متجوّز', 'inte mitjawwez'], ['إنتِ متجوّزة', 'inti mitjawwze'])),
-          c('I am married', bySp(['אני נשואה', 'ani nesu\'a'], ['אני נשוי', 'ani nasui']), bySp(['أنا متجوّزة', 'ana mitjawwze'], ['أنا متجوّز', 'ana mitjawwez']), { ar: 'Here the ending is your own, not theirs.' }),
-          c('I am not married', bySp(['אני לא נשואה', 'ani lo nesu\'a'], ['אני לא נשוי', 'ani lo nasui']), bySp(['أنا مش متجوّزة', 'ana mish mitjawwze'], ['أنا مش متجوّز', 'ana mish mitjawwez']), { ar: 'How it is normally said; عزباء belongs to the written language.' }),
-          c('do you have children?', toL(['יש לך ילדים', 'yesh lekha yeladim'], ['יש לך ילדים', 'yesh lakh yeladim']), toL(['عندك ولاد', 'ʿindak wlād'], ['عندك ولاد', 'ʿindik wlād']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
-          c('my family is big', ['המשפחה שלי גדולה', 'hamishpakha sheli gdola'], ['عيلتي كبيرة', 'ʿēlti kbīre']),
-          c('she is my sister', ['היא אחותי', 'hi akhoti'], ['هيّ أختي', 'hiyye ukhti']),
-          c('he is my brother', ['הוא אחי', 'hu akhi'], ['هوّ أخوي', 'huwwe akhūy']),
-          c('we are one family', ['אנחנו משפחה אחת', 'anakhnu mishpakha akhat'], ['إحنا عيلة وحدة', 'iḥna ʿēle waḥde']),
-        ],
-      },
-    ],
-  },
-  {
-    name: 'Pronouns',
-    icon: '🫵',
-    decks: PRONOUN_DECKS,
-  },
-  {
-    name: 'Titles',
-    icon: '🎩',
-    decks: TITLE_DECKS,
-  },
-  {
-    name: 'Body parts',
-    icon: '🫀',
-    decks: [
-      {
-        name: 'Head to toe',
-        cards: [
-          c('head', ['ראש', 'rosh'], ['راس', 'rās']),
-          c('hair', ['שיער', 'se\'ar'], ['شعر', 'shaʿar']),
-          c('eye', ['עין', 'ayin'], ['عين', 'ʿēn']),
-          c('ear', ['אוזן', 'ozen'], ['دان', 'dān'], { ar: 'Palestinian spoken form.' }),
-          c('nose', ['אף', 'af'], ['منخار', 'minkhār'], { ar: 'Palestinian spoken form.' }),
-          c('mouth', ['פה', 'pe'], ['تمّ', 'timm'], { ar: 'Palestinian spoken form.' }),
-          c('hand', ['יד', 'yad'], ['إيد', 'īd']),
-          c('arm', ['זרוע', 'zroa'], ['دراع', 'drāʿ']),
-          c('leg', ['רגל', 'regel'], ['رِجِل', 'rijil'], { ar: 'In everyday Palestinian Arabic, the same word can mean leg or foot.' }),
-          c('foot', ['כף רגל', 'kaf regel'], ['رِجِل', 'rijil'], { ar: 'Everyday Palestinian Arabic commonly uses the same word as \'leg\'.' }),
-        ],
-      },
-      {
-        name: 'Face and hands',
-        cards: [
-          c('face', ['פנים', 'panim'], ['وجه', 'wijh']),
-          c('forehead', ['מצח', 'metsakh'], ['جبين', 'jbīn']),
-          c('eyebrow', ['גבה', 'gaba'], ['حاجب', 'ḥājeb']),
-          c('eyelash', ['ריס', 'ris'], ['رمش', 'rimsh']),
-          c('cheek', ['לחי', 'lekhi'], ['خدّ', 'khadd']),
-          c('lip', ['שפה', 'safa'], ['شفّة', 'shiffe']),
-          c('tooth', ['שן', 'shen'], ['سنّ', 'sinn']),
-          c('tongue', ['לשון', 'lashon'], ['لسان', 'lsān']),
-          c('finger', ['אצבע', 'etsba'], ['إصبع', 'iṣbaʿ']),
-          c('thumb', ['אגודל', 'agudal'], ['إبهام', 'ibhām']),
-        ],
-      },
-      {
-        name: 'Inside the body',
-        cards: [
-          c('heart', ['לב', 'lev'], ['قلب', 'qalb']),
-          c('brain', ['מוח', 'moakh'], ['دماغ', 'dmāgh']),
-          c('lung', ['ריאה', 're\'a'], ['رئة', 'riʾa']),
-          c('stomach', ['בטן', 'beten'], ['بطن', 'baṭn']),
-          c('bone', ['עצם', 'etsem'], ['عضم', 'ʿaḍm'], { ar: 'The spoken Palestinian pronunciation of عظم.' }),
-          c('skin', ['עור', 'or'], ['جلد', 'jild']),
-          c('muscle', ['שריר', 'shrir'], ['عضلة', 'ʿaḍale']),
-          c('nerve', ['עצב', 'atsav'], ['عصب', 'ʿaṣab']),
-          c('liver', ['כבד', 'kaved'], ['كبد', 'kibd']),
-          c('kidney', ['כליה', 'kilya'], ['كلية', 'kilye']),
-        ],
-      },
-    ],
-  },
-  {
-    name: 'Daily routine',
-    icon: '⏰',
-    decks: [
-      {
-        name: 'Morning to night',
-        cards: [
-          c('wake up', ['מתעוררת', 'mit\'oreret', 'מתעורר', 'mit\'orer'], ['بتصحى', 'btiṣḥa', 'بيصحى', 'byiṣḥa']),
-          c('get up', ['קמה', 'kama', 'קם', 'kam'], ['بتقوم', 'btqūm', 'بيقوم', 'byqūm']),
-          c('get dressed', ['מתלבשת', 'mitlabeshet', 'מתלבש', 'mitlabesh'], ['بتلبس تيابها', 'btilbas tyābha', 'بيلبس تيابه', 'byilbas tyābu']),
-          c('wash face', ['שוטפת פנים', 'shotefet panim', 'שוטף פנים', 'shotef panim'], ['بتغسل وجهها', 'btighsil wijhha', 'بيغسل وجهه', 'byighsil wijhu']),
-          c('brush teeth', ['מצחצחת שיניים', 'metsakhtsakhat shinayim', 'מצחצח שיניים', 'metsakhtseakh shinayim'], ['بتفرّش سنانها', 'btfarresh snānha', 'بيفرّش سنانه', 'byfarresh snānu']),
-          c('eat breakfast', ['אוכלת ארוחת בוקר', 'okhelet arukhat boker', 'אוכל ארוחת בוקר', 'okhel arukhat boker'], ['بتفطر', 'btifṭar', 'بيفطر', 'byifṭar']),
-          c('go to work', ['הולכת לעבודה', 'holekhet la\'avoda', 'הולך לעבודה', 'holekh la\'avoda'], ['بتروح عالشغل', 'btrūḥ ʿash-shughul', 'بيروح عالشغل', 'byrūḥ ʿash-shughul']),
-          c('come home', ['חוזרת הביתה', 'khozeret habayta', 'חוזר הביתה', 'khozer habayta'], ['بترجع عالبيت', 'btirjaʿ ʿal-bēt', 'بيرجع عالبيت', 'byirjaʿ ʿal-bēt']),
-          c('take a shower', ['מתקלחת', 'mitkalakhat', 'מתקלח', 'mitkaleakh'], ['بتتحمّم', 'btitḥammam', 'بيتحمّم', 'byitḥammam']),
-          c('sleep', ['ישנה', 'yeshena', 'ישן', 'yashen'], ['بتنام', 'btnām', 'بينام', 'bynām']),
-        ],
-      },
-      {
-        name: 'Telling the time',
-        cards: [
-          c('what time is it?', ['מה השעה', 'ma hasha\'a'], ['قدّيش الساعة', 'addēsh es-sāʿa']),
-          c('hour', ['שעה', 'sha\'a'], ['ساعة', 'sāʿa'], { ar: 'The same word means a clock or a watch.' }),
-          c('minute', ['דקה', 'daka'], ['دقيقة', 'daqīqa']),
-          c('half past', ['וחצי', 'vakhetsi'], ['ونصّ', 'w nuṣṣ'], { ar: 'Said after the hour: الساعة تلاتة ونصّ, "half past three".' }),
-          c('quarter past', ['ורבע', 'varevaʿ'], ['وربع', 'w rubʿ']),
-          c('early', ['מוקדם', 'mukdam'], ['بكّير', 'bakkīr']),
-          c('late', ['מאוחר', 'me\'ukhar'], ['متأخّر', 'mitʾakhkhir']),
-          c('now', ['עכשיו', 'akhshav'], ['هلّق', 'hallaʾ'], { ar: 'The Levantine word; الآن is written Arabic.' }),
-          c('today', ['היום', 'hayom'], ['اليوم', 'el-yōm']),
-          c('tomorrow', ['מחר', 'makhar'], ['بكرا', 'bukra']),
-        ],
-      },
-      {
-        name: 'Days of the week',
-        cards: [
-          c('Sunday', ['יום ראשון', 'yom rishon'], ['الأحد', 'el-aḥad'], { he: 'Literally "first day" — the Hebrew week starts here.' }),
-          c('Monday', ['יום שני', 'yom sheni'], ['الاتنين', 'et-tnēn']),
-          c('Tuesday', ['יום שלישי', 'yom shlishi'], ['التلات', 'et-talāt']),
-          c('Wednesday', ['יום רביעי', 'yom revi\'i'], ['الأربعا', 'el-arbaʿa']),
-          c('Thursday', ['יום חמישי', 'yom khamishi'], ['الخميس', 'el-khamīs']),
-          c('Friday', ['יום שישי', 'yom shishi'], ['الجمعة', 'el-jumʿa']),
-          c('Saturday', ['שבת', 'shabat'], ['السبت', 'es-sabt'], { he: 'The one weekday with a name rather than a number.' }),
-          c('week', ['שבוע', 'shavua'], ['أسبوع', 'usbūʿ']),
-          c('yesterday', ['אתמול', 'etmol'], ['إمبارح', 'imbāriḥ']),
-          c('weekend', ['סוף שבוע', 'sof shavua'], ['عطلة الأسبوع', 'ʿuṭlet el-usbūʿ']),
-        ],
-      },
-    ],
-  },
-  {
-    name: 'Activities',
-    icon: '⚽',
-    decks: [
-      {
-        name: 'Things you do',
-        cards: [
-          c('read', ['קוראת', 'koret', 'קורא', 'kore'], ['بتقرأ', 'btiqra', 'بيقرأ', 'byiqra']),
-          c('write', ['כותבת', 'kotevet', 'כותב', 'kotev'], ['بتكتب', 'btiktob', 'بيكتب', 'byiktob']),
-          c('listen to music', ['מקשיבה למוזיקה', 'makshiva la-muzika', 'מקשיב למוזיקה', 'makshiv la-muzika'], ['بتسمع موسيقى', 'btismaʿ mūsīqa', 'بيسمع موسيقى', 'byismaʿ mūsīqa']),
-          c('watch television', ['רואה טלוויזיה', 'ro\'a televizya', 'רואה טלוויזיה', 'ro\'e televizya'], ['بتحضر تلفزيون', 'btiḥḍar tilfizyōn', 'بيحضر تلفزيون', 'byiḥḍar tilfizyōn'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
-          c('exercise', ['מתאמנת', 'mit\'amenet', 'מתאמן', 'mit\'amen'], ['بتتمرّن', 'btitmaran', 'بيتمرّن', 'byitmaran']),
-          c('cook', ['מבשלת', 'mevashelet', 'מבשל', 'mevashel'], ['بتطبخ', 'btitbukh', 'بيطبخ', 'byitbukh']),
-          c('walk', ['הולכת', 'holekhet', 'הולך', 'holekh'], ['بتمشي', 'btimshi', 'بيمشي', 'byimshi']),
-          c('run', ['רצה', 'ratsa', 'רץ', 'rats'], ['بتركض', 'btirkod', 'بيركض', 'byirkod']),
-          c('swim', ['שוחה', 'sokha', 'שוחה', 'sokhe'], ['بتسبح', 'btisbaḥ', 'بيسبح', 'byisbaḥ'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
-          c('dance', ['רוקדת', 'rokedet', 'רוקד', 'roked'], ['بترقص', 'btirqoṣ', 'بيرقص', 'byirqoṣ']),
-        ],
-      },
-      {
-        name: 'Out and about',
-        cards: [
-          c('travel', ['נוסעת', 'nosa\'at', 'נוסע', 'nose\'a'], ['بتسافر', 'btsāfer', 'بيسافر', 'bysāfer']),
-          c('visit', ['מבקרת', 'mevakeret', 'מבקר', 'mevaker'], ['بتزور', 'btzūr', 'بيزور', 'byzūr']),
-          c('buy', ['קונה', 'kona', 'קונה', 'kone'], ['بتشتري', 'btishtri', 'بيشتري', 'byishtri'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
-          c('meet friends', ['נפגשת עם חברים', 'nifgeshet im khaverim', 'נפגש עם חברים', 'nifgash im khaverim'], ['بتتلاقى مع أصحاب', 'btitlāqa maʿ aṣḥāb', 'بيتلاقى مع أصحاب', 'byitlāqa maʿ aṣḥāb']),
-          c('go out', ['יוצאת', 'yotset', 'יוצא', 'yotse'], ['بتطلع', 'btiṭlaʿ', 'بيطلع', 'byiṭlaʿ'], { ar: 'Literally "goes up"; the everyday word for going out.' }),
-          c('drive', ['נוהגת', 'noheget', 'נוהג', 'noheg'], ['بتسوق', 'btsūq', 'بيسوق', 'bysūq']),
-          c('wait', ['מחכה', 'mekhaka', 'מחכה', 'mekhake'], ['بتستنّى', 'btistanna', 'بيستنّى', 'byistanna'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
-          c('pay', ['משלמת', 'meshalemet', 'משלם', 'meshalem'], ['بتدفع', 'btidfaʿ', 'بيدفع', 'byidfaʿ']),
-          c('rest', ['נחה', 'nakha', 'נח', 'nakh'], ['بترتاح', 'btirtāḥ', 'بيرتاح', 'byirtāḥ']),
-          c('take a photo', ['מצלמת', 'metsalemet', 'מצלם', 'metsalem'], ['بتصوّر', 'btṣawwer', 'بيصوّر', 'byṣawwer']),
-        ],
-      },
-      {
-        name: 'Sport and play',
-        cards: [
-          c('football', ['כדורגל', 'kaduregel'], ['كرة قدم', 'kurat qadam']),
-          c('basketball', ['כדורסל', 'kadursal'], ['كرة سلّة', 'kurat salle']),
-          c('game', ['משחק', 'miskhak'], ['لعبة', 'liʿbe']),
-          c('play', ['משחקת', 'mesakheket', 'משחק', 'mesakhek'], ['بتلعب', 'btilʿab', 'بيلعب', 'byilʿab']),
-          c('win', ['מנצחת', 'menatsakhat', 'מנצח', 'menatseakh'], ['بتربح', 'btirbaḥ', 'بيربح', 'byirbaḥ']),
-          c('lose', ['מפסידה', 'mafsida', 'מפסיד', 'mafsid'], ['بتخسر', 'btikhsar', 'بيخسر', 'byikhsar']),
-          c('team', ['קבוצה', 'kvutsa'], ['فريق', 'farīq']),
-          c('ball', ['כדור', 'kadur'], ['طابة', 'ṭābe'], { ar: 'The everyday Palestinian word; كرة is the written one.' }),
-          c('swimming pool', ['בריכה', 'brekha'], ['مسبح', 'masbaḥ']),
-          c('gym', ['חדר כושר', 'khadar kosher'], ['نادي رياضي', 'nādi riyāḍi']),
-        ],
-      },
-    ],
+    name: 'Greetings',
+    icon: '👋',
+    decks: GREETING_DECKS,
   },
   {
     name: 'Care and hygiene',
@@ -1136,9 +929,10 @@ export const SEED_CATEGORIES: SeedCategory[] = [
       {
         name: 'Cleaning the house',
         cards: [
-          c('clean (verb)', ['מנקה', 'menaka', 'מנקה', 'menake'], ['بتنضّف', 'btnaḍḍef', 'بينضّف', 'bynaḍḍef'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
-          c('wash', ['שוטפת', 'shotefet', 'שוטף', 'shotef'], ['بتغسل', 'btighsil', 'بيغسل', 'byighsil']),
-          c('sweep', ['מטאטאת', 'metate\'et', 'מטאטא', 'metate'], ['بتكنس', 'btiknos', 'بيكنس', 'byiknos']),
+          // Housework you are doing, not housework being described.
+          c('I clean', ofSpeaker('מנקה', 'menaka', 'מנקה', 'menake'), ['بنضّف', 'bnaḍḍef'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+          c('I wash', ofSpeaker('שוטפת', 'shotefet', 'שוטף', 'shotef'), ['بغسل', 'baghsil']),
+          c('I sweep', ofSpeaker('מטאטאת', 'metate\'et', 'מטאטא', 'metate'), ['بكنس', 'baknos']),
           c('broom', ['מטאטא', 'matate'], ['مكنسة', 'miknase']),
           c('bucket', ['דלי', 'dli'], ['سطل', 'saṭel']),
           c('cloth / rag', ['סמרטוט', 'smartut'], ['خرقة', 'khirqa']),
@@ -1151,9 +945,12 @@ export const SEED_CATEGORIES: SeedCategory[] = [
       {
         name: 'Looking after yourself',
         cards: [
-          c('get a haircut', ['מסתפרת', 'mistaperet', 'מסתפר', 'mistaper'], ['بتقصّ شعرها', 'btiqoṣṣ shaʿerha', 'بيقصّ شعره', 'byiqoṣṣ shaʿro'], { ar: 'Literally "cuts her hair" and "cuts his hair".' }),
-          c('shave', ['מתגלחת', 'mitgalakhat', 'מתגלח', 'mitgaleakh'], ['بتحلق', 'btiḥloq', 'بيحلق', 'byiḥloq']),
-          c('cut nails', ['גוזרת ציפורניים', 'gozeret tsiporanayim', 'גוזר ציפורניים', 'gozer tsiporanayim'], ['بتقصّ ضوافرها', 'btiqoṣṣ ḍawāfirha', 'بيقصّ ضوافره', 'byiqoṣṣ ḍawāfro']),
+          // These carried the plainest evidence of the old mistake: the Arabic
+          // said "cuts *her* hair" under an English prompt that said only
+          // "get a haircut". In the first person the possessive is your own.
+          c('I get a haircut', ofSpeaker('מסתפרת', 'mistaperet', 'מסתפר', 'mistaper'), ['بقصّ شعري', 'baquṣṣ shaʿri'], { ar: 'Literally "I cut my hair", which is how it is said.' }),
+          c('I shave', ofSpeaker('מתגלחת', 'mitgalakhat', 'מתגלח', 'mitgaleakh'), ['بحلق', 'baḥloq']),
+          c('I cut my nails', ofSpeaker('גוזרת ציפורניים', 'gozeret tsiporanayim', 'גוזר ציפורניים', 'gozer tsiporanayim'), ['بقصّ ضوافري', 'baquṣṣ ḍawāfri']),
           c('perfume', ['בושם', 'bosem'], ['عطر', 'ʿiṭir']),
           c('cream', ['קרם', 'krem'], ['كريم', 'krēm']),
           c('mirror', ['מראה', 'mar\'a'], ['مراية', 'mrāye'], { ar: 'The spoken Palestinian form of مرآة.' }),
@@ -1324,6 +1121,283 @@ export const SEED_CATEGORIES: SeedCategory[] = [
     ],
   },
   {
+    name: 'Daily routine',
+    icon: '⏰',
+    decks: [
+      {
+        // Ten things you say *to* somebody as they get through a day, so every
+        // card here is a real imperative and the pair is the person addressed.
+        // It used to hold third-person conjugations — بتصحى is "she wakes up"
+        // — under bare English prompts, which taught a learner to say "she
+        // washes her face" whenever she meant "wash your face".
+        name: 'Morning to night',
+        cards: [
+          c('Wake up', ofListener('תתעוררי', 'titor\'ri', 'תתעורר', 'titorer'), ofListener('اصحي', 'iṣḥi', 'اصحى', 'iṣḥa')),
+          c('Get up', ofListener('קומי', 'kumi', 'קום', 'kum'), ofListener('قومي', 'qūmi', 'قوم', 'qūm')),
+          c('Get dressed', ofListener('תתלבשי', 'titlabshi', 'תתלבש', 'titlabesh'), ofListener('البسي تيابك', 'ilbasi tyābik', 'البس تيابك', 'ilbas tyābak'), { ar: 'The ending of تيابك follows the person you are speaking to.' }),
+          c('Wash your face', ofListener('תשטפי פנים', 'tishtefi panim', 'תשטוף פנים', 'tishtof panim'), ofListener('اغسلي وجهك', 'ighsili wijhik', 'اغسل وجهك', 'ighsil wijhak')),
+          c('Brush your teeth', ofListener('תצחצחי שיניים', 'tetsakhtsekhi shinayim', 'תצחצח שיניים', 'tetsakhtseakh shinayim'), ofListener('فرّشي سنانك', 'farrshi snānik', 'فرّش سنانك', 'farresh snānak')),
+          c('Eat breakfast', ofListener('תאכלי ארוחת בוקר', 'tokhli arukhat boker', 'תאכל ארוחת בוקר', 'tokhal arukhat boker'), ofListener('افطري', 'ifṭari', 'افطر', 'ifṭar'), { ar: 'One word: فطور is breakfast, and افطر is to eat it.' }),
+          c('Go to work', ofListener('לכי לעבודה', 'lekhi la\'avoda', 'לך לעבודה', 'lekh la\'avoda'), ofListener('روحي عالشغل', 'rūḥi ʿash-shughul', 'روح عالشغل', 'rūḥ ʿash-shughul')),
+          c('Come home', ofListener('תחזרי הביתה', 'takhzeri habayta', 'תחזור הביתה', 'takhzor habayta'), ofListener('ارجعي عالبيت', 'irjaʿi ʿal-bēt', 'ارجع عالبيت', 'irjaʿ ʿal-bēt')),
+          c('Take a shower', ofListener('תתקלחי', 'titkalkhi', 'תתקלח', 'titkaleakh'), ofListener('تحمّمي', 'tḥammami', 'تحمّم', 'tḥammam')),
+          c('Go to sleep', ofListener('לכי לישון', 'lekhi lishon', 'לך לישון', 'lekh lishon'), ofListener('نامي', 'nāmi', 'نام', 'nām')),
+        ],
+      },
+      {
+        name: 'Telling the time',
+        cards: [
+          c('what time is it?', ['מה השעה', 'ma hasha\'a'], ['قدّيش الساعة', 'addēsh es-sāʿa']),
+          c('hour', ['שעה', 'sha\'a'], ['ساعة', 'sāʿa'], { ar: 'The same word means a clock or a watch.' }),
+          c('minute', ['דקה', 'daka'], ['دقيقة', 'daqīqa']),
+          c('half past', ['וחצי', 'vakhetsi'], ['ونصّ', 'w nuṣṣ'], { ar: 'Said after the hour: الساعة تلاتة ونصّ, "half past three".' }),
+          c('quarter past', ['ורבע', 'varevaʿ'], ['وربع', 'w rubʿ']),
+          c('early', ['מוקדם', 'mukdam'], ['بكّير', 'bakkīr']),
+          c('late', ['מאוחר', 'me\'ukhar'], ['متأخّر', 'mitʾakhkhir']),
+          c('now', ['עכשיו', 'akhshav'], ['هلّق', 'hallaʾ'], { ar: 'The Levantine word; الآن is written Arabic.' }),
+          c('today', ['היום', 'hayom'], ['اليوم', 'el-yōm']),
+          c('tomorrow', ['מחר', 'makhar'], ['بكرا', 'bukra']),
+        ],
+      },
+      {
+        name: 'Days of the week',
+        cards: [
+          c('Sunday', ['יום ראשון', 'yom rishon'], ['الأحد', 'el-aḥad'], { he: 'Literally "first day" — the Hebrew week starts here.' }),
+          c('Monday', ['יום שני', 'yom sheni'], ['الاتنين', 'et-tnēn']),
+          c('Tuesday', ['יום שלישי', 'yom shlishi'], ['التلات', 'et-talāt']),
+          c('Wednesday', ['יום רביעי', 'yom revi\'i'], ['الأربعا', 'el-arbaʿa']),
+          c('Thursday', ['יום חמישי', 'yom khamishi'], ['الخميس', 'el-khamīs']),
+          c('Friday', ['יום שישי', 'yom shishi'], ['الجمعة', 'el-jumʿa']),
+          c('Saturday', ['שבת', 'shabat'], ['السبت', 'es-sabt'], { he: 'The one weekday with a name rather than a number.' }),
+          c('week', ['שבוע', 'shavua'], ['أسبوع', 'usbūʿ']),
+          c('yesterday', ['אתמול', 'etmol'], ['إمبارح', 'imbāriḥ']),
+          c('weekend', ['סוף שבוע', 'sof shavua'], ['عطلة الأسبوع', 'ʿuṭlet el-usbūʿ']),
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Food and drink',
+    icon: '🍎',
+    decks: [
+      {
+        name: 'Kitchen basics',
+        cards: [
+          c('water', ['מים', 'mayim'], ['ميّة', 'mayye']),
+          c('bread', ['לחם', 'lekhem'], ['خبز', 'khubiz']),
+          c('milk', ['חלב', 'khalav'], ['حليب', 'ḥalīb']),
+          c('coffee', ['קפה', 'kafe'], ['قهوة', 'qahwe']),
+          c('tea', ['תה', 'te'], ['شاي', 'shāy']),
+          c('rice', ['אורז', 'orez'], ['رزّ', 'ruzz']),
+          c('meat', ['בשר', 'basar'], ['لحمة', 'laḥme']),
+          c('chicken', ['עוף', 'of'], ['جاج', 'jāj']),
+          c('fruit', ['פרי', 'pri'], ['فواكه', 'fawākeh']),
+          c('vegetables', ['ירקות', 'yerakot'], ['خضار', 'khuḍār']),
+        ],
+      },
+      {
+        name: 'Fruit and vegetables',
+        cards: [
+          c('apple', ['תפוח', 'tapuakh'], ['تفاح', 'tuffāḥ']),
+          c('banana', ['בננה', 'banana'], ['موز', 'mōz']),
+          c('grapes', ['ענבים', 'anavim'], ['عنب', 'ʿinab']),
+          c('orange', ['תפוז', 'tapuz'], ['برتقان', 'burtuʾān'], { ar: 'Palestinian spoken form.' }),
+          c('watermelon', ['אבטיח', 'avatiakh'], ['بطّيخ', 'baṭṭīkh']),
+          c('olives', ['זיתים', 'zeitim'], ['زيتون', 'zētūn']),
+          c('tomato', ['עגבנייה', 'agvaniya'], ['بندورة', 'bandōra'], { ar: 'The Levantine word; طماطم belongs further south and west.' }),
+          c('cucumber', ['מלפפון', 'melafefon'], ['خيار', 'khyār']),
+          c('onion', ['בצל', 'batsal'], ['بصل', 'baṣal']),
+          c('potato', ['תפוח אדמה', 'tapuakh adama'], ['بطاطا', 'baṭāṭa']),
+        ],
+      },
+      {
+        name: 'Eating out',
+        cards: [
+          c('restaurant', ['מסעדה', 'mis\'ada'], ['مطعم', 'maṭʿam']),
+          c('menu', ['תפריט', 'tafrit'], ['منيو', 'menyu'], { ar: 'The everyday spoken word; قائمة الطعام is the written one.' }),
+          c('waitress / waiter', ['מלצרית', 'meltsarit', 'מלצר', 'meltsar'], ['نادلة', 'nādle', 'نادل', 'nādel']),
+          c('I would like...', bySp(['אני רוצה', 'ani rotsa'], ['אני רוצה', 'ani rotse']), ['بدي', 'biddi'], { he: 'Written the same either way; only the ending is said differently.', ar: 'One word whoever is ordering.' }),
+          c('plate', ['צלחת', 'tsalakhat'], ['صحن', 'ṣaḥn']),
+          c('glass', ['כוס', 'kos'], ['كاسة', 'kāse']),
+          c('fork', ['מזלג', 'mazleg'], ['شوكة', 'shōke']),
+          c('knife', ['סכין', 'sakin'], ['سكّينة', 'sikkīne']),
+          c('spoon', ['כף', 'kaf'], ['معلقة', 'maʿlaʾa'], { ar: 'The spoken Palestinian form of ملعقة.' }),
+          c('the bill, please', ['החשבון בבקשה', 'hakheshbon bevakasha'], toL(['الحساب لو سمحت', 'el-ḥsāb law samaḥt'], ['الحساب لو سمحتي', 'el-ḥsāb law samaḥti'])),
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Family',
+    icon: '👪',
+    decks: [
+      {
+        name: 'Close family',
+        cards: [
+          c('mother / father', ['אמא', 'ima', 'אבא', 'aba'], ['أمّ', 'imm', 'أبو', 'abu']),
+          c('sister / brother', ['אחות', 'akhot', 'אח', 'akh'], ['أخت', 'ukht', 'أخو', 'akhu']),
+          c('daughter / son', ['בת', 'bat', 'בן', 'ben'], ['بنت', 'bint', 'ابن', 'ibin']),
+          c('grandmother / grandfather', ['סבתא', 'savta', 'סבא', 'saba'], ['ستّ', 'sitt', 'سيد', 'sīd'], { ar: 'Common Palestinian family terms.' }),
+          c('paternal aunt / uncle', ['דודה', 'doda', 'דוד', 'dod'], ['عمّة', 'ʿamme', 'عمّ', 'ʿamm'], { ar: 'Arabic distinguishes the father\'s and mother\'s sides.' }),
+          c('maternal aunt / uncle', ['דודה', 'doda', 'דוד', 'dod'], ['خالة', 'khāle', 'خال', 'khāl'], { ar: 'Arabic distinguishes the father\'s and mother\'s sides.' }),
+          c('wife / husband', ['אישה', 'isha', 'בעל', 'ba\'al'], ['مَرَة', 'mara', 'جوز', 'jōz'], { ar: 'Everyday spoken forms.' }),
+          c('female cousin / male cousin', ['בת דודה', 'bat doda', 'בן דוד', 'ben dod'], ['بنت عمّ', 'bint ʿamm', 'ابن عمّ', 'ibin ʿamm'], { ar: 'Arabic example is a paternal uncle\'s child.' }),
+          c('granddaughter / grandson', ['נכדה', 'nekhda', 'נכד', 'nekhed'], ['حفيدة', 'ḥafīde', 'حفيد', 'ḥafīd']),
+          c('female partner / male partner', ['בת זוג', 'bat zug', 'בן זוג', 'ben zug'], ['شريكة', 'sharīke', 'شريك', 'sharīk'], { ar: 'Romantic or life partner.' }),
+        ],
+      },
+      {
+        name: 'Relatives and neighbours',
+        cards: [
+          c('niece / nephew', ['אחיינית', 'akhyanit', 'אחיין', 'akhyan'], ['بنت الأخت', 'bint el-ukht', 'ابن الأخت', 'ibin el-ukht'], { ar: 'A sister\'s child; a brother\'s is بنت الأخ or ابن الأخ.' }),
+          c('mother-in-law / father-in-law', ['חמות', 'khamot', 'חם', 'kham'], ['حماة', 'ḥamā', 'حما', 'ḥama']),
+          c('bride / groom', ['כלה', 'kala', 'חתן', 'khatan'], ['عروس', 'ʿarūs', 'عريس', 'ʿarīs']),
+          c('twin', ['תאומה', 'te\'oma', 'תאום', 'te\'om'], ['توأم', 'tawʾam'], { ar: 'One word for a twin of either gender.' }),
+          c('relatives', ['קרובי משפחה', 'krovei mishpakha'], ['أقارب', 'aqāreb']),
+          c('family', ['משפחה', 'mishpakha'], ['عيلة', 'ʿēle'], { ar: 'The everyday spoken word; عائلة is the written one.' }),
+          c('neighbour', ['שכנה', 'shkhena', 'שכן', 'shakhen'], ['جارة', 'jāra', 'جار', 'jār']),
+          c('friend', ['חברה', 'khavera', 'חבר', 'khaver'], ['صاحبة', 'ṣāḥbe', 'صاحب', 'ṣāḥeb'], { ar: 'The everyday word for a friend; صديقة is a shade more formal.' }),
+          c('guest', ['אורחת', 'orakhat', 'אורח', 'oreakh'], ['ضيفة', 'ḍēfe', 'ضيف', 'ḍēf']),
+          c('girl / boy', ['ילדה', 'yalda', 'ילד', 'yeled'], ['بنت', 'bint', 'ولد', 'walad']),
+        ],
+      },
+      {
+        name: 'Talking about family',
+        cards: [
+          c('I have a sister', ['יש לי אחות', 'yesh li akhot'], ['عندي أخت', 'ʿindi ukht'], { he: 'Literally "there is to me a sister", which is how Hebrew says it.' }),
+          c('how many brothers do you have?', toL(['כמה אחים יש לך', 'kama akhim yesh lekha'], ['כמה אחים יש לך', 'kama akhim yesh lakh']), toL(['كم أخ عندك', 'kam akh ʿindak'], ['كم أخ عندك', 'kam akh ʿindik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
+          c('are you married?', toL(['אתה נשוי', 'ata nasui'], ['את נשואה', 'at nesu\'a']), toL(['إنت متجوّز', 'inte mitjawwez'], ['إنتِ متجوّزة', 'inti mitjawwze'])),
+          c('I am married', bySp(['אני נשואה', 'ani nesu\'a'], ['אני נשוי', 'ani nasui']), bySp(['أنا متجوّزة', 'ana mitjawwze'], ['أنا متجوّز', 'ana mitjawwez']), { ar: 'Here the ending is your own, not theirs.' }),
+          c('I am not married', bySp(['אני לא נשואה', 'ani lo nesu\'a'], ['אני לא נשוי', 'ani lo nasui']), bySp(['أنا مش متجوّزة', 'ana mish mitjawwze'], ['أنا مش متجوّز', 'ana mish mitjawwez']), { ar: 'How it is normally said; عزباء belongs to the written language.' }),
+          c('do you have children?', toL(['יש לך ילדים', 'yesh lekha yeladim'], ['יש לך ילדים', 'yesh lakh yeladim']), toL(['عندك ولاد', 'ʿindak wlād'], ['عندك ولاد', 'ʿindik wlād']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
+          c('my family is big', ['המשפחה שלי גדולה', 'hamishpakha sheli gdola'], ['عيلتي كبيرة', 'ʿēlti kbīre']),
+          c('she is my sister', ['היא אחותי', 'hi akhoti'], ['هيّ أختي', 'hiyye ukhti']),
+          c('he is my brother', ['הוא אחי', 'hu akhi'], ['هوّ أخوي', 'huwwe akhūy']),
+          c('we are one family', ['אנחנו משפחה אחת', 'anakhnu mishpakha akhat'], ['إحنا عيلة وحدة', 'iḥna ʿēle waḥde']),
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Pronouns',
+    icon: '🫵',
+    decks: PRONOUN_DECKS,
+  },
+  {
+    name: 'Titles',
+    icon: '🎩',
+    decks: TITLE_DECKS,
+  },
+  {
+    name: 'Body parts',
+    icon: '🫀',
+    decks: [
+      {
+        name: 'Head to toe',
+        cards: [
+          c('head', ['ראש', 'rosh'], ['راس', 'rās']),
+          c('hair', ['שיער', 'se\'ar'], ['شعر', 'shaʿar']),
+          c('eye', ['עין', 'ayin'], ['عين', 'ʿēn']),
+          c('ear', ['אוזן', 'ozen'], ['دان', 'dān'], { ar: 'Palestinian spoken form.' }),
+          c('nose', ['אף', 'af'], ['منخار', 'minkhār'], { ar: 'Palestinian spoken form.' }),
+          c('mouth', ['פה', 'pe'], ['تمّ', 'timm'], { ar: 'Palestinian spoken form.' }),
+          c('hand', ['יד', 'yad'], ['إيد', 'īd']),
+          c('arm', ['זרוע', 'zroa'], ['دراع', 'drāʿ']),
+          c('leg', ['רגל', 'regel'], ['رِجِل', 'rijil'], { ar: 'In everyday Palestinian Arabic, the same word can mean leg or foot.' }),
+          c('foot', ['כף רגל', 'kaf regel'], ['رِجِل', 'rijil'], { ar: 'Everyday Palestinian Arabic commonly uses the same word as \'leg\'.' }),
+        ],
+      },
+      {
+        name: 'Face and hands',
+        cards: [
+          c('face', ['פנים', 'panim'], ['وجه', 'wijh']),
+          c('forehead', ['מצח', 'metsakh'], ['جبين', 'jbīn']),
+          c('eyebrow', ['גבה', 'gaba'], ['حاجب', 'ḥājeb']),
+          c('eyelash', ['ריס', 'ris'], ['رمش', 'rimsh']),
+          c('cheek', ['לחי', 'lekhi'], ['خدّ', 'khadd']),
+          c('lip', ['שפה', 'safa'], ['شفّة', 'shiffe']),
+          c('tooth', ['שן', 'shen'], ['سنّ', 'sinn']),
+          c('tongue', ['לשון', 'lashon'], ['لسان', 'lsān']),
+          c('finger', ['אצבע', 'etsba'], ['إصبع', 'iṣbaʿ']),
+          c('thumb', ['אגודל', 'agudal'], ['إبهام', 'ibhām']),
+        ],
+      },
+      {
+        name: 'Inside the body',
+        cards: [
+          c('heart', ['לב', 'lev'], ['قلب', 'qalb']),
+          c('brain', ['מוח', 'moakh'], ['دماغ', 'dmāgh']),
+          c('lung', ['ריאה', 're\'a'], ['رئة', 'riʾa']),
+          c('stomach', ['בטן', 'beten'], ['بطن', 'baṭn']),
+          c('bone', ['עצם', 'etsem'], ['عضم', 'ʿaḍm'], { ar: 'The spoken Palestinian pronunciation of عظم.' }),
+          c('skin', ['עור', 'or'], ['جلد', 'jild']),
+          c('muscle', ['שריר', 'shrir'], ['عضلة', 'ʿaḍale']),
+          c('nerve', ['עצב', 'atsav'], ['عصب', 'ʿaṣab']),
+          c('liver', ['כבד', 'kaved'], ['كبد', 'kibd']),
+          c('kidney', ['כליה', 'kilya'], ['كلية', 'kilye']),
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Activities',
+    icon: '⚽',
+    decks: [
+      {
+        // The deck is called "Things you do", so it says them the way you would
+        // — in the first person. Hebrew splits by who is speaking; the Arabic
+        // "I" form does not split at all.
+        name: 'Things you do',
+        cards: [
+          c('I read', ofSpeaker('קוראת', 'koret', 'קורא', 'kore'), ['بقرأ', 'baqra']),
+          c('I write', ofSpeaker('כותבת', 'kotevet', 'כותב', 'kotev'), ['بكتب', 'baktob']),
+          c('I listen to music', ofSpeaker('מקשיבה למוזיקה', 'makshiva la-muzika', 'מקשיב למוזיקה', 'makshiv la-muzika'), ['بسمع موسيقى', 'basmaʿ mūsīqa']),
+          c('I watch television', ofSpeaker('רואה טלוויזיה', 'ro\'a televizya', 'רואה טלוויזיה', 'ro\'e televizya'), ['بحضر تلفزيون', 'baḥḍar tilfizyōn'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+          c('I exercise', ofSpeaker('מתאמנת', 'mit\'amenet', 'מתאמן', 'mit\'amen'), ['بتمرّن', 'batmarran']),
+          c('I cook', ofSpeaker('מבשלת', 'mevashelet', 'מבשל', 'mevashel'), ['بطبخ', 'baṭbukh']),
+          c('I walk', ofSpeaker('הולכת', 'holekhet', 'הולך', 'holekh'), ['بمشي', 'bamshi']),
+          c('I run', ofSpeaker('רצה', 'ratsa', 'רץ', 'rats'), ['بركض', 'barkoḍ']),
+          c('I swim', ofSpeaker('שוחה', 'sokha', 'שוחה', 'sokhe'), ['بسبح', 'basbaḥ'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+          c('I dance', ofSpeaker('רוקדת', 'rokedet', 'רוקד', 'roked'), ['برقص', 'barqoṣ']),
+        ],
+      },
+      {
+        // Your own outings, so first person like the deck before it. "Wait"
+        // is a command often enough to deserve a card of its own one day, but
+        // among travelling, paying and resting it is something you do.
+        name: 'Out and about',
+        cards: [
+          c('I travel', ofSpeaker('נוסעת', 'nosa\'at', 'נוסע', 'nose\'a'), ['بسافر', 'bsāfer']),
+          c('I visit', ofSpeaker('מבקרת', 'mevakeret', 'מבקר', 'mevaker'), ['بزور', 'bazūr']),
+          c('I buy', ofSpeaker('קונה', 'kona', 'קונה', 'kone'), ['بشتري', 'bashtri'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+          c('I meet friends', ofSpeaker('נפגשת עם חברים', 'nifgeshet im khaverim', 'נפגש עם חברים', 'nifgash im khaverim'), ['بتلاقى مع أصحاب', 'batlāqa maʿ aṣḥāb']),
+          c('I go out', ofSpeaker('יוצאת', 'yotset', 'יוצא', 'yotse'), ['بطلع', 'baṭlaʿ'], { ar: 'Literally "I go up"; the everyday word for going out.' }),
+          c('I drive', ofSpeaker('נוהגת', 'noheget', 'נוהג', 'noheg'), ['بسوق', 'basūq']),
+          c('I wait', ofSpeaker('מחכה', 'mekhaka', 'מחכה', 'mekhake'), ['بستنّى', 'bastanna'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+          c('I pay', ofSpeaker('משלמת', 'meshalemet', 'משלם', 'meshalem'), ['بدفع', 'badfaʿ']),
+          c('I rest', ofSpeaker('נחה', 'nakha', 'נח', 'nakh'), ['برتاح', 'bartāḥ']),
+          c('I take a photo', ofSpeaker('מצלמת', 'metsalemet', 'מצלם', 'metsalem'), ['بصوّر', 'bṣawwer']),
+        ],
+      },
+      {
+        name: 'Sport and play',
+        cards: [
+          c('football', ['כדורגל', 'kaduregel'], ['كرة قدم', 'kurat qadam']),
+          c('basketball', ['כדורסל', 'kadursal'], ['كرة سلّة', 'kurat salle']),
+          c('game', ['משחק', 'miskhak'], ['لعبة', 'liʿbe']),
+          // The three verbs among the equipment, said about yourself.
+          c('I play', ofSpeaker('משחקת', 'mesakheket', 'משחק', 'mesakhek'), ['بلعب', 'balʿab']),
+          c('I win', ofSpeaker('מנצחת', 'menatsakhat', 'מנצח', 'menatseakh'), ['بربح', 'barbaḥ']),
+          c('I lose', ofSpeaker('מפסידה', 'mafsida', 'מפסיד', 'mafsid'), ['بخسر', 'bakhsar']),
+          c('team', ['קבוצה', 'kvutsa'], ['فريق', 'farīq']),
+          c('ball', ['כדור', 'kadur'], ['طابة', 'ṭābe'], { ar: 'The everyday Palestinian word; كرة is the written one.' }),
+          c('swimming pool', ['בריכה', 'brekha'], ['مسبح', 'masbaḥ']),
+          c('gym', ['חדר כושר', 'khadar kosher'], ['نادي رياضي', 'nādi riyāḍi']),
+        ],
+      },
+    ],
+  },
+  {
     name: 'Electronics',
     icon: '🔌',
     decks: [
@@ -1345,16 +1419,16 @@ export const SEED_CATEGORIES: SeedCategory[] = [
       {
         name: 'Using a phone',
         cards: [
-          c('call (verb)', ['מתקשרת', 'mitkasheret', 'מתקשר', 'mitkasher'], ['بتتّصل', 'btittiṣel', 'بيتّصل', 'byittiṣel']),
-          c('answer', ['עונה', 'ona', 'עונה', 'one'], ['بتردّ', 'btrudd', 'بيردّ', 'byrudd'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+          c('I call', ofSpeaker('מתקשרת', 'mitkasheret', 'מתקשר', 'mitkasher'), ['بتّصل', 'battiṣel']),
+          c('I answer', ofSpeaker('עונה', 'ona', 'עונה', 'one'), ['بردّ', 'barudd'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
           c('message', ['הודעה', 'hoda\'a'], ['رسالة', 'risāle']),
-          c('send', ['שולחת', 'sholakhat', 'שולח', 'sholeakh'], ['بتبعت', 'btibʿat', 'بيبعت', 'byibʿat']),
+          c('I send', ofSpeaker('שולחת', 'sholakhat', 'שולח', 'sholeakh'), ['ببعت', 'babʿat']),
           c('photo', ['תמונה', 'tmuna'], ['صورة', 'ṣūra']),
           c('video', ['וידאו', 'video'], ['فيديو', 'vīdyo']),
           c('phone number', ['מספר טלפון', 'mispar telefon'], ['رقم تلفون', 'raqam tilifōn']),
           c('voice note', ['הודעה קולית', 'hoda\'a kolit'], ['رسالة صوتيّة', 'risāle ṣawtiyye']),
           c('missed call', ['שיחה שלא נענתה', 'sikha shelo ne\'enta'], ['مكالمة فايتة', 'mukālame fāyte']),
-          c('hang up', ['מנתקת', 'menateket', 'מנתק', 'menatek'], ['بتسكّر', 'btsakker', 'بيسكّر', 'bysakker'], { ar: 'Literally "closes", which is how ending a call is said.' }),
+          c('I hang up', ofSpeaker('מנתקת', 'menateket', 'מנתק', 'menatek'), ['بسكّر', 'bsakker'], { ar: 'Literally "I close", which is how ending a call is said.' }),
         ],
       },
       {
@@ -1364,12 +1438,12 @@ export const SEED_CATEGORIES: SeedCategory[] = [
           c('cable', ['כבל', 'kevel'], ['كبل', 'kabl']),
           c('socket', ['שקע', 'sheka'], ['فيشة', 'fīshe']),
           c('electricity', ['חשמל', 'khashmal'], ['كهربا', 'kahraba'], { ar: 'The spoken Palestinian form of كهرباء.' }),
-          c('switch on', ['מדליקה', 'madlika', 'מדליק', 'madlik'], ['بتشغّل', 'btshaghghel', 'بيشغّل', 'byshaghghel']),
-          c('switch off', ['מכבה', 'mekhaba', 'מכבה', 'mekhabe'], ['بتطفي', 'btiṭfi', 'بيطفي', 'byiṭfi'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+          c('I switch on', ofSpeaker('מדליקה', 'madlika', 'מדליק', 'madlik'), ['بشغّل', 'bshaghghel']),
+          c('I switch off', ofSpeaker('מכבה', 'mekhaba', 'מכבה', 'mekhabe'), ['بطفي', 'baṭfi'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
           c('wifi', ['וויפי', 'waifai'], ['واي فاي', 'wāy fāy']),
           c('signal', ['קליטה', 'klita'], ['إرسال', 'irsāl']),
           c('it is not working', ['זה לא עובד', 'ze lo oved'], ['مش شغّال', 'mish shaghghāl']),
-          c('charge (verb)', ['מטעינה', 'mat\'ina', 'מטעין', 'mat\'in'], ['بتشحن', 'btishḥan', 'بيشحن', 'byishḥan']),
+          c('I charge it', ofSpeaker('מטעינה', 'mat\'ina', 'מטעין', 'mat\'in'), ['بشحن', 'bashḥan']),
         ],
       },
     ],
@@ -1386,11 +1460,15 @@ export const SEED_CATEGORIES: SeedCategory[] = [
           c('big', ['גדולה', 'gdola', 'גדול', 'gadol'], ['كبيرة', 'kbīre', 'كبير', 'kbīr']),
           c('small', ['קטנה', 'ktana', 'קטן', 'katan'], ['صغيرة', 'zghīre', 'صغير', 'zghīr']),
           c('beautiful', ['יפה', 'yafa', 'יפה', 'yafe'], ['حلوة', 'ḥilwe', 'حلو', 'ḥilu'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
-          c('tired', ['עייפה', 'ayefa', 'עייף', 'ayef'], ['تعبانة', 'taʿbāne', 'تعبان', 'taʿbān']),
-          c('hungry', ['רעבה', 're\'eva', 'רעב', 'ra\'ev'], ['جوعانة', 'jūʿāne', 'جوعان', 'jūʿān']),
-          c('thirsty', ['צמאה', 'tsme\'a', 'צמא', 'tsame'], ['عطشانة', 'ʿaṭshāne', 'عطشان', 'ʿaṭshān']),
-          c('happy', ['שמחה', 'smekha', 'שמח', 'sameakh'], ['مبسوطة', 'mabsūṭa', 'مبسوط', 'mabsūṭ']),
-          c('sad', ['עצובה', 'atsuva', 'עצוב', 'atsuv'], ['زعلانة', 'zaʿlāne', 'زعلان', 'zaʿlān'], { ar: 'Common spoken form; can also mean upset.' }),
+          // The states below are ones a person is only ever in themselves.
+          // Unlike the words above — a big house, a beautiful morning — these
+          // are said about the speaker, so her own answer to "I am…" picks the
+          // form and the other stops competing for her attention.
+          c('tired', ofSpeaker('עייפה', 'ayefa', 'עייף', 'ayef'), ofSpeaker('تعبانة', 'taʿbāne', 'تعبان', 'taʿbān')),
+          c('hungry', ofSpeaker('רעבה', 're\'eva', 'רעב', 'ra\'ev'), ofSpeaker('جوعانة', 'jūʿāne', 'جوعان', 'jūʿān')),
+          c('thirsty', ofSpeaker('צמאה', 'tsme\'a', 'צמא', 'tsame'), ofSpeaker('عطشانة', 'ʿaṭshāne', 'عطشان', 'ʿaṭshān')),
+          c('happy', ofSpeaker('שמחה', 'smekha', 'שמח', 'sameakh'), ofSpeaker('مبسوطة', 'mabsūṭa', 'مبسوط', 'mabsūṭ')),
+          c('sad', ofSpeaker('עצובה', 'atsuva', 'עצוב', 'atsuv'), ofSpeaker('زعلانة', 'zaʿlāne', 'زعلان', 'zaʿlān'), { ar: 'Common spoken form; can also mean upset.' }),
         ],
       },
       {
@@ -1438,33 +1516,39 @@ export const SEED_CATEGORIES: SeedCategory[] = [
     icon: '🏃',
     decks: [
       {
+        // The ten verbs a learner reaches for about herself, so each is taught
+        // in the first person. Hebrew still splits — a woman says רוצה, a man
+        // רוצה said differently — while Palestinian Arabic's "I" form is one
+        // word for everybody, so the Arabic side carries no pair to choose
+        // from and none is invented for it.
         name: 'Core verbs',
         cards: [
-          c('want', ['רוצה', 'rotsa', 'רוצה', 'rotse'], ['بدها', 'biddha', 'بده', 'biddo']),
-          c('need', ['צריכה', 'tsrikha', 'צריך', 'tsarikh'], ['بتحتاج', 'btiḥtāj', 'بيحتاج', 'byiḥtāj']),
-          c('know', ['יודעת', 'yoda\'at', 'יודע', 'yode\'a'], ['بتعرف', 'btiʿraf', 'بيعرف', 'byiʿraf']),
-          c('understand', ['מבינה', 'mevina', 'מבין', 'mevin'], ['بتفهم', 'btifham', 'بيفهم', 'byifham']),
-          c('speak', ['מדברת', 'medaberet', 'מדבר', 'medaber'], ['بتحكي', 'btiḥki', 'بيحكي', 'byiḥki']),
-          c('learn', ['לומדת', 'lomedet', 'לומד', 'lomed'], ['بتتعلّم', 'btitʿallam', 'بيتعلّم', 'byitʿallam']),
-          c('go', ['הולכת', 'holekhet', 'הולך', 'holekh'], ['بتروح', 'btrūḥ', 'بيروح', 'byrūḥ']),
-          c('come', ['באה', 'ba\'a', 'בא', 'ba'], ['بتيجي', 'btīji', 'بييجي', 'byīji']),
-          c('give', ['נותנת', 'notenet', 'נותן', 'noten'], ['بتعطي', 'btiʿṭi', 'بيعطي', 'byiʿṭi']),
-          c('take', ['לוקחת', 'lokakhat', 'לוקח', 'lokeakh'], ['بتاخد', 'btākhod', 'بياخد', 'byākhod']),
+          c('I want', ofSpeaker('רוצה', 'rotsa', 'רוצה', 'rotse'), ['بدي', 'biddi'], { he: 'Hebrew spelling is identical; pronunciation differs.', ar: 'One word, whoever is speaking.' }),
+          c('I need', ofSpeaker('צריכה', 'tsrikha', 'צריך', 'tsarikh'), ['بحتاج', 'baḥtāj'], { ar: 'بدي does the work of "I need" just as often in speech.' }),
+          c('I know', ofSpeaker('יודעת', 'yoda\'at', 'יודע', 'yode\'a'), ['بعرف', 'baʿref']),
+          c('I understand', ofSpeaker('מבינה', 'mevina', 'מבין', 'mevin'), ['بفهم', 'bafham']),
+          c('I speak', ofSpeaker('מדברת', 'medaberet', 'מדבר', 'medaber'), ['بحكي', 'baḥki']),
+          c('I learn', ofSpeaker('לומדת', 'lomedet', 'לומד', 'lomed'), ['بتعلّم', 'batʿallam']),
+          c('I go', ofSpeaker('הולכת', 'holekhet', 'הולך', 'holekh'), ['بروح', 'barūḥ']),
+          c('I come', ofSpeaker('באה', 'ba\'a', 'בא', 'ba'), ['بجي', 'bāji']),
+          c('I give', ofSpeaker('נותנת', 'notenet', 'נותן', 'noten'), ['بعطي', 'baʿṭi']),
+          c('I take', ofSpeaker('לוקחת', 'lokakhat', 'לוקח', 'lokeakh'), ['باخد', 'bākhod']),
         ],
       },
       {
+        // First person throughout, on the same footing as "Core verbs".
         name: 'More everyday verbs',
         cards: [
-          c('see', ['רואה', 'ro\'a', 'רואה', 'ro\'e'], ['بتشوف', 'btshūf', 'بيشوف', 'byshūf'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
-          c('hear', ['שומעת', 'shoma\'at', 'שומע', 'shomea'], ['بتسمع', 'btismaʿ', 'بيسمع', 'byismaʿ']),
-          c('say', ['אומרת', 'omeret', 'אומר', 'omer'], ['بتقول', 'btqūl', 'بيقول', 'byqūl']),
-          c('ask', ['שואלת', 'sho\'elet', 'שואל', 'sho\'el'], ['بتسأل', 'btisʾal', 'بيسأل', 'byisʾal']),
-          c('work', ['עובדת', 'ovedet', 'עובד', 'oved'], ['بتشتغل', 'btishtighel', 'بيشتغل', 'byishtighel']),
-          c('help', ['עוזרת', 'ozeret', 'עוזר', 'ozer'], ['بتساعد', 'btsāʿed', 'بيساعد', 'bysāʿed']),
-          c('open', ['פותחת', 'potakhat', 'פותח', 'poteakh'], ['بتفتح', 'btiftaḥ', 'بيفتح', 'byiftaḥ']),
-          c('close', ['סוגרת', 'sogeret', 'סוגר', 'soger'], ['بتسكّر', 'btsakker', 'بيسكّر', 'bysakker'], { ar: 'The same verb ends a phone call.' }),
-          c('sit', ['יושבת', 'yoshevet', 'יושב', 'yoshev'], ['بتقعد', 'btuqʿod', 'بيقعد', 'byuqʿod']),
-          c('love', ['אוהבת', 'ohevet', 'אוהב', 'ohev'], ['بتحبّ', 'btḥibb', 'بيحبّ', 'byḥibb']),
+          c('I see', ofSpeaker('רואה', 'ro\'a', 'רואה', 'ro\'e'), ['بشوف', 'bashūf'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
+          c('I hear', ofSpeaker('שומעת', 'shoma\'at', 'שומע', 'shomea'), ['بسمع', 'basmaʿ']),
+          c('I say', ofSpeaker('אומרת', 'omeret', 'אומר', 'omer'), ['بقول', 'baqūl']),
+          c('I ask', ofSpeaker('שואלת', 'sho\'elet', 'שואל', 'sho\'el'), ['بسأل', 'basʾal']),
+          c('I work', ofSpeaker('עובדת', 'ovedet', 'עובד', 'oved'), ['بشتغل', 'bashtighel']),
+          c('I help', ofSpeaker('עוזרת', 'ozeret', 'עוזר', 'ozer'), ['بساعد', 'bsāʿed']),
+          c('I open', ofSpeaker('פותחת', 'potakhat', 'פותח', 'poteakh'), ['بفتح', 'baftaḥ']),
+          c('I close', ofSpeaker('סוגרת', 'sogeret', 'סוגר', 'soger'), ['بسكّر', 'bsakker'], { ar: 'The same verb ends a phone call.' }),
+          c('I sit', ofSpeaker('יושבת', 'yoshevet', 'יושב', 'yoshev'), ['بقعد', 'baqʿod']),
+          c('I love', ofSpeaker('אוהבת', 'ohevet', 'אוהב', 'ohev'), ['بحبّ', 'baḥibb']),
         ],
       },
       {

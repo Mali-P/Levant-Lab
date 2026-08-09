@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
+import { LANGUAGE_LABEL } from '../utils/languageSelection';
 import { statusFor } from '../features/review/mastery';
 import { gateDecks, isDeckMastered } from '../features/review/unlock';
 import { isSequencedCategory } from '../features/ordering/sequenced';
@@ -44,6 +45,7 @@ export default function DeckScreen() {
   const navigate = useNavigate();
 
   const settings = useSettings((s) => s.settings);
+  const languages = useSettings((s) => s.languages);
   const update = useSettings((s) => s.update);
   const decks = useData((s) => s.decks);
   const categories = useData((s) => s.categories);
@@ -94,7 +96,7 @@ export default function DeckScreen() {
   const now = new Date().toISOString();
   const mastered = deckCards.filter(
     (c) =>
-      statusFor(cardProgress[c.id], now, settings.enableMasteryDecay) ===
+      statusFor(cardProgress[c.id], now, settings.enableMasteryDecay, languages) ===
       'mastered',
   ).length;
 
@@ -122,7 +124,10 @@ export default function DeckScreen() {
   const sequenced = isSequencedCategory(category);
   const progress = deckProgress[deck.id];
   const finalTest = isDeckMastered(deck, progress);
-  const orderPasses = (['hebrew', 'arabic'] as const).filter(
+  // Only the languages she is studying. A Hebrew-only learner has finished
+  // this activity when the Hebrew column is in, and must not be told that "the
+  // other language is still waiting" for a column she will never be shown.
+  const orderPasses = languages.filter(
     (language) => progress?.orderRecallPassedAt?.[language],
   );
 
@@ -200,11 +205,14 @@ export default function DeckScreen() {
                       : 'Activity: Memory Consolidation'}
                   </span>
                   <span className="small muted">
-                    {orderPasses.length === 2
-                      ? 'Passed in both languages. Take it again whenever you like.'
-                      : orderPasses.length === 1
+                    {orderPasses.length === languages.length
+                      ? (languages.length > 1
+                          ? 'Passed in both languages. '
+                          : 'Passed. ') +
+                        'Take it again whenever you like.'
+                      : orderPasses.length > 0
                         ? 'Passed in ' +
-                          (orderPasses[0] === 'hebrew' ? 'Hebrew' : 'Arabic') +
+                          LANGUAGE_LABEL[orderPasses[0]] +
                           '. The other language is still waiting.'
                         : 'Drag the numbers into the correct order.'}
                   </span>

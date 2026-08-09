@@ -6,6 +6,7 @@ import { useSession } from '../stores/sessionStore';
 import { useSettings } from '../stores/settingsStore';
 import { usePronunciation } from '../hooks/usePronunciation';
 import { wordForms } from '../utils/wordForms';
+import { LANGUAGE_LONG_LABEL } from '../utils/languageSelection';
 import { sortCards } from '../utils/cardOrder';
 import { buildPromptPlan, gradePlan } from '../features/study/prompts';
 import {
@@ -53,7 +54,12 @@ export default function StudyScreen() {
 
   const settings = useSettings((s) => s.settings);
   const perspectives = useSettings((s) => s.perspectives);
+  const languages = useSettings((s) => s.languages);
   const lead = useSettings((s) => s.lead);
+  // The whole screen's copy turns on this: with one language there is no
+  // "both" to reveal, no pair of verdicts, and no half-right answer.
+  const single = languages.length === 1;
+  const only = languages[0];
   const decks = useData((s) => s.decks);
   const categories = useData((s) => s.categories);
   const cards = useData((s) => s.cards);
@@ -262,6 +268,10 @@ export default function StudyScreen() {
             // with speaker/listener variants never grades her against a form
             // she has not turned on.
             perspectives,
+            // And only the languages she is studying. The plan drops the other
+            // one's field entirely, so it is never shown, never typed into and
+            // never graded.
+            languages,
           })
         : null,
     [
@@ -271,6 +281,7 @@ export default function StudyScreen() {
       settings.lenientArabicLetters,
       settings.acceptAlternateAnswers,
       perspectives,
+      languages,
     ],
   );
 
@@ -339,9 +350,19 @@ export default function StudyScreen() {
         lenientArabicLetters: settings.lenientArabicLetters,
         acceptAlternateAnswers: settings.acceptAlternateAnswers,
         perspectives,
+        languages,
       }),
     );
-  }, [plan, currentCard, values, awaitingAdvance, grade, settings, perspectives]);
+  }, [
+    plan,
+    currentCard,
+    values,
+    awaitingAdvance,
+    grade,
+    settings,
+    perspectives,
+    languages,
+  ]);
 
   /**
    * Swipe left: take back the last answer and stand on that card again.
@@ -435,22 +456,40 @@ export default function StudyScreen() {
   // Auto-play on reveal, per language.
   useEffect(() => {
     if (!revealed || !currentCard) return;
-    if (settings.autoPlayHebrew) void speak(currentCard, 'hebrew');
-    if (settings.autoPlayArabic) void speak(currentCard, 'arabic');
-  }, [revealed, currentCard, settings.autoPlayHebrew, settings.autoPlayArabic, speak]);
+    // A language switched off is never spoken, whatever its auto-play toggle
+    // says: the setting is about when to speak it, not whether it is studied.
+    if (settings.autoPlayHebrew && languages.includes('hebrew')) {
+      void speak(currentCard, 'hebrew');
+    }
+    if (settings.autoPlayArabic && languages.includes('arabic')) {
+      void speak(currentCard, 'arabic');
+    }
+  }, [
+    revealed,
+    currentCard,
+    settings.autoPlayHebrew,
+    settings.autoPlayArabic,
+    languages,
+    speak,
+  ]);
 
   // The same, for a word being met rather than recalled: turning the card over
   // is the moment she first hears it.
   const introFlipped = session?.introduceFlipped ?? false;
   useEffect(() => {
     if (!introFlipped || !introCard) return;
-    if (settings.autoPlayHebrew) void speak(introCard, 'hebrew');
-    if (settings.autoPlayArabic) void speak(introCard, 'arabic');
+    if (settings.autoPlayHebrew && languages.includes('hebrew')) {
+      void speak(introCard, 'hebrew');
+    }
+    if (settings.autoPlayArabic && languages.includes('arabic')) {
+      void speak(introCard, 'arabic');
+    }
   }, [
     introFlipped,
     introCard,
     settings.autoPlayHebrew,
     settings.autoPlayArabic,
+    languages,
     speak,
   ]);
 
@@ -532,8 +571,10 @@ export default function StudyScreen() {
           <div className="panel">
             <div className="headline">Card cleared</div>
             <p className="muted">
-              Answered correctly in both Hebrew and Arabic. It stays on the
-              weakest list until its accuracy catches up.
+              {single
+                ? 'Answered correctly in ' + LANGUAGE_LONG_LABEL[only] + '.'
+                : 'Answered correctly in both Hebrew and Arabic.'}{' '}
+              It stays on the weakest list until its accuracy catches up.
             </p>
             <button
               className="btn btn-primary btn-block"
@@ -625,6 +666,7 @@ export default function StudyScreen() {
           card={introCard}
           flipped={session.introduceFlipped}
           perspectives={perspectives}
+          languages={languages}
           lead={lead}
           // Her own setting, even in brutal mode. Brutal strips the crutches
           // from the asking; it has no business taking the pronunciation away
@@ -664,6 +706,7 @@ export default function StudyScreen() {
           <AnswerFeedback
             outcome={lastOutcome}
             card={gradedCard}
+            languages={languages}
             onContinue={continueNext}
           />
         )}
@@ -701,6 +744,7 @@ export default function StudyScreen() {
         <DeckOrderingPair
           cards={ordered}
           perspectives={perspectives}
+          languages={languages}
           lead={lead}
           showTransliteration={showTransliteration}
           reducedMotion={settings.reducedMotion}
@@ -718,6 +762,7 @@ export default function StudyScreen() {
           <AnswerFeedback
             outcome={lastOutcome}
             card={gradedCard}
+            languages={languages}
             onContinue={continueNext}
           />
         )}
@@ -770,38 +815,63 @@ export default function StudyScreen() {
           Submit
         </button>
       ) : revealed ? (
-        <div className="grade-grid">
-          <button
-            className="btn btn-primary"
-            onClick={() => void grade({ hebrew: true, arabic: true })}
-          >
-            ✓ Both correct
-          </button>
-          <button
-            className="btn btn-danger"
-            onClick={() => void grade({ hebrew: false, arabic: false })}
-          >
-            ✗ Both wrong
-          </button>
-          <button
-            className="btn"
-            onClick={() => void grade({ hebrew: false, arabic: true })}
-          >
-            Hebrew wrong
-          </button>
-          <button
-            className="btn"
-            onClick={() => void grade({ hebrew: true, arabic: false })}
-          >
-            Arabic wrong
-          </button>
-        </div>
+        /* With one language there is no partial answer to describe, so the
+           four-way grid collapses to the only two verdicts there are. The
+           language she is not studying is handed to the engine correct, so it
+           can never be the reason a card comes back. */
+        single ? (
+          <div className="grade-grid">
+            <button
+              className="btn btn-primary"
+              onClick={() =>
+                void grade({ hebrew: only !== 'arabic', arabic: only !== 'hebrew' })
+              }
+            >
+              ✓ Correct
+            </button>
+            <button
+              className="btn btn-danger"
+              onClick={() =>
+                void grade({ hebrew: only === 'arabic', arabic: only === 'hebrew' })
+              }
+            >
+              ✗ Wrong
+            </button>
+          </div>
+        ) : (
+          <div className="grade-grid">
+            <button
+              className="btn btn-primary"
+              onClick={() => void grade({ hebrew: true, arabic: true })}
+            >
+              ✓ Both correct
+            </button>
+            <button
+              className="btn btn-danger"
+              onClick={() => void grade({ hebrew: false, arabic: false })}
+            >
+              ✗ Both wrong
+            </button>
+            <button
+              className="btn"
+              onClick={() => void grade({ hebrew: false, arabic: true })}
+            >
+              Hebrew wrong
+            </button>
+            <button
+              className="btn"
+              onClick={() => void grade({ hebrew: true, arabic: false })}
+            >
+              Arabic wrong
+            </button>
+          </div>
+        )
       ) : (
         <button
           className="btn btn-primary btn-block"
           onClick={() => setRevealed(true)}
         >
-          Reveal both answers
+          {single ? 'Reveal the answer' : 'Reveal both answers'}
         </button>
       )}
 
@@ -823,6 +893,7 @@ export default function StudyScreen() {
         <AnswerFeedback
           outcome={lastOutcome}
           card={gradedCard}
+          languages={languages}
           onContinue={continueNext}
         />
       )}

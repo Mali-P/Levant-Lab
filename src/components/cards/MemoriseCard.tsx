@@ -6,12 +6,15 @@ import {
   type PanInfo,
 } from 'framer-motion';
 import {
+  LANGUAGES,
   SPEECH_PERSPECTIVES,
   type Flashcard,
+  type Language,
   type LanguageSide,
   type SpeechPerspective,
 } from '../../types';
 import { useFitToBox } from '../../hooks/useFitToBox';
+import { LANGUAGE_LONG_LABEL } from '../../utils/languageSelection';
 import { wordForms, type WordForm } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
 import Transliteration from './Transliteration';
@@ -23,6 +26,12 @@ export type MemoriseCardProps = {
   flipped: boolean;
   /** The perspectives the learner is studying, female-speaker first. */
   perspectives: readonly SpeechPerspective[];
+  /**
+   * The languages she is studying. The back is one block per language, so one
+   * switched off simply has no block — no forms, no speaker button, no "show
+   * other forms". Absent means both.
+   */
+  languages?: readonly Language[];
   /**
    * Which half of a grammatical pair to read first, from her identity. Display
    * only, and `otherForms` is unaffected: a variant she is not studying is
@@ -60,17 +69,23 @@ const SWIPE_VELOCITY = 300;
  * nothing behind the learner has been written down.
  */
 /**
- * The variants this card has that the learner is *not* currently studying.
+ * The forms this card has that the learner is *not* currently studying.
+ *
+ * Asked of every side rather than only the ones carrying speaker/listener
+ * variants: a gendered pair that agrees with the speaker or the listener is
+ * now narrowed to one form on screen too, and the half she is not being taught
+ * is exactly what this control exists to show her on request.
  *
  * Compared by wording rather than by perspective, so a phrase whose ♂→♀ form
  * happens to be worded exactly like her ♀→♂ one contributes nothing to expand
- * — there would be no second thing to read.
+ * — there would be no second thing to read. A word nothing narrows returns the
+ * same list twice over and so offers nothing, which is the right answer for a
+ * cat or a colour.
  */
 function otherForms(
   side: LanguageSide,
   selected: readonly SpeechPerspective[],
 ): WordForm[] {
-  if (!side.speechForms) return [];
   const shown = new Set(wordForms(side, selected).map((f) => f.script));
   return wordForms(side, SPEECH_PERSPECTIVES).filter((f) => !shown.has(f.script));
 }
@@ -165,10 +180,11 @@ export default function MemoriseCard(props: MemoriseCardProps) {
     x.set(0);
   }
 
-  const sides = [
-    { language: 'hebrew' as const, label: 'Hebrew', side: card.hebrew },
-    { language: 'arabic' as const, label: 'Levantine Arabic', side: card.arabic },
-  ];
+  const sides = (props.languages ?? LANGUAGES).map((language) => ({
+    language,
+    label: LANGUAGE_LONG_LABEL[language],
+    side: language === 'hebrew' ? card.hebrew : (card.arabic as LanguageSide),
+  }));
 
   return (
     <div className="card-stage">

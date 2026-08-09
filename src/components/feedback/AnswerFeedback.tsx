@@ -1,5 +1,14 @@
-import type { Flashcard, LanguageSide } from '../../types';
+import {
+  LANGUAGES,
+  type Flashcard,
+  type Language,
+  type LanguageSide,
+} from '../../types';
 import type { AnswerOutcome } from '../../features/study/engine';
+import {
+  LANGUAGE_LABEL,
+  LANGUAGE_LONG_LABEL,
+} from '../../utils/languageSelection';
 import { wordForms } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
 import Transliteration from '../cards/Transliteration';
@@ -7,6 +16,13 @@ import Transliteration from '../cards/Transliteration';
 type Props = {
   outcome: AnswerOutcome;
   card: Flashcard;
+  /**
+   * The languages being studied. A language switched off gets no verdict and
+   * no correction: it was handed to the engine already correct so that it
+   * could not hold the card back, and printing "Arabic ✓" for an answer nobody
+   * asked for would be claiming credit on her behalf.
+   */
+  languages?: readonly Language[];
   onContinue: () => void;
 };
 
@@ -84,7 +100,10 @@ function headlineFor(outcome: AnswerOutcome): string {
  * ten. A learner four cards into her first five has not scored 4/10, and a
  * sheet that told her so would be describing a test she is not sitting.
  */
-function detailFor(outcome: AnswerOutcome): string | null {
+function detailFor(
+  outcome: AnswerOutcome,
+  languages: readonly Language[],
+): string | null {
   const s = outcome.session;
   const banked = s.perfectRounds + ' / ' + s.perfectRunsRequired;
 
@@ -127,7 +146,11 @@ function detailFor(outcome: AnswerOutcome): string | null {
       return (
         'Perfect rounds: ' +
         banked +
-        '. Before the next one: put the deck back in order, first in Hebrew and then in Arabic. Nothing is scored.'
+        '. Before the next one: put the deck back in order' +
+        (languages.length > 1
+          ? ', first in Hebrew and then in Arabic'
+          : ', in ' + LANGUAGE_LONG_LABEL[languages[0]]) +
+        '. Nothing is scored.'
       );
     case 'deck-mastered':
       return (
@@ -137,7 +160,9 @@ function detailFor(outcome: AnswerOutcome): string | null {
         ' answers this session.'
       );
     case 'drill-complete':
-      return 'Answered correctly in both Hebrew and Arabic.';
+      return languages.length > 1
+        ? 'Answered correctly in both Hebrew and Arabic.'
+        : 'Answered correctly in ' + LANGUAGE_LONG_LABEL[languages[0]] + '.';
     case 'retry-queued':
       return 'It will come back, but not next.';
     default:
@@ -145,34 +170,41 @@ function detailFor(outcome: AnswerOutcome): string | null {
   }
 }
 
-export default function AnswerFeedback({ outcome, card, onContinue }: Props) {
-  const detail = detailFor(outcome);
-  const showHebrewAnswer = !outcome.hebrewCorrect;
-  const showArabicAnswer = !outcome.arabicCorrect;
+export default function AnswerFeedback({
+  outcome,
+  card,
+  languages = LANGUAGES,
+  onContinue,
+}: Props) {
+  const detail = detailFor(outcome, languages);
+  const correct: Record<Language, boolean> = {
+    hebrew: outcome.hebrewCorrect,
+    arabic: outcome.arabicCorrect,
+  };
 
   return (
     <div className="feedback" role="dialog" aria-modal="true" aria-label="Result">
       <div className="feedback-sheet">
         <div className="headline">{headlineFor(outcome)}</div>
 
-        <Verdict label="Hebrew" ok={outcome.hebrewCorrect} />
-        <Verdict label="Arabic" ok={outcome.arabicCorrect} />
-
-        {showHebrewAnswer && (
-          <Correction
-            title="Correct Hebrew answer"
-            side={card.hebrew}
-            language="hebrew"
+        {languages.map((language) => (
+          <Verdict
+            key={language}
+            label={LANGUAGE_LABEL[language]}
+            ok={correct[language]}
           />
-        )}
+        ))}
 
-        {showArabicAnswer && (
-          <Correction
-            title="Correct Arabic answer"
-            side={card.arabic}
-            language="arabic"
-          />
-        )}
+        {languages
+          .filter((language) => !correct[language])
+          .map((language) => (
+            <Correction
+              key={language}
+              title={'Correct ' + LANGUAGE_LABEL[language] + ' answer'}
+              side={language === 'hebrew' ? card.hebrew : card.arabic}
+              language={language}
+            />
+          ))}
 
         {detail && <p className="small muted">{detail}</p>}
 

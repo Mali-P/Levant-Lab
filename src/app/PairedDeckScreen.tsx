@@ -36,7 +36,27 @@ export default function PairedDeckScreen() {
 
   const recordAnswer = useAlphabet((s) => s.recordAnswer);
   const settings = useSettings((s) => s.settings);
+  const languages = useSettings((s) => s.languages);
   const updateSettings = useSettings((s) => s.update);
+
+  /*
+   * Reference, not a graded run, for a learner studying one language.
+   *
+   * The Both course stays reachable by its address after it leaves the
+   * Alphabets list, because hiding the other script's material is not the same
+   * as taking it away. But a course about the pairing cannot be *scored* for
+   * somebody studying one half of it: every letter here writes the same
+   * `alphabetProgress` row the single-script modes write, so a Hebrew-only
+   * learner marking herself on ج would be moving the mastery, the streak and
+   * the review date of a letter in the alphabet she has switched off.
+   *
+   * So in this mode nothing is written at all — not even the letters of the
+   * language she *is* studying. Half a paired run is not a paired run, and
+   * crediting the half that happens to be hers would let a course she is not
+   * taking quietly feed the progress of one she is. The cards still turn over,
+   * which is the whole point of leaving the door open.
+   */
+  const reference = languages.length === 1;
 
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -56,11 +76,14 @@ export default function PairedDeckScreen() {
    */
   const unlocked = useMemo(() => {
     if (!deck) return false;
+    // In reference mode no run can ever be banked, so the ladder would hold
+    // every deck but the first behind a gate that can never open.
+    if (reference) return true;
     const runs = useSettings.getState().settings.pairedLetterRuns ?? {};
     return gatePairDecks(runs).some(
       (gate) => gate.deck.id === deck.id && gate.unlocked,
     );
-  }, [deck]);
+  }, [deck, reference]);
 
   /*
    * Shuffled, like the single-script card decks. The pairs are in abjad order
@@ -94,7 +117,9 @@ export default function PairedDeckScreen() {
   const finish = useCallback(
     async (flawless: boolean) => {
       setFinished(true);
-      if (!flawless || !deck) return;
+      // Reference mode banks nothing, so a clean read never opens a deck and
+      // never stamps one passed.
+      if (reference || !flawless || !deck) return;
       const runs = recordPairRun(
         useSettings.getState().settings.pairedLetterRuns ?? {},
         deck.id,
@@ -122,9 +147,14 @@ export default function PairedDeckScreen() {
       const missed = scored.filter(([, correct]) => !correct).length;
       fireFeedback(missed === 0 ? 'accept' : 'reject', settings);
 
-      for (const [script, correct] of scored) {
-        const letter = script === 'hebrew' ? letters.hebrew! : letters.arabic!;
-        await recordAnswer(letter, script, 'typedRecognition', correct);
+      // The one write this screen makes to a letter's mastery, streak and
+      // review date — and the one it must not make when the course is being
+      // read rather than taken.
+      if (!reference) {
+        for (const [script, correct] of scored) {
+          const letter = script === 'hebrew' ? letters.hebrew! : letters.arabic!;
+          await recordAnswer(letter, script, 'typedRecognition', correct);
+        }
       }
 
       const nextAnswered = answered + scored.length;
@@ -148,6 +178,7 @@ export default function PairedDeckScreen() {
       pair,
       pairs.length,
       recordAnswer,
+      reference,
       revealed,
       settings,
       totalHalves,
@@ -199,17 +230,28 @@ export default function PairedDeckScreen() {
     return (
       <div className="screen">
         <ScreenHeader title={deck.title} eyebrow="Both alphabets" back />
-        <Confetti active={flawless} />
+        {/* Confetti is for something earned. Nothing was. */}
+        <Confetti active={flawless && !reference} />
 
         <div className="panel">
-          <div className="headline">{flawless ? 'Clean run' : 'Deck read'}</div>
+          <div className="headline">
+            {reference ? 'Deck read' : flawless ? 'Clean run' : 'Deck read'}
+          </div>
           <p className="muted">
-            You marked yourself right on {right} of {totalHalves} letters.
+            {reference
+              ? 'You read through all ' + totalHalves + ' letters.'
+              : 'You marked yourself right on ' +
+                right +
+                ' of ' +
+                totalHalves +
+                ' letters.'}
           </p>
           <p className="small muted">
-            {flawless
-              ? 'The next deck is open.'
-              : 'The next deck opens on a run with nothing missed. The letters you were unsure of are waiting in each alphabet’s own Review mistakes.'}
+            {reference
+              ? 'Nothing was marked or counted. No letter’s progress moved, in either alphabet, and no deck was opened or passed.'
+              : flawless
+                ? 'The next deck is open.'
+                : 'The next deck opens on a run with nothing missed. The letters you were unsure of are waiting in each alphabet’s own Review mistakes.'}
           </p>
 
           <div className="stack">
@@ -248,15 +290,26 @@ export default function PairedDeckScreen() {
 
   return (
     <div className="screen study">
-      <ScreenHeader title={deck.title} eyebrow="Name both letters" back />
+      <ScreenHeader
+        title={deck.title}
+        eyebrow={reference ? 'Reference · both alphabets' : 'Name both letters'}
+        back
+      />
 
       <div className="study-meta small">
         <span>
           Card {index + 1} of {pairs.length}
         </span>
         <span className="grow muted">{pairs.length - index - 1} to go</span>
-        <span className={'chip' + (wrong === 0 ? ' chip-ok' : '')}>
-          {wrong === 0 ? 'Clean so far' : wrong + ' missed'}
+        {/* "Clean so far" is a score. In reference mode there isn't one. */}
+        <span
+          className={'chip' + (!reference && wrong === 0 ? ' chip-ok' : '')}
+        >
+          {reference
+            ? 'Nothing recorded'
+            : wrong === 0
+              ? 'Clean so far'
+              : wrong + ' missed'}
         </span>
       </div>
 
@@ -281,7 +334,17 @@ export default function PairedDeckScreen() {
           so it asks the one question it can. */}
       {revealed ? (
         <div className="grade-grid">
-          {letters.hebrew && letters.arabic ? (
+          {/* Nothing is being marked, so there is nothing to mark it as. One
+              button that moves on, rather than four verdicts that all quietly
+              do the same nothing. */}
+          {reference ? (
+            <button
+              className="btn btn-primary btn-block"
+              onClick={() => void grade({ hebrew: true, arabic: true })}
+            >
+              Next letter
+            </button>
+          ) : letters.hebrew && letters.arabic ? (
             <>
               <button
                 className="btn btn-primary"

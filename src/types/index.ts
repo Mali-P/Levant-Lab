@@ -2,6 +2,23 @@ import type { AlphabetDisplay } from './alphabet';
 
 export type Language = 'hebrew' | 'arabic';
 
+/** Both languages, in the order every paired surface presents them. */
+export const LANGUAGES: readonly Language[] = ['hebrew', 'arabic'];
+
+/**
+ * Which languages the learner has switched on.
+ *
+ * A preference and a filter, never a fact about the content: a card always
+ * carries both halves, and choosing one language hides the other rather than
+ * touching it. Switching back to `both` restores it, its stored accuracy
+ * included, exactly as it stood.
+ *
+ * Stored as the answer she gave rather than as a derived list, for the same
+ * reason identity is — the list every consumer reads is `activeLanguages()`,
+ * computed on load, so no stale mirror of the choice can exist on disk.
+ */
+export type LanguageChoice = Language | 'both';
+
 export type StudyMode = 'normal' | 'hard' | 'brutal';
 
 export type AnswerMode = 'self' | 'typed' | 'audio';
@@ -565,6 +582,16 @@ export type Settings = {
    * consumer reads comes from `effectivePerspectives`, computed on load, so a
    * stale mirror of an identity cannot exist on disk.
    */
+
+  /**
+   * The languages she is learning. Asked before identity and answered before
+   * it, because it decides *which* languages a card is resolved for and
+   * identity only decides which form each of those takes.
+   *
+   * Absent on rows written before the choice existed, which read as `both` —
+   * the behaviour those installs already had.
+   */
+  studyLanguages: LanguageChoice;
 
   /** Who the learner is. Female is the default this app is written for. */
   learnerGender: PersonGender;

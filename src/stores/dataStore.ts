@@ -5,6 +5,7 @@ import type {
   Deck,
   DeckProgress,
   Flashcard,
+  Language,
 } from '../types';
 import { db } from '../services/database/db';
 import { emptyDeckProgress } from '../services/database/defaults';
@@ -53,9 +54,15 @@ type DataState = {
   duplicateCard: (id: string) => Promise<void>;
   moveCard: (id: string, deckId: string) => Promise<void>;
 
+  /**
+   * `languages` is the set actually asked for. One left out keeps its stored
+   * accuracy exactly as it stands — see `applyAnswerToProgress`. Absent means
+   * both, so a caller with no opinion cannot silently narrow a score.
+   */
   recordAnswer: (
     cardId: string,
     result: { hebrew: boolean; arabic: boolean },
+    languages?: readonly Language[],
   ) => Promise<void>;
   /**
    * Puts a card's and a deck's progress back exactly as they were before an
@@ -239,11 +246,17 @@ export const useData = create<DataState>((set, get) => ({
     await get().saveCard({ ...card, deckId, categoryId: deck.categoryId });
   },
 
-  async recordAnswer(cardId, result) {
+  async recordAnswer(cardId, result, languages) {
     const now = new Date().toISOString();
     // `updatedAt` is stamped here rather than inside `applyAnswerToProgress`,
     // which is pure scoring logic that sync has no business reaching into.
-    const scored = applyAnswerToProgress(get().cardProgress[cardId], cardId, result, now);
+    const scored = applyAnswerToProgress(
+      get().cardProgress[cardId],
+      cardId,
+      result,
+      now,
+      languages,
+    );
     const next: CardProgress = { ...scored, updatedAt: now };
     await db.cardProgress.put(next);
     set({ cardProgress: { ...get().cardProgress, [cardId]: next } });

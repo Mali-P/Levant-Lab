@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import type { Settings, SpeechPerspective } from '../types';
+import type { Language, Settings, SpeechPerspective } from '../types';
 import { db } from '../services/database/db';
 import { DEFAULT_SETTINGS } from '../services/database/defaults';
+import { activeLanguages } from '../utils/languageSelection';
 import {
   effectivePerspectives,
   identityFromLegacy,
@@ -47,6 +48,12 @@ export function migrateSettings(stored: StoredSettings | undefined): Settings {
     ? merged
     : { ...merged, ...identityFromLegacy(speechPerspectives) };
 
+  // Anything that is not one of the two languages is both — the behaviour of
+  // every install written before the choice existed.
+  if (next.studyLanguages !== 'hebrew' && next.studyLanguages !== 'arabic') {
+    next.studyLanguages = 'both';
+  }
+
   next.learnerGender = next.learnerGender === 'male' ? 'male' : 'female';
   next.listenerGenders = normaliseListeners(next.listenerGenders);
 
@@ -59,6 +66,16 @@ export function migrateSettings(stored: StoredSettings | undefined): Settings {
 
 type SettingsState = {
   settings: Settings;
+  /**
+   * The languages to teach, ask for, speak and score — derived from
+   * `studyLanguages` and held here for the same reason `perspectives` is: one
+   * array, one reference, and no persisted copy of a value that follows from
+   * the row it would sit beside.
+   *
+   * Never empty. Narrowing is display and grading only: no progress row is
+   * keyed by language, so switching between one and both loses nothing.
+   */
+  languages: readonly Language[];
   /**
    * What to render and grade, derived from the settings above.
    *
@@ -89,6 +106,7 @@ type SettingsState = {
 function derived(settings: Settings) {
   return {
     settings,
+    languages: activeLanguages(settings.studyLanguages),
     perspectives: effectivePerspectives(settings),
     lead:
       settings.learnerGender === 'male'

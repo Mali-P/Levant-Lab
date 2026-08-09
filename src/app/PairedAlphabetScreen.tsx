@@ -21,7 +21,22 @@ import Icon from '../components/ornament/Icon';
  */
 export default function PairedAlphabetScreen() {
   const settings = useSettings((s) => s.settings);
+  const languages = useSettings((s) => s.languages);
   const gates = gatePairDecks(settings.pairedLetterRuns ?? {});
+
+  /*
+   * Reference, not a course, for a learner studying one language.
+   *
+   * This screen is no longer offered in the Alphabets list when a single
+   * language is on, but the address still works and should: the other script's
+   * material is hidden, never made inaccessible. What changes is that nothing
+   * here can be banked — see `PairedDeckScreen` — and a ladder that gates each
+   * deck behind a clean run through the last would then gate every deck behind
+   * a run that can no longer be recorded. A reference nobody can open past the
+   * first page is not a reference, so here every deck is open and none of them
+   * is passed.
+   */
+  const reference = languages.length === 1;
 
   return (
     <div className="screen">
@@ -37,12 +52,25 @@ export default function PairedAlphabetScreen() {
         both ways.
       </p>
 
+      {reference && (
+        <section className="panel">
+          <span className="eyebrow">Reference only</span>
+          <p className="small muted">
+            You are studying one language, so this course is here to be read
+            rather than run. Nothing on these decks is marked, scored or
+            counted — for either alphabet — and no letter's progress moves.
+            Choose Both in Settings to take it as a course.
+          </p>
+        </section>
+      )}
+
       {gates.map((gate) => {
         const deck = gate.deck;
+        const open = gate.unlocked || reference;
 
         return (
           <section
-            className={'panel' + (gate.unlocked ? '' : ' locked')}
+            className={'panel' + (open ? '' : ' locked')}
             key={deck.id}
           >
             <div className="spread">
@@ -55,7 +83,9 @@ export default function PairedAlphabetScreen() {
                 </div>
               </div>
               <div className="deck-marks">
-                {gate.unlocked ? (
+                {reference ? (
+                  <span className="chip">Reference</span>
+                ) : gate.unlocked ? (
                   gate.passed && <span className="chip chip-ok">Passed</span>
                 ) : (
                   <span className="chip">
@@ -67,14 +97,22 @@ export default function PairedAlphabetScreen() {
 
             <div className="small muted">{deck.description}</div>
 
-            <PerfectRuns completed={gate.runs} required={gate.runsRequired} />
+            {/* No run tally in reference mode: the pips would be counting
+                towards something that can no longer be earned. */}
+            {!reference && (
+              <PerfectRuns completed={gate.runs} required={gate.runsRequired} />
+            )}
 
-            {gate.unlocked ? (
+            {open ? (
               <Link
                 className="btn btn-primary btn-block"
                 to={'/alphabet/both/' + encodeURIComponent(deck.id)}
               >
-                {gate.passed ? 'Read it again' : 'Study this deck'}
+                {reference
+                  ? 'Read this deck'
+                  : gate.passed
+                    ? 'Read it again'
+                    : 'Study this deck'}
               </Link>
             ) : (
               <p className="small muted">
