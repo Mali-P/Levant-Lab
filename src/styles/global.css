@@ -1268,6 +1268,15 @@ a.btn-primary:visited {
 .screen.study .card {
   gap: calc(clamp(4px, 0.9vh, 8px) * var(--fit));
   padding-block: calc(clamp(7px, 1.1vh, 11px) * var(--fit));
+  /*
+   * The card's box is the height the screen has left over, not the height its
+   * content wants — that is what keeps every card the same object as the learner
+   * moves through a deck. A short word therefore leaves room to spare, and left
+   * at the top it dumped the whole of it in one band under the last line, which
+   * read as a card that had lost its bottom half. Centred, the same space
+   * becomes a frame.
+   */
+  justify-content: center;
 }
 
 .screen.study .card-prompt {
@@ -1923,7 +1932,16 @@ a.btn-primary:visited {
      height left over — and a card that scrolls its own back while leaving a
      band of empty screen underneath is the worst of both. */
   flex: 1 1 auto;
-  min-height: 46%;
+  /*
+   * The floor keeps a near-empty face — one English word waiting to be flipped
+   * — reading as a card rather than a strip. It is a proportion first and a
+   * hard 150px second, because on a very short screen the proportion is a floor
+   * the stage cannot get under, and the height it refuses to give up comes out
+   * of the grading buttons below it: they went behind the tab bar rather than
+   * the card getting tighter. The card is the thing that can absorb it — that
+   * is what `--fit` is for — so this yields and the controls stay reachable.
+   */
+  min-height: min(46%, 150px);
   max-height: 100%;
   width: 100%;
   margin-inline: auto;
@@ -1932,6 +1950,96 @@ a.btn-primary:visited {
      card off it by the same distance the buttons stand off below keeps the
      card floating in the screen rather than hanging from the line of text. */
   margin-top: 8px;
+}
+
+/*
+ * Very short screens: the chrome gives way, not the card.
+ *
+ * By this point the card has spent everything it has — the clamps are at their
+ * floors and `--fit` is at the size the scripts stop shrinking at — and the
+ * height still is not there. So the screen stops asking the card for it. What
+ * goes is the writing *about* the session rather than the session: the sentence
+ * under the stage label, which explains what the label beside it already says,
+ * and the air around a deck name nobody is reading mid-round.
+ *
+ * A second tier below the 720px rule above, and deliberately rare: at 600px of
+ * viewport the browser's own chrome has taken a third of a small phone.
+ */
+@media (max-height: 600px) {
+  .screen.study .screen-head {
+    min-height: 0;
+  }
+
+  /* The header's own back arrow, which is what actually held the row at 48px —
+     the heading beside it was never that tall. */
+  .screen.study .screen-head .btn {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  .screen.study .screen-head h1 {
+    font-size: 1.15rem;
+  }
+
+  /* Still above the 24px WCAG 2.5.8 floor by half again, and these are the
+     widest targets on the screen — four buttons filling its whole width. */
+  .screen.study .grade-grid .btn {
+    min-height: 40px;
+  }
+
+  .screen.study .stage-detail {
+    display: none;
+  }
+
+  /* The pips and the "2 / 5" beside the stage label count the same thing. The
+     number survives, because it is the one that fits on a line already spoken
+     for. The pips carry an aria-label the number's own text replaces. */
+  .screen.study .stage-banner .runs {
+    display: none;
+  }
+
+  /* The step back to the last card. The left swipe is the primary path and
+     ArrowLeft is its keyboard equivalent — both still work here; what goes is
+     a full row spent restating them on the one screen size that cannot spare
+     the row. It returns above 600px, where it costs the card nothing. */
+  .screen.study > .btn-ghost.btn-compact {
+    display: none;
+  }
+
+  .screen.study .stage-banner {
+    gap: 2px;
+  }
+
+  .screen.study .grade-grid {
+    gap: 6px;
+  }
+
+  /*
+   * The script and its romanisation share a baseline instead of stacking —
+   * "שמונה  shmone" — which is how the memorise card has always set them, and
+   * how the ♀/♂ pair above already reads at 720px. Two lines back per language,
+   * and nothing is hidden or shrunk to get them: the reading the learner wants
+   * is the word and its pronunciation together anyway.
+   */
+  .screen.study .answer-block {
+    flex-flow: row wrap;
+    align-items: baseline;
+    column-gap: 10px;
+  }
+
+  /* The label keeps its own line — it carries the speaker buttons, which have a
+     tap floor the text beside them does not. */
+  .screen.study .answer-block > .lang-label {
+    flex: 1 0 100%;
+  }
+
+  .screen.study .answer-reveal {
+    flex: 0 1 auto;
+  }
+
+  .screen.study .translit-lines {
+    flex: 1 1 auto;
+  }
 }
 
 /* The screen's own 10px gap reads as a crack between two things that touch.
