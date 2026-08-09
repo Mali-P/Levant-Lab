@@ -24,8 +24,16 @@ describe('geminiPrompt', () => {
     expect(prompt).toContain('add no vowel or syllable');
   });
 
+  it('blocks formal endings that are not in the transliteration', () => {
+    const prompt = geminiPrompt(style, 'فرشاية سنان', 'firshāyet snān');
+    expect(prompt).toContain('case endings');
+    expect(prompt).toContain('tanwin');
+    expect(prompt).toContain('final -n/-ni/-nan');
+    expect(prompt).toContain('formal -at/-aton endings');
+  });
+
   it('leaves exactly one colon between the direction and the word', () => {
-    expect(geminiPrompt(style, 'تنين', 'tnēn')).toContain('word.:\n\nتنين');
+    expect(geminiPrompt(style, 'تنين', 'tnēn')).toMatch(/:\n\nتنين$/);
     expect(geminiPrompt(style, 'تنين')).toBe(
       'Say it in Palestinian Arabic. Read only the words themselves:\n\nتنين',
     );

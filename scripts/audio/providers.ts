@@ -290,7 +290,9 @@ export function geminiPrompt(
       ' Pronounce it exactly as this romanisation shows — "' +
       transliteration.trim() +
       '" — and add no vowel or syllable the romanisation does not contain, ' +
-      'especially at the end of the word.';
+      'especially at the end of the word. Use Palestinian pause forms: do not ' +
+      'add case endings, tanwin, final -n/-ni/-nan, or formal -at/-aton endings ' +
+      'unless they are written in the romanisation.';
   }
 
   return direction + ':\n\n' + text;
