@@ -69,7 +69,7 @@ describe('reading a transliteration', () => {
   });
 
   it('carries the meaning of each word it knows', () => {
-    const segments = readTransliteration('ṣabāḥ el-khēr', 'arabic');
+    const segments = readTransliteration('ṣabāḥ il-khēr', 'arabic');
     expect(segments.filter((s) => s.word).map((s) => s.gloss)).toEqual([
       'morning',
       'the goodness',

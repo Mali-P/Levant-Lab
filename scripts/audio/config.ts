@@ -39,6 +39,8 @@ export type GoogleConfig = {
   credentials?: string;
   languageCode: string;
   voice: string;
+  arabicLanguageCode: string;
+  arabicVoice: string;
 };
 
 export type AzureConfig = {
@@ -63,7 +65,7 @@ export type GeminiConfig = {
 };
 
 /** Which provider records the Arabic. Hebrew is always Google. */
-export type ArabicProvider = 'gemini' | 'azure';
+export type ArabicProvider = 'gemini' | 'azure' | 'google';
 
 export type AudioConfig = {
   google: GoogleConfig;
@@ -84,6 +86,13 @@ export type AudioConfig = {
  * Chirp or Neural2 voice where the project has access to one.
  */
 const DEFAULT_HEBREW_VOICE = 'he-IL-Wavenet-A';
+
+/**
+ * Google Cloud's Arabic voices are `ar-XA`, i.e. Modern Standard Arabic.
+ * Kept as a trial path for comparing the engine on one deck at a time; this is
+ * not a Palestinian dialect voice.
+ */
+const DEFAULT_GOOGLE_ARABIC_VOICE = 'ar-XA-Wavenet-A';
 
 /**
  * Jordanian Arabic is the closest dialect Azure offers to Palestinian
@@ -130,6 +139,8 @@ export function loadConfig(): AudioConfig {
   loadEnvFile();
 
   const hebrewVoice = process.env.GOOGLE_HEBREW_VOICE || DEFAULT_HEBREW_VOICE;
+  const googleArabicVoice =
+    process.env.GOOGLE_ARABIC_VOICE || DEFAULT_GOOGLE_ARABIC_VOICE;
   const arabicVoice = process.env.AZURE_ARABIC_VOICE || DEFAULT_ARABIC_VOICE;
 
   return {
@@ -138,6 +149,8 @@ export function loadConfig(): AudioConfig {
       credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
       languageCode: localeOf(hebrewVoice, 'he-IL'),
       voice: hebrewVoice,
+      arabicLanguageCode: localeOf(googleArabicVoice, 'ar-XA'),
+      arabicVoice: googleArabicVoice,
     },
     azure: {
       key: process.env.AZURE_SPEECH_KEY || undefined,
@@ -151,10 +164,11 @@ export function loadConfig(): AudioConfig {
       voice: process.env.GEMINI_ARABIC_VOICE || DEFAULT_GEMINI_VOICE,
       styleDirection: process.env.GEMINI_ARABIC_STYLE || DEFAULT_GEMINI_STYLE,
     },
-    arabicProvider:
-      process.env.ARABIC_TTS_PROVIDER?.toLowerCase() === 'azure'
-        ? 'azure'
-        : 'gemini',
+    arabicProvider: ((): ArabicProvider => {
+      const provider = process.env.ARABIC_TTS_PROVIDER?.toLowerCase();
+      if (provider === 'azure' || provider === 'google') return provider;
+      return 'gemini';
+    })(),
 
     outputRoot: process.env.AUDIO_OUTPUT_ROOT || 'public',
     sampleRateHz: Number(process.env.AUDIO_SAMPLE_RATE || 24000),
@@ -179,6 +193,7 @@ export function loadConfig(): AudioConfig {
  */
 export function arabicVoiceTag(config: AudioConfig): string {
   if (config.arabicProvider === 'azure') return config.azure.voice;
+  if (config.arabicProvider === 'google') return config.google.arabicVoice;
 
   const style = createHash('sha256')
     .update(config.gemini.styleDirection)

@@ -57,7 +57,7 @@ function transliterationsOf(side: SeedSide): string[] {
  *
  * A card whose transliteration is a single word *is* a definition of that word,
  * so "khamse" is glossed by the card that teaches five without anyone writing
- * it down twice. Only single-word sides count: "ṣabāḥ el-khēr" says nothing
+ * it down twice. Only single-word sides count: "ṣabāḥ il-khēr" says nothing
  * about ṣabāḥ by itself, and the curated list covers those pieces instead.
  *
  * A word taught by more than one card keeps every reading, because a learner
@@ -141,7 +141,7 @@ function plainGloss(language: GlossLanguage, key: string): string | undefined {
 /**
  * What one transliterated word means.
  *
- * Words joined to a clitic by a hyphen — ve-arba, el-khēr, bil-bēt — are looked
+ * Words joined to a clitic by a hyphen — ve-arba, il-khēr, bil-bēt — are looked
  * up by their stem and read back through the clitic, so the starter table does
  * not have to spell out "and four" beside "and five" beside "and six". Only
  * hyphenated clitics decompose: a bare `la` is the Hebrew word for "to her" and

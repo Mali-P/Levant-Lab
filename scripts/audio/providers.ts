@@ -36,7 +36,10 @@ export interface Synthesizer {
  * The client is imported on demand so that `--language=arabic` runs on a
  * machine with no Google package and no service account installed.
  */
-export async function googleHebrew(config: AudioConfig): Promise<Synthesizer> {
+async function googleVoice(
+  config: AudioConfig,
+  options: { voice: string; languageCode: string; label: string },
+): Promise<Synthesizer> {
   if (!config.google.credentials && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     throw new TtsError(
       'GOOGLE_APPLICATION_CREDENTIALS is not set. Point it at a service account JSON file.',
@@ -58,14 +61,14 @@ export async function googleHebrew(config: AudioConfig): Promise<Synthesizer> {
 
   return {
     provider: 'google',
-    voice: config.google.voice,
+    voice: options.voice,
     format: 'mp3',
     async synthesize(text: string): Promise<Buffer> {
       const [response] = await client.synthesizeSpeech({
         input: { text },
         voice: {
-          languageCode: config.google.languageCode,
-          name: config.google.voice,
+          languageCode: options.languageCode,
+          name: options.voice,
         },
         audioConfig: {
           audioEncoding: 'MP3',
@@ -77,10 +80,28 @@ export async function googleHebrew(config: AudioConfig): Promise<Synthesizer> {
       });
 
       const audio = response.audioContent;
-      if (!audio) throw new TtsError('Google returned no audio for: ' + text);
+      if (!audio) {
+        throw new TtsError('Google returned no ' + options.label + ' audio for: ' + text);
+      }
       return Buffer.isBuffer(audio) ? audio : Buffer.from(audio);
     },
   };
+}
+
+export async function googleHebrew(config: AudioConfig): Promise<Synthesizer> {
+  return googleVoice(config, {
+    voice: config.google.voice,
+    languageCode: config.google.languageCode,
+    label: 'Hebrew',
+  });
+}
+
+export async function googleArabic(config: AudioConfig): Promise<Synthesizer> {
+  return googleVoice(config, {
+    voice: config.google.arabicVoice,
+    languageCode: config.google.arabicLanguageCode,
+    label: 'Arabic',
+  });
 }
 
 /**
@@ -394,5 +415,7 @@ export async function geminiArabic(config: AudioConfig): Promise<Synthesizer> {
  * generators cannot drift apart on which provider is live.
  */
 export function arabicSynthesizer(config: AudioConfig): Promise<Synthesizer> {
-  return config.arabicProvider === 'azure' ? azureArabic(config) : geminiArabic(config);
+  if (config.arabicProvider === 'azure') return azureArabic(config);
+  if (config.arabicProvider === 'google') return googleArabic(config);
+  return geminiArabic(config);
 }

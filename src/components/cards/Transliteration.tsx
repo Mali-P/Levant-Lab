@@ -162,7 +162,7 @@ export type TransliterationProps = {
 /**
  * A transliteration line whose words can each be asked what they mean.
  *
- * A learner reading "ṣabāḥ el-khēr" can see that the first word is the morning
+ * A learner reading "ṣabāḥ il-khēr" can see that the first word is the morning
  * and the second is the goodness, which is half the reason the romanisation is
  * on the card at all: it is the one line where the pieces of a phrase are
  * separable by eye. Words with nothing known about them stay plain text rather

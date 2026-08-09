@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  arabicSynthesizer,
   geminiAudioPart,
   geminiPrompt,
   pcmSampleRate,
@@ -7,6 +8,28 @@ import {
   TtsError,
   wavFromPcm,
 } from './providers';
+
+describe('arabicSynthesizer', () => {
+  it('can route an Arabic deck trial through Google', async () => {
+    await expect(
+      arabicSynthesizer({
+        google: {
+          languageCode: 'he-IL',
+          voice: 'he-IL-Wavenet-A',
+          arabicLanguageCode: 'ar-XA',
+          arabicVoice: 'ar-XA-Wavenet-A',
+        },
+        azure: { languageCode: 'ar-JO', voice: 'ar-JO-SanaNeural' },
+        gemini: { model: 'gemini-tts', voice: 'Kore', styleDirection: 'style' },
+        arabicProvider: 'google',
+        outputRoot: 'public',
+        sampleRateHz: 24000,
+        loudnessLufs: -16,
+        bitrateKbps: 96,
+      }),
+    ).rejects.toThrow(/GOOGLE_APPLICATION_CREDENTIALS/);
+  });
+});
 
 describe('geminiPrompt', () => {
   const style = 'Say it in Palestinian Arabic. Read only the words themselves:';
