@@ -2084,6 +2084,13 @@ a.btn-primary:visited {
   cursor: pointer;
 }
 
+/* The same for any other card waiting to be turned over — a study or letter-pair
+   card with nothing on it to type into. Dropped the moment it is revealed, so
+   the pointer stops promising an action the face no longer has. */
+.card.tappable {
+  cursor: pointer;
+}
+
 .memorise-hint {
   text-align: center;
   margin: auto 0 0;

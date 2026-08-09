@@ -20,6 +20,16 @@ const FLOOR = 0.56;
 const STEP = 0.04;
 
 /**
+ * The largest a face is allowed to set itself when it is asked to grow.
+ *
+ * A card carrying one script instead of two has half the lines and the same box,
+ * and left at `--fit: 1` it set a word the size of a caption in the middle of a
+ * tablet. This is the ceiling that stops the other extreme: one short word blown
+ * up until the card reads as a poster rather than as one of a deck.
+ */
+const CEILING = 1.85;
+
+/**
  * Sets `--fit` on an element until its content stops overflowing it.
  *
  * The study and memorise cards may never scroll. A card is a single face the
@@ -35,8 +45,16 @@ const STEP = 0.04;
  *
  * @param deps Content changes that need a fresh measurement — the card's id, a
  *   reveal, a flip. Box changes are watched for separately.
+ * @param grow Whether a face with room to spare should also be set *up* until
+ *   it fills the box. Off by default, because most faces are the two-language
+ *   ones the sizes in the stylesheet were chosen for and growing those would
+ *   only undo that choice. A face carrying half of them — one script rather
+ *   than two — has the room and is the case this exists for.
  */
-export function useFitToBox<T extends HTMLElement>(deps: readonly unknown[]) {
+export function useFitToBox<T extends HTMLElement>(
+  deps: readonly unknown[],
+  grow = false,
+) {
   const ref = useRef<T>(null);
 
   const fit = useCallback(() => {
@@ -52,11 +70,33 @@ export function useFitToBox<T extends HTMLElement>(deps: readonly unknown[]) {
     // A pixel of slack, so sub-pixel layout rounding does not read a face that
     // fits exactly as one that overflows and shrink it for nothing. Reading
     // scrollHeight forces the reflow each next measurement depends on.
-    while (el.scrollHeight - el.clientHeight > 1 && scale > FLOOR) {
+    const overflows = () => el.scrollHeight - el.clientHeight > 1;
+
+    if (!overflows() && grow) {
+      /*
+       * Up in the same steps it would have come down in, and one step back the
+       * moment it overflows — so the size it settles on is the last one that
+       * fitted, never the first one that did not. The box is fixed by the stage
+       * above it, so growing the type cannot grow the thing being measured and
+       * this ends where the card's edge is.
+       */
+      while (scale < CEILING) {
+        const next = Math.min(CEILING, scale + STEP);
+        el.style.setProperty('--fit', next.toFixed(3));
+        if (overflows()) {
+          el.style.setProperty('--fit', scale.toFixed(3));
+          return;
+        }
+        scale = next;
+      }
+      return;
+    }
+
+    while (overflows() && scale > FLOOR) {
       scale = Math.max(FLOOR, scale - STEP);
       el.style.setProperty('--fit', scale.toFixed(3));
     }
-  }, []);
+  }, [grow]);
 
   useEffect(() => {
     const el = ref.current;

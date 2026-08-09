@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import type { AlphabetDisplay, ArabicLetter, HebrewLetter } from '../../types/alphabet';
 import type { LetterPair } from '../../data/alphabets';
@@ -56,6 +56,13 @@ export default function PairCard(props: Props) {
      sets itself smaller until they do rather than running over its own edge. */
   const face = useFitToBox<HTMLElement>([pair.id, revealed, props.display]);
 
+  /**
+   * Whether the gesture in progress has turned into a drag, so the click the
+   * browser fires at the end of a swipe does not turn the card over as well.
+   * Cleared on the way down, so every new gesture starts life as a tap.
+   */
+  const dragged = useRef(false);
+
   const tilt = reducedMotion ? 0 : 9 * props.animationIntensity;
   const rotate = useTransform(x, [-220, 0, 220], [-tilt, 0, tilt]);
   const acceptOpacity = useTransform(x, [40, 130], [0, 1]);
@@ -92,13 +99,28 @@ export default function PairCard(props: Props) {
 
       <motion.article
         ref={face}
-        className={'card pair-card' + (revealed ? ' revealed' : '')}
+        className={'card pair-card' + (revealed ? ' revealed' : ' tappable')}
         style={{ x, y, rotate }}
         drag={!reducedMotion}
         dragElastic={0.5}
         dragSnapToOrigin
+        onDragStart={() => {
+          dragged.current = true;
+        }}
         onDragEnd={handleDragEnd}
         transition={{ type: 'spring', stiffness: 460, damping: 36 }}
+        onPointerDown={() => {
+          dragged.current = false;
+        }}
+        /* A tap turns the card over, as it does on every other letter card. The
+           swipe up still does the same thing; this is the gesture a learner
+           arrives with, and a card that only answered to a swipe they had not
+           been told about read as a card with nothing on the back. */
+        onClick={(event) => {
+          if (dragged.current || revealed) return;
+          if ((event.target as HTMLElement).closest('button, a')) return;
+          props.onReveal();
+        }}
         aria-label={
           'Letter pair card: ' +
           (revealed
@@ -187,8 +209,8 @@ export default function PairCard(props: Props) {
         ) : (
           <p className="memorise-hint small muted">
             {halves.length === 1
-              ? 'Name the letter and its sound, then swipe up'
-              : 'Name both letters and the sound they share, then swipe up'}
+              ? 'Name the letter and its sound, then tap'
+              : 'Name both letters and the sound they share, then tap'}
           </p>
         )}
       </motion.article>

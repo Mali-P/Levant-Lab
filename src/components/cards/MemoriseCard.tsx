@@ -138,9 +138,28 @@ export default function MemoriseCard(props: MemoriseCardProps) {
   const [showOthers, setShowOthers] = useState(false);
   useEffect(() => setShowOthers(false), [card.id]);
 
-  /* Four forms and two labels turned over always fit one face, because the face
-     sets itself smaller until they do rather than scrolling to them. */
-  const face = useFitToBox<HTMLElement>([card.id, flipped, showOthers, perspectives]);
+  const sides = (props.languages ?? LANGUAGES).map((language) => ({
+    language,
+    label: LANGUAGE_LONG_LABEL[language],
+    side: language === 'hebrew' ? card.hebrew : (card.arabic as LanguageSide),
+  }));
+
+  /*
+   * Four forms and two labels turned over always fit one face, because the face
+   * sets itself smaller until they do rather than scrolling to them.
+   *
+   * A learner studying one language turns the card over onto half as many
+   * lines, and these sizes were chosen for the full face — so واحد stood in the
+   * middle of a tablet set as though Hebrew were underneath it, with a band of
+   * empty card below where the other language would have been. On that face the
+   * fit works the other way and sets the script up until it reaches the card's
+   * edge. The front is left alone either way: it holds one English word, and it
+   * is the flip that is being waited for rather than the word being read.
+   */
+  const face = useFitToBox<HTMLElement>(
+    [card.id, flipped, showOthers, perspectives, sides.length],
+    flipped && sides.length === 1,
+  );
 
   /**
    * Whether the gesture in progress has turned into a drag.
@@ -179,12 +198,6 @@ export default function MemoriseCard(props: MemoriseCardProps) {
 
     x.set(0);
   }
-
-  const sides = (props.languages ?? LANGUAGES).map((language) => ({
-    language,
-    label: LANGUAGE_LONG_LABEL[language],
-    side: language === 'hebrew' ? card.hebrew : (card.arabic as LanguageSide),
-  }));
 
   return (
     <div className="card-stage">

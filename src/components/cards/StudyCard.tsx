@@ -57,13 +57,44 @@ export default function StudyCard(props: StudyCardProps) {
   const y = useMotionValue(0);
 
   /**
+   * Whether the gesture in progress has turned into a drag. The browser fires a
+   * click at the end of a drag as well as at the end of a tap, so without this
+   * every swipe would also turn the card over. Cleared on the way down, so each
+   * new gesture starts life as a tap.
+   */
+  const dragged = useRef(false);
+
+  /**
+   * A tap turns the card over, the same as the swipe up does.
+   *
+   * The gesture was swipe-up alone, which is fine once you know it and invisible
+   * until you do — and the reading cards have flipped on tap all along, so a
+   * learner moving from Review to Practice found the thing they had been tapping
+   * for a hundred cards had stopped answering. A card being typed into is left
+   * out: there the tap belongs to the field, and the answer is submitted rather
+   * than revealed.
+   */
+  const tapToReveal = !typed && !revealed;
+
+  /**
    * The card never scrolls. A long sentence in two languages, each with two
    * forms and a transliteration under it, used to run over the card's bottom
    * edge — and what fell off was the last line of the last block, which is the
    * Arabic transliteration the learner most needs. So the face sets itself
    * smaller until it fits instead of hiding the end of itself.
    */
-  const face = useFitToBox<HTMLElement>([card.id, revealed, typed, plan.promptText]);
+  /*
+   * And the other way for a card asking after one language rather than two. It
+   * has one answer block where the full card has two, so the sizes chosen for
+   * the full card leave the script standing in the middle of a half-empty face.
+   * Only once revealed: before that the block is a row of dots, and fitting the
+   * face to those would set the prompt like a poster and then drop it the moment
+   * the answer arrived.
+   */
+  const face = useFitToBox<HTMLElement>(
+    [card.id, revealed, typed, plan.promptText, plan.fields.length],
+    revealed && !typed && plan.fields.length === 1,
+  );
 
   const tilt = reducedMotion ? 0 : 9 * props.animationIntensity;
   const rotate = useTransform(x, [-220, 0, 220], [-tilt, 0, tilt]);
@@ -119,7 +150,7 @@ export default function StudyCard(props: StudyCardProps) {
 
       <motion.article
         ref={face}
-        className="card"
+        className={'card' + (tapToReveal ? ' tappable' : '')}
         style={{ x, y, rotate }}
         /*
          * Both axes throughout. Dragging on both makes framer set
@@ -131,8 +162,21 @@ export default function StudyCard(props: StudyCardProps) {
         drag={!reducedMotion}
         dragElastic={0.5}
         dragSnapToOrigin
+        onDragStart={() => {
+          dragged.current = true;
+        }}
         onDragEnd={handleDragEnd}
         transition={{ type: 'spring', stiffness: 460, damping: 36 }}
+        onPointerDown={() => {
+          dragged.current = false;
+        }}
+        onClick={(event) => {
+          if (dragged.current || !tapToReveal) return;
+          // The card's own controls — the play button on a listening prompt, the
+          // speaker beside a label — are pressed, not tapped through.
+          if ((event.target as HTMLElement).closest('button, input, a')) return;
+          props.onReveal();
+        }}
         aria-label={'Card: ' + card.english}
       >
         <motion.span
