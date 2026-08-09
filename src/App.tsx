@@ -25,6 +25,8 @@ import AlphabetProgressScreen from './app/AlphabetProgressScreen';
 import AlphabetPractiseScreen from './app/AlphabetPractiseScreen';
 import AlphabetSessionScreen from './app/AlphabetSessionScreen';
 import AlphabetWriteScreen from './app/AlphabetWriteScreen';
+import AlphabetCardsScreen from './app/AlphabetCardsScreen';
+import AlphabetOrderScreen from './app/AlphabetOrderScreen';
 import OrderRecallScreen from './app/OrderRecallScreen';
 import SplashScreen from './app/SplashScreen';
 import { useAlphabet } from './stores/alphabetStore';
@@ -165,6 +167,14 @@ export default function App() {
           path="/alphabet/:script/write/:deckId"
           element={<AlphabetWriteScreen />}
         />
+        {/* The two letter modes that are not runs of multiple-choice
+            questions: a deck read as self-marked cards, and the alphabet put
+            back into its own order. */}
+        <Route
+          path="/alphabet/:script/cards/:deckId"
+          element={<AlphabetCardsScreen />}
+        />
+        <Route path="/alphabet/:script/order" element={<AlphabetOrderScreen />} />
         <Route path="/manage" element={<ManageScreen />} />
         <Route path="/manage/card/:cardId" element={<CardEditorScreen />} />
         <Route path="/stats" element={<StatsScreen />} />

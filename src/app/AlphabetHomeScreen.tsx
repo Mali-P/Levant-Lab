@@ -42,6 +42,13 @@ const MODES: {
     to: 'practise?mode=write',
   },
   {
+    key: 'order',
+    icon: 'chisel',
+    title: 'In order',
+    description: 'Drag the letters you know into alphabet order',
+    to: 'order',
+  },
+  {
     key: 'progress',
     icon: 'columns',
     title: 'Progress overview',

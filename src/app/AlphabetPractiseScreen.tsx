@@ -22,6 +22,9 @@ import ScreenHeader from '../components/controls/ScreenHeader';
  */
 
 const MODES: PracticeMode[] = [
+  // Cards lead: naming a letter you are looking at, with nothing to rule out,
+  // is where a learner starts, and it is the mode the ordering drill draws on.
+  'cards',
   'recognise',
   'recall',
   'listen',
@@ -63,15 +66,19 @@ export default function AlphabetPractiseScreen() {
     }))
     .filter((entry) => entry.available > 0);
 
-  const routeFor = (deckId: string) =>
-    mode === 'write'
-      ? '/alphabet/' + alphabet + '/write/' + encodeURIComponent(deckId)
-      : '/alphabet/' +
-        alphabet +
-        '/practise/' +
-        mode +
-        '/' +
-        encodeURIComponent(deckId);
+  // Two modes are screens of their own rather than runs of questions, so they
+  // are routed straight to those screens instead of through the session.
+  const routeFor = (deckId: string) => {
+    if (mode === 'write') {
+      return '/alphabet/' + alphabet + '/write/' + encodeURIComponent(deckId);
+    }
+    if (mode === 'cards') {
+      return '/alphabet/' + alphabet + '/cards/' + encodeURIComponent(deckId);
+    }
+    return (
+      '/alphabet/' + alphabet + '/practise/' + mode + '/' + encodeURIComponent(deckId)
+    );
+  };
 
   return (
     <div className="screen">

@@ -33,6 +33,14 @@ import {
 export type PracticeMode =
   /** Show the printed shape, choose the name. */
   | 'recognise'
+  /**
+   * Show the letter as a card, turn it over, and mark yourself.
+   *
+   * Not a question this module builds — like `write`, it is a screen of its
+   * own. It lives in the union so the mode picker, the deck filter and the
+   * route builder all speak one vocabulary rather than special-casing it.
+   */
+  | 'cards'
   /** Show the name and sound, choose the shape. */
   | 'recall'
   /** Play the letter, choose the shape. */
@@ -46,6 +54,9 @@ export type PracticeMode =
 
 export const MODE_SKILL: Record<PracticeMode, AlphabetSkill> = {
   recognise: 'typedRecognition',
+  // Self-marked, but the same skill: whether the learner can look at the shape
+  // and name it. One column, however the question was put.
+  cards: 'typedRecognition',
   recall: 'typedRecognition',
   listen: 'listeningRecognition',
   handwritten: 'handwrittenRecognition',
@@ -55,6 +66,7 @@ export const MODE_SKILL: Record<PracticeMode, AlphabetSkill> = {
 
 export const MODE_LABEL: Record<PracticeMode, string> = {
   recognise: 'See it, name it',
+  cards: 'Flip cards',
   recall: 'Name to letter',
   listen: 'Listen and choose',
   handwritten: 'Read handwriting',
@@ -64,6 +76,7 @@ export const MODE_LABEL: Record<PracticeMode, string> = {
 
 export const MODE_DESCRIPTION: Record<PracticeMode, string> = {
   recognise: 'A printed letter, four names',
+  cards: 'A letter, turned over — say the name, then mark yourself',
   recall: 'A name and a sound, four letters',
   listen: 'A recording, four letters',
   handwritten: 'A handwritten form, four names',
@@ -213,7 +226,11 @@ export function buildQuestion(
 ): PracticeQuestion | undefined {
   const { mode, pool } = opts;
   const rng = opts.rng ?? Math.random;
-  if (mode === 'write' || !supportsMode(letter, mode)) return undefined;
+  // `write` and `cards` are screens rather than multiple-choice questions;
+  // neither has options to build, and both have their own place to live.
+  if (mode === 'write' || mode === 'cards' || !supportsMode(letter, mode)) {
+    return undefined;
+  }
 
   const optionsAreNames =
     mode === 'recognise' || mode === 'handwritten' || mode === 'contextual';
