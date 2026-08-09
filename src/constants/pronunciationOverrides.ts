@@ -17,7 +17,15 @@
  *   'ar/greetings__hello-and-goodbye__hello_neutral': 'مَرْحَبا',
  *   'he/counting-and-numbers__one-to-ten__two_feminine': 'שְׁתַּיִם',
  */
-export const PRONUNCIATION_OVERRIDES: Record<string, string> = {};
+export const PRONUNCIATION_OVERRIDES: Record<string, string> = {
+  // "three", counting form. The dictionary's تَلاتِة came back as *talātitin*:
+  // the voice read the tā marbūṭa as a full t and hung a case ending off it,
+  // which is the Modern Standard reading of a word this deck teaches in pause.
+  // Writing the final letter as a hā leaves no tā to inflect, so the word ends
+  // where the romanisation does. This clip only — تلاتة inside a longer phrase
+  // is a different recording and is not known to be wrong.
+  'ar/counting-and-numbers__one-to-ten__three_neutral': 'تَلاتِه',
+};
 
 /** The override for a clip, if a reviewer has recorded one. */
 export function pronunciationOverride(clipKey: string): string | undefined {
