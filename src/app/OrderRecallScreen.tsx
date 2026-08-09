@@ -7,7 +7,9 @@ import { sortCards } from '../utils/cardOrder';
 import { gateDecks } from '../features/review/unlock';
 import { isSequencedCategory } from '../features/ordering/sequenced';
 import { fireFeedback } from '../services/audio/feedback';
-import DeckOrdering from '../components/ordering/DeckOrdering';
+import DeckOrderingPair, {
+  type OrderingResult,
+} from '../components/ordering/DeckOrderingPair';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Confetti from '../components/feedback/Confetti';
 
@@ -16,14 +18,15 @@ import Confetti from '../components/feedback/Confetti';
  *
  * The main run asks this once, part-way through the flawless rounds, and that
  * is where a learner normally meets it. This screen is the same drill on
- * demand: the deck arrives laid out in the wrong order, she swaps rows about
- * until it reads right, and hands it in when she is satisfied. As many goes as
- * she likes — a column handed in three times is one she has read three times.
+ * demand: the deck arrives laid out in the wrong order, she carries each word
+ * to the place she thinks it holds, and hands the column in when she is
+ * satisfied. As many goes as she likes — a column handed in three times is one
+ * she has read through three times.
  *
- * Hebrew first, then Arabic, with nothing in between — one toggle rather than a
- * menu, because they are two halves of the same sitting. The pass is recorded
- * per language for the same reason it is asked per language: counting to ten in
- * Hebrew says nothing whatever about counting to ten in Arabic.
+ * Both languages at once, side by side, worked in whichever order suits her.
+ * The pass is still recorded per language, for the same reason it is still two
+ * columns rather than one: counting to ten in Hebrew says nothing whatever
+ * about counting to ten in Arabic.
  *
  * Only decks that run in an order ever reach here. See `features/ordering`.
  */
@@ -48,7 +51,6 @@ export default function OrderRecallScreen() {
 
   const deck = decks.find((d) => d.id === deckId);
   const category = categories.find((c) => c.id === deck?.categoryId);
-  const progress = deckProgress[deckId];
 
   /** The deck in its own order — which, for a counting deck, is the answer. */
   const deckCards = useMemo(
@@ -56,42 +58,43 @@ export default function OrderRecallScreen() {
     [cards, deckId],
   );
 
-  const [language, setLanguage] = useState<Language>('hebrew');
   const [passed, setPassed] = useState<Partial<Record<Language, boolean>>>({});
   const [finished, setFinished] = useState(false);
-  /** Bumped by "go again", so the pile is dealt afresh rather than remembered. */
+  /** Bumped by "go again", so both columns are dealt afresh rather than kept. */
   const [attempt, setAttempt] = useState(0);
 
-  const onDone = useCallback(
-    ({ solved }: { solved: boolean; slips: number }) => {
+  // Stamped the moment a column comes out right, rather than held back until
+  // both are in: the two are separate skills and one of them is now proven.
+  const onLanguageDone = useCallback(
+    (language: Language, { solved }: OrderingResult) => {
       setPassed((current) => ({ ...current, [language]: solved }));
+      if (!solved) return;
 
-      if (solved) {
-        // Only a clean column counts. A deck the learner was shown most of the
-        // way through is not a deck she can count in, and a stamp saying
-        // otherwise is worse than no stamp at all.
-        void saveDeckProgress(deckId, {
-          orderRecallPassedAt: {
-            ...(progress?.orderRecallPassedAt ?? {}),
-            [language]: new Date().toISOString(),
-          },
-        });
-      }
+      // Only a clean column counts. A deck the learner was shown most of the
+      // way through is not a deck she can count in, and a stamp saying
+      // otherwise is worse than no stamp at all.
+      //
+      // Read from the store rather than from the render that set this callback
+      // up: the two columns can now be finished a few seconds apart, and the
+      // whole `orderRecallPassedAt` map is written at once, so a stale copy
+      // would rub out the language that finished first.
+      const stamped =
+        useData.getState().deckProgress[deckId]?.orderRecallPassedAt ?? {};
 
-      if (language === 'hebrew') {
-        setLanguage('arabic');
-        return;
-      }
-
-      fireFeedback('deck-mastered', settings);
-      setFinished(true);
+      void saveDeckProgress(deckId, {
+        orderRecallPassedAt: { ...stamped, [language]: new Date().toISOString() },
+      });
     },
-    [language, deckId, progress, saveDeckProgress, settings],
+    [deckId, saveDeckProgress],
   );
+
+  const onDone = useCallback(() => {
+    fireFeedback('deck-mastered', settings);
+    setFinished(true);
+  }, [settings]);
 
   const restart = useCallback(() => {
     setPassed({});
-    setLanguage('hebrew');
     setFinished(false);
     setAttempt((n) => n + 1);
   }, []);
@@ -152,7 +155,7 @@ export default function OrderRecallScreen() {
   if (deckCards.length === 0) {
     return (
       <div className="screen">
-        <ScreenHeader title={deck.name} eyebrow="Put them in order" back />
+        <ScreenHeader title={deck.name} eyebrow="Activity: Memory Consolidation" back />
         <div className="empty">
           <p>This deck has no cards to put in order yet.</p>
           <Link className="btn btn-primary" to="/manage">
@@ -170,7 +173,7 @@ export default function OrderRecallScreen() {
 
     return (
       <div className="screen">
-        <ScreenHeader title={deck.name} eyebrow="In order" back />
+        <ScreenHeader title={deck.name} eyebrow="Activity: Memory Consolidation" back />
         <Confetti active={both} />
 
         <div className="panel">
@@ -215,38 +218,26 @@ export default function OrderRecallScreen() {
 
   return (
     <div className="screen">
-      <ScreenHeader
-        title={deck.name}
-        eyebrow={LANGUAGE_LABEL[language] + ' · In order'}
-        back
-      />
+      <ScreenHeader title={deck.name} eyebrow="Activity: Memory Consolidation" back />
 
-      <div className="panel">
-        <div className="headline">
-          {language === 'hebrew' ? 'Put them in order' : 'And again in Arabic'}
-        </div>
-        <p className="small muted">
-          {language === 'hebrew'
-            ? 'They are laid out in the wrong order. Swap them about until the column reads right, then submit it — as many goes as you need.'
-            : 'The same ' +
-              deckCards.length +
-              ', the other language. Counting in Hebrew and counting in Arabic are two things to know.'}
-        </p>
+      <div className="panel order-brief">
+        <div className="headline">Reorder the cards</div>
+        <p className="small muted">Drag the numbers into the correct order.</p>
       </div>
 
-      <DeckOrdering
-        // Keyed by language and by attempt, so each leg is dealt afresh rather
-        // than carried over from the one before it.
-        key={language + '|' + attempt}
+      <DeckOrderingPair
+        // Keyed by attempt, so "go again" deals both columns afresh rather than
+        // handing back the ones already arranged.
+        key={attempt}
         cards={deckCards}
-        language={language}
         perspectives={perspectives}
         lead={lead}
         showTransliteration={settings.showTransliteration}
         reducedMotion={settings.reducedMotion}
         onFeedback={(kind) => fireFeedback(kind, settings)}
+        onLanguageDone={onLanguageDone}
         onDone={onDone}
-        doneLabel={language === 'hebrew' ? 'Now in Arabic' : 'Finish'}
+        doneLabel="Finish"
       />
     </div>
   );

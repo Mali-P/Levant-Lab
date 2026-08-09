@@ -577,7 +577,6 @@ describe('the ordering interlude', () => {
 
     expect(out.event).toBe('ordering-due');
     expect(out.session.phase).toBe('ordering');
-    expect(out.session.orderingLanguage).toBe('hebrew');
     expect(out.session.perfectRounds).toBe(ORDER_INTERLUDE_AFTER);
     // Nothing is dealt while she is dragging: the round after the interlude is
     // opened on the way out of it.
@@ -593,21 +592,17 @@ describe('the ordering interlude', () => {
     expect(out.session.phase).toBe('fullDeckMastery');
   });
 
-  it('goes Hebrew, then Arabic, then back to the rounds', () => {
+  it('is one sitting of both languages, then back to the rounds', () => {
     const r = rng();
     const paused = playUntilInterlude(
       climbToMastery(start({ sequenced: true }), r),
       r,
     ).session;
 
-    const arabic = finishOrdering(paused, { now: T, rng: r });
-    expect(arabic.phase).toBe('ordering');
-    expect(arabic.orderingLanguage).toBe('arabic');
-    expect(arabic.orderingDone).toBeUndefined();
-
-    const back = finishOrdering(arabic, { now: T, rng: r });
+    // Both columns are on the screen together, so leaving them is one call
+    // rather than a Hebrew leg handing over to an Arabic one.
+    const back = finishOrdering(paused, { now: T, rng: r });
     expect(back.phase).toBe('fullDeckMastery');
-    expect(back.orderingLanguage).toBeUndefined();
     expect(back.orderingDone).toBe(true);
     expect([...back.roundQueue].sort()).toEqual([...DECK].sort());
     // Consolidation, not a test: the rounds she has banked are untouched.
@@ -619,10 +614,7 @@ describe('the ordering interlude', () => {
     let s = climbToMastery(start({ sequenced: true }), r);
     let out = playUntilInterlude(s, r);
 
-    s = finishOrdering(finishOrdering(out.session, { now: T, rng: r }), {
-      now: T,
-      rng: r,
-    });
+    s = finishOrdering(out.session, { now: T, rng: r });
 
     for (let round = ORDER_INTERLUDE_AFTER + 1; round <= 10; round++) {
       out = playRound(s, r);
@@ -647,10 +639,7 @@ describe('the ordering interlude', () => {
     expect(out.event).toBe('ordering-due');
     expect(out.session.perfectRounds).toBe(2);
 
-    s = finishOrdering(finishOrdering(out.session, { now: T, rng: r }), {
-      now: T,
-      rng: r,
-    });
+    s = finishOrdering(out.session, { now: T, rng: r });
     expect(playRound(s, r).event).toBe('deck-mastered');
   });
 
@@ -660,16 +649,15 @@ describe('the ordering interlude', () => {
     expect(finishOrdering(s, { now: T, rng: r })).toBe(s);
   });
 
-  it('says which language it is asking for', () => {
+  it('says it is asking for both languages, and that nothing is scored', () => {
     const r = rng();
     const paused = playUntilInterlude(
       climbToMastery(start({ sequenced: true }), r),
       r,
     ).session;
 
-    expect(describeStage(paused).label).toContain('Hebrew');
-    expect(
-      describeStage(finishOrdering(paused, { now: T, rng: r })).label,
-    ).toContain('Arabic');
+    const stage = describeStage(paused);
+    expect(stage.label).toContain('both languages');
+    expect(stage.detail).toContain('Nothing is scored');
   });
 });

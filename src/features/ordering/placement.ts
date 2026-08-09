@@ -12,8 +12,8 @@ import { shuffle, type RNG } from '../../utils/random';
  * The board is the whole column, jumbled, with every row already occupied.
  * There is no pile down the side: a word still waiting in a pile is a word the
  * learner can leave until last, and the column she is actually being asked
- * about is the one in front of her. She takes one row to another and the two
- * change places, as often as she likes.
+ * about is the one in front of her. She takes a word to the place she thinks it
+ * belongs and everything between opens up to let it in, as often as she likes.
  *
  * Nothing is marked while she works. A row that turns green the moment it
  * happens to be right does half the drill for her — the jumble already puts a
@@ -105,27 +105,40 @@ function derange(items: readonly string[], rng: RNG): string[] {
 }
 
 /**
- * Swaps two rows over.
+ * Takes one word out of the column and puts it back in at another place.
+ *
+ * Everything between the two shuffles along to make room: a word carried up to
+ * the first row pushes what was there down to the second, and the rest of the
+ * run below it stays in the order it was already in. That is the move a learner
+ * means when she picks a word up — this one goes *here* — and it is not a swap.
+ * A swap would fling whatever was sitting in the first row down to wherever she
+ * happened to pick the word up from, undoing an unrelated part of the column
+ * behind her back.
+ *
+ * It also matters that the run below stays intact, because that run is usually
+ * the part she has already got right. Inserting keeps it; swapping breaks it in
+ * two places on every move.
  *
  * Always allowed and never judged. The board is hers to arrange until she says
- * she is done, and a swap that says nothing back is what makes the reviewing
- * step real: she has to read the column and decide, rather than shuffle pairs
+ * she is done, and a move that says nothing back is what makes the reviewing
+ * step real: she has to read the column and decide, rather than shuffle rows
  * until the colours come out right.
  *
  * The one thing it does clear is a refusal. A wrong submission stands as an
  * unanswered question only until she moves something, at which point she is
  * asking again.
  */
-export function swapAt(
+export function moveTo(
   round: PlacementRound,
-  a: number,
-  b: number,
+  from: number,
+  to: number,
 ): PlacementRound {
   if (isSettled(round)) return round;
-  if (!inRange(round, a) || !inRange(round, b) || a === b) return round;
+  if (!inRange(round, from) || !inRange(round, to) || from === to) return round;
 
   const slots = [...round.slots];
-  [slots[a], slots[b]] = [slots[b], slots[a]];
+  const [moved] = slots.splice(from, 1);
+  slots.splice(to, 0, moved);
 
   return { ...round, slots, refused: undefined };
 }

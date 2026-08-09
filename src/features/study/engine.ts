@@ -1,6 +1,5 @@
 import type {
   AnswerMode,
-  Language,
   PromptDirection,
   StudyMode,
   StudyPhase,
@@ -230,13 +229,14 @@ function orderingDue(s: StudySession): boolean {
 /**
  * Pauses the rounds and hands the deck over to be put in order.
  *
- * Hebrew first. Nothing is dealt: the round that follows is opened by
- * `finishOrdering`, once both languages have been sat, so the deck cannot be
- * halfway through a pass while the learner is dragging tiles.
+ * Both languages at once — they are two columns on one screen rather than two
+ * legs of a phase, so there is nothing here for the session to remember about
+ * which one is being asked for. Nothing is dealt either: the round that follows
+ * is opened by `finishOrdering`, so the deck cannot be halfway through a pass
+ * while the learner is still moving words about.
  */
 function openOrdering(s: StudySession): void {
   s.phase = 'ordering';
-  s.orderingLanguage = 'hebrew';
   s.currentCardId = undefined;
   s.roundQueue = [];
   s.roundIndex = 0;
@@ -245,14 +245,13 @@ function openOrdering(s: StudySession): void {
 }
 
 /**
- * Ends one language of the interlude.
+ * Ends the interlude and hands back to the rounds.
  *
- * Hebrew hands over to Arabic — the same ten words, the same column, one toggle
- * and no menu in between, because counting in Hebrew and counting in Arabic are
- * two things to know and she is here to do both. Arabic hands back to the
- * rounds, which deal again from where they stopped with every banked round
- * intact. Nothing here is scored: the interlude consolidates, it does not
- * judge, and a deck is never lost on it.
+ * One call, because the interlude is one sitting: both columns are on the
+ * screen together and the learner leaves them together. The rounds deal again
+ * from where they stopped with every banked one intact. Nothing here is scored:
+ * the interlude consolidates, it does not judge, and a deck is never lost on
+ * it.
  */
 export function finishOrdering(
   session: StudySession,
@@ -268,21 +267,10 @@ export function finishOrdering(
     updatedAt: opts.now,
   };
 
-  if (s.orderingLanguage === 'hebrew') {
-    s.orderingLanguage = 'arabic';
-    return s;
-  }
-
   s.orderingDone = true;
-  s.orderingLanguage = undefined;
   s.phase = 'fullDeckMastery';
   openRound(s, opts.rng ?? Math.random);
   return s;
-}
-
-/** The language the interlude is asking for, or undefined outside one. */
-export function orderingLanguage(s: StudySession): Language | undefined {
-  return s.phase === 'ordering' ? s.orderingLanguage : undefined;
 }
 
 /** Deals a fresh shuffled full-deck round. */
@@ -640,10 +628,7 @@ export function describeStage(s: StudySession): StageDescription {
 
     case 'ordering':
       return {
-        label:
-          s.orderingLanguage === 'arabic'
-            ? 'In order — Arabic'
-            : 'In order — Hebrew',
+        label: 'In order — both languages',
         detail: 'Nothing is scored here. Your ' + s.perfectRounds + ' rounds stand.',
         phase: s.phase,
       };

@@ -26,7 +26,8 @@ type Props = {
   round: PlacementRound;
   /** Every item in play, keyed by id. */
   items: Record<string, PlacementItem>;
-  onSwap: (a: number, b: number) => void;
+  /** Lift the word at `from` out of the column and put it back in at `to`. */
+  onMove: (from: number, to: number) => void;
   /** Dragging is off under reduced motion; tapping does everything it does. */
   reducedMotion: boolean;
 };
@@ -43,10 +44,11 @@ function clientPoint(
 /**
  * A numbered column with every row already filled, in the wrong order.
  *
- * The learner works the column itself rather than a pile beside it: she takes
- * one row to another and the two change places, as often as she likes. The
- * board says nothing back. Not a green row, not a tick, not a count — she reads
- * the column, decides it is right, and hands it in with the button underneath.
+ * The learner works the column itself rather than a pile beside it: she carries
+ * a word to the row she thinks it belongs in and the column opens up to take
+ * it, everything between shuffling along by one. The board says nothing back.
+ * Not a green row, not a tick, not a count — she reads the column, decides it
+ * is right, and hands it in with the button underneath.
  *
  * A board that marked each row as it landed would do the drill for her: the
  * jumble drops a few words near their places on its own, and lighting those up
@@ -57,15 +59,20 @@ function clientPoint(
  * round is over — solved or shown. A jumbled column with the English down the
  * side of it is not a drill, it is a reading exercise.
  *
- * Tapping does everything dragging does. Tap a row to pick it up, tap another
- * to swap them, and the drill is completable on a keyboard, with a screen
+ * The board is only as wide as its longest word. Two of these sit side by side
+ * on a phone, which is the whole reason for it: a learner who has just put ten
+ * numbers in order in Hebrew should be able to see them while she does the same
+ * in Arabic, rather than being handed the second column a screen later.
+ *
+ * Tapping does everything dragging does. Tap a row to pick it up, tap the row
+ * to move it to, and the drill is completable on a keyboard, with a screen
  * reader, or with reduced motion switched on. It is not the poor relation: it
  * is also simply easier when the two rows are a phone-height apart.
  */
 export default function PlacementBoard({
   round,
   items,
-  onSwap,
+  onMove,
   reducedMotion,
 }: Props) {
   const rowRefs = useRef<(HTMLElement | null)[]>([]);
@@ -115,11 +122,11 @@ export default function PlacementBoard({
 
       const point = clientPoint(event);
       const over = point ? rowUnder(point) : -1;
-      // Dropped on nothing at all is not a wrong answer, just a row put down.
-      // It springs home either way; only a real pair is ever judged.
-      if (over >= 0) onSwap(from, over);
+      // Dropped on nothing at all is not a wrong answer, just a word put back
+      // down. Nothing moves and nothing is judged.
+      if (over >= 0) onMove(from, over);
     },
-    [rowUnder, onSwap],
+    [rowUnder, onMove],
   );
 
   const tapRow = useCallback(
@@ -133,10 +140,10 @@ export default function PlacementBoard({
         setHeld(null);
         return;
       }
-      onSwap(held, slot);
+      onMove(held, slot);
       setHeld(null);
     },
-    [held, onSwap],
+    [held, onMove],
   );
 
   // Over, one way or the other: the column stops being something to arrange and
@@ -151,9 +158,9 @@ export default function PlacementBoard({
           if (!item) return null;
 
           return (
-            // Keyed by the word rather than the row, so a swap moves two nodes
-            // past each other and framer can animate the exchange. Keyed by
-            // row, the same two nodes would silently change their text.
+            // Keyed by the word rather than the row, so an insertion moves
+            // every node it displaced and framer can animate them all shuffling
+            // along. Keyed by row, the same nodes would silently change text.
             <li key={id} className="place-row">
               <span className="place-number" aria-hidden="true">
                 {slot + 1}
@@ -203,12 +210,13 @@ export default function PlacementBoard({
                           (item.sub ? ', ' + item.sub : '') +
                           ', at ' +
                           (slot + 1)
-                        : 'Swap ' +
+                        : 'Move ' +
                           (items[round.slots[held]]?.lead ?? 'it') +
-                          ' with ' +
+                          ' to ' +
+                          (slot + 1) +
+                          ', where ' +
                           item.lead +
-                          ' at ' +
-                          (slot + 1)
+                          ' is'
                     }
                   >
                     <span className={'place-lead ' + item.language} dir="rtl">

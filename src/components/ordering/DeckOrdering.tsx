@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Flashcard, Language, SpeechPerspective } from '../../types';
 import { wordForms } from '../../utils/wordForms';
 import {
@@ -6,10 +6,10 @@ import {
   createPlacementRound,
   dismissRefusal,
   isSettled,
+  moveTo,
   placedCount,
   revealPlacement,
   submitPlacement,
-  swapAt,
   type PlacementRound,
 } from '../../features/ordering/placement';
 import PlacementBoard, { type PlacementItem } from './PlacementBoard';
@@ -27,8 +27,24 @@ type Props = {
   onFeedback: (kind: 'accept' | 'reject') => void;
   /** Every round done. `solved` is false if any column had to be shown. */
   onDone: (summary: { solved: boolean; slips: number }) => void;
-  /** What the button at the end of the last round says. */
-  doneLabel: string;
+  /**
+   * What the button at the end of the last round says.
+   *
+   * Left off when this column is one of a pair: there is nothing for it to move
+   * on to on its own, so it reports itself finished the moment it settles and
+   * the screen holding both columns owns the button that moves on.
+   */
+  doneLabel?: string;
+  /**
+   * Hands this column in whenever the number changes.
+   *
+   * A column of a pair has no Submit of its own — two buttons under two columns
+   * asked the learner to hand in each half separately, when what she has in
+   * front of her is one screen she has finished arranging. The screen owns the
+   * one button and ticks this over; each column still grades the round it
+   * happens to be on, which keeps the grading here, where the round lives.
+   */
+  submitSignal?: number;
 };
 
 /**
@@ -52,6 +68,7 @@ export default function DeckOrdering({
   onFeedback,
   onDone,
   doneLabel,
+  submitSignal,
 }: Props) {
   const dealKey = cards.map((c) => c.id).join(',') + '|' + language;
 
@@ -113,10 +130,10 @@ export default function DeckOrdering({
 
   // Silent. Nothing is right or wrong until she says the column is finished, so
   // there is nothing here to sound.
-  const swap = useCallback(
-    (a: number, b: number) => {
+  const move = useCallback(
+    (from: number, to: number) => {
       if (!round) return;
-      replace(swapAt(round, a, b));
+      replace(moveTo(round, from, to));
     },
     [round, replace],
   );
@@ -129,31 +146,61 @@ export default function DeckOrdering({
     replace(next);
   }, [round, replace, onFeedback]);
 
+  // Handed in from outside, by the one button under both columns. The first
+  // value is only a starting point, never a submission: the ref is seeded with
+  // it so mounting does not grade an untouched column.
+  const lastSignal = useRef(submitSignal);
+  useEffect(() => {
+    if (submitSignal === undefined || submitSignal === lastSignal.current) return;
+    lastSignal.current = submitSignal;
+    submit();
+  }, [submitSignal, submit]);
+
+  const summary = useCallback(
+    () => ({
+      solved: rounds.every((r) => r.solved),
+      slips: rounds.reduce((total, r) => total + r.slips, 0),
+    }),
+    [rounds],
+  );
+
   const advance = useCallback(() => {
     if (index + 1 < rounds.length) {
       setIndex(index + 1);
       return;
     }
-    onDone({
-      solved: rounds.every((r) => r.solved),
-      slips: rounds.reduce((total, r) => total + r.slips, 0),
-    });
-  }, [index, rounds, onDone]);
+    onDone(summary());
+  }, [index, rounds.length, onDone, summary]);
+
+  /** Whether the last round of this column has been settled, one way or another. */
+  const over =
+    rounds.length > 0 && index + 1 >= rounds.length && isSettled(rounds[index]!);
+
+  // A column of a pair has no button of its own, so it says it is finished as
+  // soon as it is. Guarded by a ref rather than by the effect's dependencies: a
+  // parent that rebuilds `onDone` each render would otherwise be told twice.
+  const reported = useRef(false);
+  useEffect(() => {
+    if (doneLabel !== undefined || !over || reported.current) return;
+    reported.current = true;
+    onDone(summary());
+  }, [doneLabel, over, onDone, summary]);
 
   if (!round) return null;
 
   const settled = isSettled(round);
+  // One of two columns on a screen that carries the buttons for both.
+  const paired = doneLabel === undefined;
 
   return (
     <>
-      <div className="study-meta small">
-        {rounds.length > 1 && (
-          <span>
-            Round {index + 1} of {rounds.length}
-          </span>
-        )}
-        <span className="grow muted">
-          {language === 'hebrew' ? 'Hebrew, lowest first' : 'Arabic, lowest first'}
+      {/* Stacked rather than strung along a line, because two of these sit side
+          by side and half a phone is not a line's worth of room. */}
+      <div className="order-column-head">
+        <strong>{language === 'hebrew' ? 'Hebrew' : 'Arabic'}</strong>
+        <span className="small muted">
+          lowest first
+          {rounds.length > 1 && ' · round ' + (index + 1) + ' of ' + rounds.length}
         </span>
         {/* How many she has right is never up here — only how many times she has
             handed the column in, and only once that is more than once. */}
@@ -163,7 +210,7 @@ export default function DeckOrdering({
       <PlacementBoard
         round={round}
         items={items}
-        onSwap={swap}
+        onMove={move}
         reducedMotion={reducedMotion}
       />
 
@@ -175,29 +222,52 @@ export default function DeckOrdering({
               ? attemptNote(round.slips)
               : 'Read it through — the order is the part worth taking away.'}
           </div>
-          <button className="btn btn-primary btn-block" onClick={advance}>
-            {index + 1 < rounds.length ? 'Next round' : doneLabel}
-          </button>
+          {/* Nothing to move on to when this column is one of a pair: the other
+              one may still be being worked on, and the screen carries the
+              button that leaves them both. */}
+          {(index + 1 < rounds.length || !paired) && (
+            <button className="btn btn-primary btn-block" onClick={advance}>
+              {index + 1 < rounds.length ? 'Next round' : doneLabel}
+            </button>
+          )}
         </div>
       ) : round.refused ? (
         <div className="panel verdict-panel fail">
           <strong>Not in order yet</strong>
           <div className="small muted">{scoreNote(round)}</div>
           <div className="stack">
+            {/* Paired, there is nothing to dismiss with: the one Submit below
+                both columns is the second look, and moving a word clears the
+                score on its own. */}
+            {!paired && (
+              <button
+                className="btn btn-primary btn-block"
+                onClick={() => replace(dismissRefusal(round))}
+              >
+                Try again
+              </button>
+            )}
             <button
-              className="btn btn-primary btn-block"
-              onClick={() => replace(dismissRefusal(round))}
-            >
-              Try again
-            </button>
-            <button
-              className="btn btn-block"
+              className="btn btn-compact btn-block"
               onClick={() => replace(revealPlacement(round))}
             >
               Show me the order
             </button>
           </div>
         </div>
+      ) : paired ? (
+        // The column she is still arranging carries no button of its own. The
+        // way out stays with the column rather than with the screen, though —
+        // being stuck on the Arabic is no reason to be shown the Hebrew — and
+        // it appears only once she has actually had a go at this one.
+        round.slips > 0 && (
+          <button
+            className="btn btn-compact btn-block"
+            onClick={() => replace(revealPlacement(round))}
+          >
+            Show me the order
+          </button>
+        )
       ) : (
         <div className="stack">
           <button className="btn btn-primary btn-block" onClick={submit}>

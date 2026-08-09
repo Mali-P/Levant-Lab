@@ -24,7 +24,7 @@ import AnswerFeedback from '../components/feedback/AnswerFeedback';
 import Confetti from '../components/feedback/Confetti';
 import StageBanner from '../components/progress/StageBanner';
 import ScreenHeader from '../components/controls/ScreenHeader';
-import DeckOrdering from '../components/ordering/DeckOrdering';
+import DeckOrderingPair from '../components/ordering/DeckOrderingPair';
 
 const EMPTY_VALUES = { hebrew: '', arabic: '' };
 
@@ -677,12 +677,11 @@ export default function StudyScreen() {
    * Ten perfect rounds establish that she knows what each word means. Not one
    * of them ever asks what comes after what, and for a deck of numbers that is
    * most of the point — so the run stops here, once, and asks for the sequence
-   * itself. Hebrew, then Arabic on the same screen, then straight back into the
-   * rounds with every banked one intact. Nothing here is scored: it cannot cost
-   * her the deck, and it is not meant to.
+   * itself. Both languages side by side, worked in whichever order suits her,
+   * then straight back into the rounds with every banked one intact. Nothing
+   * here is scored: it cannot cost her the deck, and it is not meant to.
    */
   if (session && session.phase === 'ordering') {
-    const language = session.orderingLanguage ?? 'hebrew';
     // In the session's own order, which for a sequenced deck is the answer.
     const ordered = session.deckCardIds
       .map((id) => deckCards.find((c) => c.id === id))
@@ -694,37 +693,23 @@ export default function StudyScreen() {
 
         <StageBanner session={session} />
 
-        <div className="panel">
-          <div className="headline">
-            {language === 'hebrew' ? 'Now put them in order' : 'And again in Arabic'}
-          </div>
-          <p className="small muted">
-            {language === 'hebrew'
-              ? 'They are laid out in the wrong order. Swap them about until the column reads right, then submit it — as many goes as you need.'
-              : 'The same ten, the other language. Counting in Hebrew and counting in Arabic are two things to know.'}
-          </p>
+        <div className="panel order-brief">
+          <div className="headline">Reorder the cards</div>
+          <p className="small muted">Drag the numbers into the correct order.</p>
         </div>
 
-        <DeckOrdering
-          // Keyed by language so the pile is dealt again rather than carried
-          // across from the Hebrew column.
-          key={language}
+        <DeckOrderingPair
           cards={ordered}
-          language={language}
           perspectives={perspectives}
           lead={lead}
           showTransliteration={showTransliteration}
           reducedMotion={settings.reducedMotion}
           onFeedback={(kind) => fireFeedback(kind, settings)}
           onDone={({ solved }) => {
-            if (solved && language === 'arabic') {
-              fireFeedback('perfect-run', settings);
-            }
+            if (solved) fireFeedback('perfect-run', settings);
             void finishOrdering();
           }}
-          doneLabel={
-            language === 'hebrew' ? 'Now in Arabic' : 'Back to the rounds'
-          }
+          doneLabel="Back to the rounds"
         />
 
         {/* The answer that brought the interlude round is still waiting to be

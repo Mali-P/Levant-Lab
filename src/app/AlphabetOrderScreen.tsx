@@ -13,10 +13,10 @@ import {
   createPlacementRound,
   dismissRefusal,
   isSettled,
+  moveTo,
   placedCount,
   revealPlacement,
   submitPlacement,
-  swapAt,
   type PlacementRound,
 } from '../features/ordering/placement';
 import { useAlphabet } from '../stores/alphabetStore';
@@ -121,10 +121,10 @@ export default function AlphabetOrderScreen() {
 
   // Silent while she arranges. Nothing is right or wrong until she hands the
   // column in, so there is nothing here to sound.
-  const swap = useCallback(
-    (a: number, b: number) => {
+  const move = useCallback(
+    (from: number, to: number) => {
       if (!round) return;
-      replace(swapAt(round, a, b));
+      replace(moveTo(round, from, to));
     },
     [round, replace],
   );
@@ -199,10 +199,11 @@ export default function AlphabetOrderScreen() {
         <div className="panel">
           <div className="headline">Put them in order</div>
           <p className="muted">
-            {pile.length} letters, laid out in the wrong order. Swap them about
-            until the column reads the way it is recited, then submit it. Take
-            as many goes as you need — nothing here is marked until you hand it
-            in.
+            {pile.length} letters, laid out in the wrong order. Carry each one
+            to the place you think it holds — the rest shuffle along to let it
+            in — until the column reads the way it is recited, then submit it.
+            Take as many goes as you need: nothing here is marked until you hand
+            it in.
           </p>
           <p className="small muted">
             {earned === levels.length
@@ -323,7 +324,7 @@ export default function AlphabetOrderScreen() {
       <PlacementBoard
         round={round}
         items={items}
-        onSwap={swap}
+        onMove={move}
         reducedMotion={settings.reducedMotion}
       />
 

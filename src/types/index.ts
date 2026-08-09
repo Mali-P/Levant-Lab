@@ -410,13 +410,9 @@ export type StudySession = {
   sequenced?: boolean;
 
   /**
-   * The language the ordering interlude is asking for right now. Hebrew first,
-   * then Arabic — counting in one says nothing about counting in the other —
-   * and unset in every other phase.
+   * The interlude has been sat — both languages, which are two columns on one
+   * screen. Once per run through a deck.
    */
-  orderingLanguage?: Language;
-
-  /** The interlude has been sat, both languages. Once per run through a deck. */
   orderingDone?: boolean;
 
   mode: StudyMode;

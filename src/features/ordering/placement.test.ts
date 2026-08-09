@@ -6,23 +6,23 @@ import {
   dismissRefusal,
   isRight,
   isSettled,
+  moveTo,
   placedCount,
   revealPlacement,
   submitPlacement,
-  swapAt,
   type PlacementRound,
 } from './placement';
 
 const TEN = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 
-/** Where an id is currently sitting, which is what a swap is expressed in. */
+/** Where an id is currently sitting, which is what a move is expressed in. */
 function at(round: PlacementRound, id: string): number {
   return round.slots.indexOf(id);
 }
 
-/** Swaps whatever is in a slot with the word that belongs there. */
+/** Carries the word that belongs in a slot up to it. */
 function putRight(round: PlacementRound, slot: number): PlacementRound {
-  return swapAt(round, slot, at(round, round.solution[slot]));
+  return moveTo(round, at(round, round.solution[slot]), slot);
 }
 
 /** Arranges the whole column correctly, the way a learner eventually would. */
@@ -75,18 +75,53 @@ describe('createPlacementRound', () => {
   });
 });
 
-describe('swapAt', () => {
-  it('swaps two rows over and says nothing about it', () => {
+describe('moveTo', () => {
+  it('lets a word in and shuffles the rows between it along', () => {
     const round = createPlacementRound({ solution: TEN, rng: mulberry32(3) });
-    const next = swapAt(round, 0, 4);
+    const before = [...round.slots];
+    const next = moveTo(round, 4, 1);
 
-    expect(next.slots[0]).toBe(round.slots[4]);
-    expect(next.slots[4]).toBe(round.slots[0]);
+    // The word carried up sits where it was dropped...
+    expect(next.slots[1]).toBe(before[4]);
+    // ...the rows it landed among have each moved down by one...
+    expect(next.slots.slice(2, 5)).toEqual(before.slice(1, 4));
+    // ...and nothing outside the two ends has moved at all.
+    expect(next.slots[0]).toBe(before[0]);
+    expect(next.slots.slice(5)).toEqual(before.slice(5));
     expect(next.slips).toBe(0);
     expect(next.solved).toBe(false);
   });
 
-  it('takes a swap that puts a word right without marking it', () => {
+  it('pushes the first row down to the second when a word is taken to the top', () => {
+    const round = createPlacementRound({ solution: TEN, rng: mulberry32(5) });
+    const before = [...round.slots];
+    const next = moveTo(round, 6, 0);
+
+    expect(next.slots[0]).toBe(before[6]);
+    expect(next.slots[1]).toBe(before[0]);
+    // The whole run above it comes down one, in the order it was already in.
+    expect(next.slots.slice(1, 7)).toEqual(before.slice(0, 6));
+  });
+
+  it('carries a word down the column just as readily', () => {
+    const round = createPlacementRound({ solution: TEN, rng: mulberry32(8) });
+    const before = [...round.slots];
+    const next = moveTo(round, 2, 7);
+
+    expect(next.slots[7]).toBe(before[2]);
+    // Everything it passed has come up one rather than been flung to its seat.
+    expect(next.slots.slice(2, 7)).toEqual(before.slice(3, 8));
+  });
+
+  it('keeps every word in play, wherever it is carried', () => {
+    let round = createPlacementRound({ solution: TEN, rng: mulberry32(12) });
+    for (const [from, to] of [[0, 9], [9, 0], [3, 4], [7, 2], [5, 6]]) {
+      round = moveTo(round, from, to);
+      expect([...round.slots].sort()).toEqual([...TEN].sort());
+    }
+  });
+
+  it('takes a move that puts a word right without marking it', () => {
     const round = putRight(createPlacementRound({ solution: TEN, rng: mulberry32(3) }), 0);
 
     expect(round.slots[0]).toBe('one');
@@ -107,24 +142,24 @@ describe('swapAt', () => {
     const round = submitPlacement(createPlacementRound({ solution: TEN, rng: mulberry32(3) }));
     expect(round.refused).toBe(true);
 
-    expect(swapAt(round, 0, 1).refused).toBeUndefined();
+    expect(moveTo(round, 0, 1).refused).toBeUndefined();
   });
 
-  it('ignores a slot off the end and a row swapped with itself', () => {
+  it('ignores a slot off the end and a word put back where it was', () => {
     const round = createPlacementRound({ solution: TEN, rng: mulberry32(3) });
-    expect(swapAt(round, -1, 0)).toBe(round);
-    expect(swapAt(round, 0, 10)).toBe(round);
-    expect(swapAt(round, 4, 4)).toBe(round);
+    expect(moveTo(round, -1, 0)).toBe(round);
+    expect(moveTo(round, 0, 10)).toBe(round);
+    expect(moveTo(round, 4, 4)).toBe(round);
   });
 
   it('is over once the round is settled', () => {
     const solved = submitPlacement(
       arrange(createPlacementRound({ solution: TEN, rng: mulberry32(3) })),
     );
-    expect(swapAt(solved, 0, 1)).toBe(solved);
+    expect(moveTo(solved, 0, 1)).toBe(solved);
 
     const shown = revealPlacement(createPlacementRound({ solution: TEN, rng: mulberry32(3) }));
-    expect(swapAt(shown, 0, 1)).toBe(shown);
+    expect(moveTo(shown, 0, 1)).toBe(shown);
   });
 });
 
@@ -160,7 +195,7 @@ describe('submitPlacement', () => {
       expect(round.slips).toBe(go);
       expect(isSettled(round)).toBe(false);
       // Still hers to work on after every one of them.
-      round = swapAt(round, 0, 1);
+      round = moveTo(round, 0, 1);
     }
 
     round = submitPlacement(arrange(round));
@@ -170,9 +205,9 @@ describe('submitPlacement', () => {
   });
 
   it('scores a refused column without saying which rows were out', () => {
-    // Two words the wrong way round, eight of ten standing right.
+    // Two neighbours the wrong way round, eight of ten standing right.
     const round = submitPlacement(
-      swapAt(arrange(createPlacementRound({ solution: TEN, rng: mulberry32(2) })), 3, 8),
+      moveTo(arrange(createPlacementRound({ solution: TEN, rng: mulberry32(2) })), 3, 4),
     );
 
     expect(round.refused).toBe(true);

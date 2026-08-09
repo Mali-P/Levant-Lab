@@ -196,8 +196,8 @@ export default function DeckScreen() {
                 <span className="grow">
                   <span className="mode-choice-name">
                     {finalTest
-                      ? 'Final test — put them in order'
-                      : 'Put them in order'}
+                      ? 'Final test — Activity: Memory Consolidation'
+                      : 'Activity: Memory Consolidation'}
                   </span>
                   <span className="small muted">
                     {orderPasses.length === 2
@@ -206,12 +206,12 @@ export default function DeckScreen() {
                         ? 'Passed in ' +
                           (orderPasses[0] === 'hebrew' ? 'Hebrew' : 'Arabic') +
                           '. The other language is still waiting.'
-                        : 'Drag each word onto its number. Hebrew, then Arabic.'}
+                        : 'Drag the numbers into the correct order.'}
                   </span>
                 </span>
-                {orderPasses.length > 0 && (
-                  <span className="chip chip-ok">{orderPasses.length} / 2</span>
-                )}
+                {/* No tally beside the row. How many languages are in is
+                    already said in words underneath it, and "1 / 2" beside a
+                    sentence saying the same thing reads as a score. */}
                 <span className="mode-choice-go" aria-hidden="true">
                   <Icon name="forward" />
                 </span>
