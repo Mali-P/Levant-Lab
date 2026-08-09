@@ -16,6 +16,7 @@ export default function CategoryScreen() {
   const { categoryId = '' } = useParams();
   const navigate = useNavigate();
   const settings = useSettings((s) => s.settings);
+  const updateSettings = useSettings((s) => s.update);
   const categories = useData((s) => s.categories);
   const decks = useData((s) => s.decks);
   const cards = useData((s) => s.cards);
@@ -34,6 +35,21 @@ export default function CategoryScreen() {
   // outside the manage screen, so the sentences kept there can be added while
   // reading the deck they belong to.
   const own = category?.name === CUSTOM_CATEGORY;
+
+  const memoriseIds = settings.memoriseDeckIds ?? [];
+
+  /**
+   * The same standing choice the deck's own screen offers, reachable without
+   * opening the deck: from here a learner can deal several decks into the
+   * read-through in one pass. It is a button inside the card rather than part
+   * of the card's link, so tapping it never leads anywhere.
+   */
+  function toggleMemorise(deckId: string) {
+    const next = memoriseIds.includes(deckId)
+      ? memoriseIds.filter((id) => id !== deckId)
+      : [...memoriseIds, deckId];
+    void updateSettings({ memoriseDeckIds: next });
+  }
 
   /**
    * Opens a blank card in the chosen deck. It is written before the editor
@@ -88,6 +104,7 @@ export default function CategoryScreen() {
           (s) => s === 'rusty' || s === 'needs-review' || s === 'forgotten',
         ).length;
         const progress = deckProgress[deck.id];
+        const inMemorise = memoriseIds.includes(deck.id);
 
         return (
           <section
@@ -103,13 +120,35 @@ export default function CategoryScreen() {
                   {deckCards.length} cards · {mastered} mastered · {needsReview} need review
                 </div>
               </div>
-              {gate.unlocked ? (
-                progress?.hardModePassedAt && <span className="chip chip-ok">Passed</span>
-              ) : (
-                <span className="chip">
-                  <Icon name="lock" /> Locked
-                </span>
-              )}
+              <div className="deck-marks">
+                {gate.unlocked ? (
+                  progress?.hardModePassedAt && <span className="chip chip-ok">Passed</span>
+                ) : (
+                  <span className="chip">
+                    <Icon name="lock" /> Locked
+                  </span>
+                )}
+
+                {/* Only where the deck can actually be opened: the Memorise tab
+                    deals unlocked decks only, and a plus on a locked one would
+                    promise a read-through that never arrives. */}
+                {gate.unlocked && (
+                  <button
+                    type="button"
+                    className={'memorise-add' + (inMemorise ? ' on' : '')}
+                    aria-pressed={inMemorise}
+                    aria-label={
+                      (inMemorise ? 'Remove ' : 'Add ') +
+                      deck.name +
+                      (inMemorise ? ' from Memorise' : ' to Memorise')
+                    }
+                    title={inMemorise ? 'In Memorise' : 'Add to Memorise'}
+                    onClick={() => toggleMemorise(deck.id)}
+                  >
+                    <Icon name={inMemorise ? 'check' : 'plus'} />
+                  </button>
+                )}
+              </div>
             </div>
 
             <PerfectRuns

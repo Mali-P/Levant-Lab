@@ -38,15 +38,20 @@ import Icon, { type IconName } from './components/ornament/Icon';
  * figures, and a rosette for the settings. The label stays under every one of
  * them — the icons are a second cue, never the only one.
  *
- * Memorise holds the middle because it is what a learner does most, and does
- * first: meeting the words. The letters moved inside Study, where the rest of
- * the choosing happens — they are optional and gate nothing, so they do not
- * need a permanent seat in the bar.
+ * Memorise now takes the seat next to Home, in the order the work is actually
+ * done: meet the words, then be asked about them. The letters live inside
+ * Study, where the rest of the choosing happens — they are optional and gate
+ * nothing, so they do not need a permanent seat in the bar.
+ *
+ * The marks stayed where they were when the two destinations swapped seats.
+ * Neither is a picture of what it leads to so precisely that moving it would
+ * clarify anything, and re-cutting the icons as well would have changed
+ * everything about the bar at once.
  */
 const TABS: { to: string; icon: IconName; label: string }[] = [
   { to: '/', icon: 'temple', label: 'Home' },
-  { to: '/categories', icon: 'scroll', label: 'Study' },
-  { to: '/memorise', icon: 'codex', label: 'Memorise' },
+  { to: '/memorise', icon: 'scroll', label: 'Memorise' },
+  { to: '/categories', icon: 'codex', label: 'Study' },
   { to: '/stats', icon: 'columns', label: 'Stats' },
   { to: '/settings', icon: 'rosette', label: 'Settings' },
 ];

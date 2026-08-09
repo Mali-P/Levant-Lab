@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import type { Category } from '../types';
 import { useData } from '../stores/dataStore';
+import { useAlphabet } from '../stores/alphabetStore';
 import { gateDecks, type DeckGate } from '../features/review/unlock';
+import { ALPHABET_SCRIPTS, lettersFor } from '../data/alphabets';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon from '../components/ornament/Icon';
 import { categoryIcon } from '../components/ornament/Ornament';
@@ -11,11 +13,41 @@ export default function CategoriesScreen() {
   const cards = useData((s) => s.cards);
   const decks = useData((s) => s.decks);
   const deckProgress = useData((s) => s.deckProgress);
+  const alphabetProgress = useAlphabet((s) => s.progress);
+
+  // The letters counted the way a category is counted, so the row can say the
+  // same kind of thing as the rows under it.
+  const letterTotal = ALPHABET_SCRIPTS.reduce(
+    (sum, script) => sum + lettersFor(script).length,
+    0,
+  );
+  const lettersMastered = Object.values(alphabetProgress).filter(
+    (row) => row.mastered,
+  ).length;
 
   return (
     <div className="screen">
       <ScreenHeader title="Categories" eyebrow="Choose what to study" />
       <div className="list">
+        {/* The alphabet leads the list rather than trailing it under a heading
+            of its own. It is still optional and still gates nothing, but a
+            learner who cannot read the script yet should meet it first, and an
+            entry set apart in its own section reads as an afterthought. */}
+        <div className="category-row">
+          <Link className="list-item grow" to="/alphabets">
+            <span className="icon" aria-hidden="true">
+              <Icon name="stele" />
+            </span>
+            <span className="grow">
+              <strong>Alphabet</strong>
+              <div className="small muted">
+                {letterTotal} letters · {lettersMastered} mastered
+              </div>
+            </span>
+            <Icon name="forward" className="chevron" />
+          </Link>
+        </div>
+
         {categories.map((category) => (
           <CategoryRow
             key={category.id}
@@ -27,26 +59,6 @@ export default function CategoriesScreen() {
             cardCount={cards.filter((c) => c.categoryId === category.id).length}
           />
         ))}
-      </div>
-
-      {/* The letters used to have their own tab. They sit here instead, at the
-          end of the choosing: still optional, still gating nothing, but no
-          longer holding a permanent seat that the daily flip-through wants. */}
-      <h2 className="section-title">Reading</h2>
-      <div className="list">
-        <Link className="list-item" to="/alphabets">
-          <span className="icon" aria-hidden="true">
-            <Icon name="stele" />
-          </span>
-          <span className="grow">
-            <strong>Letters</strong>
-            <div className="small muted">
-              The Hebrew and Arabic alphabets — optional, and never in the way of
-              the decks.
-            </div>
-          </span>
-          <Icon name="forward" className="chevron" />
-        </Link>
       </div>
     </div>
   );

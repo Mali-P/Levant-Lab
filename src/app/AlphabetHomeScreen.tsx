@@ -76,6 +76,11 @@ export default function AlphabetHomeScreen() {
   const counts = alphabetCounts(alphabet);
   const mistakes = needsReview(letters, progress);
 
+  // The one row drawn as the recommended move, the way the deck picker leads
+  // with Normal. Before any letter has been met the only honest suggestion is
+  // to meet them; after that it is to be asked about them.
+  const lead = summary.introduced === 0 ? 'learn' : 'practise';
+
   return (
     <div className="screen">
       <ScreenHeader
@@ -99,21 +104,25 @@ export default function AlphabetHomeScreen() {
         </div>
       </div>
 
-      <div className="list">
+      <h2 className="section-title">How do you want to study?</h2>
+
+      <div className="mode-choices">
         {MODES.map((mode) => (
           <Link
             key={mode.key}
-            className="list-item"
+            className={'mode-choice' + (mode.key === lead ? ' lead' : '')}
             to={'/alphabet/' + alphabet + '/' + mode.to}
           >
-            <span className="icon" aria-hidden="true">
+            <span className="mode-choice-icon" aria-hidden="true">
               <Icon name={mode.icon} />
             </span>
             <span className="grow">
-              <strong>{mode.title}</strong>
-              <div className="small muted">{mode.description}</div>
+              <span className="mode-choice-name">{mode.title}</span>
+              <span className="small muted">{mode.description}</span>
             </span>
-            <Icon name="forward" className="chevron" />
+            <span className="mode-choice-go" aria-hidden="true">
+              <Icon name="forward" />
+            </span>
           </Link>
         ))}
 
@@ -121,19 +130,21 @@ export default function AlphabetHomeScreen() {
             mistakes" is a promise of work that does not exist. */}
         {mistakes.length > 0 && (
           <Link
-            className="list-item"
+            className="mode-choice"
             to={'/alphabet/' + alphabet + '/practise/recognise/mistakes'}
           >
-            <span className="icon" aria-hidden="true">
-              \ud83d\udd01
+            <span className="mode-choice-icon" aria-hidden="true">
+              <Icon name="flame" />
             </span>
             <span className="grow">
-              <strong>Review mistakes</strong>
-              <div className="small muted">
+              <span className="mode-choice-name">Review mistakes</span>
+              <span className="small muted">
                 {mistakes.length} letters you have missed, worst first
-              </div>
+              </span>
             </span>
-            <Icon name="forward" className="chevron" />
+            <span className="mode-choice-go" aria-hidden="true">
+              <Icon name="forward" />
+            </span>
           </Link>
         )}
       </div>

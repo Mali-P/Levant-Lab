@@ -1904,6 +1904,45 @@ a.btn-primary:visited {
   height: 1rem;
 }
 
+/* The plus on a deck card in the category list: the same standing choice the
+   deck's own screen offers, taken without opening the deck. It sits beside the
+   Locked / Passed chip and reads as a mark rather than a button, because the
+   card already has one thing to press and this must not compete with it. */
+.memorise-add {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Ticked reads in the same colour as the tick on the deck screen, so the two
+   places holding this one choice look like one choice. */
+.memorise-add.on {
+  border-color: var(--he);
+  color: var(--he);
+}
+
+.memorise-add .ico {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* The chip and the plus keep together at the end of the deck card's top line. */
+.deck-marks {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ---------- memorise card ---------- */
 
 /* Nothing on this card is typed into, so the whole face is a tap target. */
