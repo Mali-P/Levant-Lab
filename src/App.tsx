@@ -25,6 +25,7 @@ import AlphabetProgressScreen from './app/AlphabetProgressScreen';
 import AlphabetPractiseScreen from './app/AlphabetPractiseScreen';
 import AlphabetSessionScreen from './app/AlphabetSessionScreen';
 import AlphabetWriteScreen from './app/AlphabetWriteScreen';
+import SplashScreen from './app/SplashScreen';
 import { useAlphabet } from './stores/alphabetStore';
 import Icon, { type IconName } from './components/ornament/Icon';
 
@@ -47,9 +48,26 @@ const TABS: { to: string; icon: IconName; label: string }[] = [
   { to: '/settings', icon: 'rosette', label: 'Settings' },
 ];
 
+/*
+ * How long the opening screen is held even when the database opens instantly,
+ * and how long its fade-out runs afterwards. The floor is there so the mark is
+ * something you see rather than something that flickers; it is a floor and not
+ * a delay, because a slow open simply keeps the splash up for longer.
+ *
+ * It is shown once per load of the page and never between screens. That falls
+ * out of where this component sits — mounted above `Routes`, so navigating
+ * does not remount it and the state below survives — rather than out of any
+ * check, so keep the splash state here. Moved into a route element, or given
+ * a changing `key`, it would fire on every move between the study areas.
+ */
+const SPLASH_HOLD_MS = 1500;
+const SPLASH_FADE_MS = 380;
+
 export default function App() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [error, setError] = useState('');
+  const [held, setHeld] = useState(false);
+  const [splashGone, setSplashGone] = useState(false);
   const settings = useSettings((s) => s.settings);
   const loadSettings = useSettings((s) => s.load);
   const loadData = useData((s) => s.load);
@@ -70,14 +88,23 @@ export default function App() {
     })();
   }, [loadSettings, loadData, loadAlphabet]);
 
-  if (status === 'loading') {
-    return (
-      <div className="app">
-        <div className="screen">
-          <p className="muted">Opening your card box…</p>
-        </div>
-      </div>
-    );
+  useEffect(() => {
+    const t = setTimeout(() => setHeld(true), SPLASH_HOLD_MS);
+    return () => clearTimeout(t);
+  }, []);
+
+  // The splash is only unmounted once its fade has finished, so the app it
+  // uncovers has to be mounted underneath it for that stretch.
+  const leaving = held && status === 'ready';
+  useEffect(() => {
+    if (!leaving) return;
+    const t = setTimeout(() => setSplashGone(true), SPLASH_FADE_MS);
+    return () => clearTimeout(t);
+  }, [leaving]);
+
+  // An error is worth reading straight away — it does not wait out the hold.
+  if (status === 'loading' || (!held && status !== 'error')) {
+    return <SplashScreen />;
   }
 
   if (status === 'error') {
@@ -153,6 +180,8 @@ export default function App() {
           </NavLink>
         ))}
       </nav>
+
+      {!splashGone && <SplashScreen leaving />}
     </div>
   );
 }

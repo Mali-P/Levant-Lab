@@ -2701,3 +2701,103 @@ a.btn-primary:active {
     height: 1.35em;
   }
 }
+
+/* ---------- the opening screen ---------- */
+
+/*
+ * A full-bleed sheet over everything, including the tab bar, so the first
+ * second and a half is the mark and nothing else. It follows the scheme rather
+ * than forcing night stone: an ivory glyph on daylight limestone would be a
+ * blank screen, so the letterform takes --ink and only the glow is fixed warm.
+ */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+  background:
+    radial-gradient(
+      70% 46% at 50% 46%,
+      color-mix(in srgb, var(--terracotta) 22%, transparent),
+      transparent 72%
+    ),
+    var(--bg);
+  animation: splash-in calc(520ms * var(--motion)) ease-out both;
+}
+
+/* The fade is the app's own arrival, so it is short: the screen behind is
+   already painted and correct by the time this starts. */
+.splash.leaving {
+  animation: splash-out calc(380ms * var(--motion)) ease-in forwards;
+  pointer-events: none;
+}
+
+.splash-art {
+  height: min(58vh, 460px);
+  width: auto;
+  max-width: 100%;
+  overflow: visible;
+}
+
+/* The border: a dim ribbon under a warm bloom, both breathing on the same
+   slow cycle so the frame reads as lit rather than as a drawn line. */
+.splash-border-line {
+  fill: var(--ink);
+  opacity: 0.34;
+}
+
+.splash-border-glow {
+  fill: var(--terracotta-ink);
+  opacity: 0.5;
+  animation: splash-breathe calc(2600ms * var(--motion)) ease-in-out infinite;
+}
+
+.splash-glyph-line {
+  fill: var(--ink);
+}
+
+.splash-glyph-glow {
+  fill: var(--terracotta-ink);
+  opacity: 0.7;
+  /* A beat behind the border's cycle, so the two do not pulse as one object. */
+  animation: splash-breathe calc(2600ms * var(--motion)) ease-in-out infinite;
+  animation-delay: calc(-900ms * var(--motion));
+}
+
+.splash-name {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.4rem;
+  letter-spacing: 0.22em;
+  /* The tracking is added after the last letter too; the indent pays it back
+     so the word stays centred on the art above it. */
+  text-indent: 0.22em;
+  color: var(--ink-dim);
+  animation: splash-name-in calc(700ms * var(--motion)) ease-out both;
+  animation-delay: calc(260ms * var(--motion));
+}
+
+@keyframes splash-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes splash-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes splash-name-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes splash-breathe {
+  0%, 100% { opacity: 0.38; }
+  50% { opacity: 0.92; }
+}
