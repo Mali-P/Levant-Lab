@@ -27,7 +27,7 @@ export default function CategoriesScreen() {
 
   return (
     <div className="screen">
-      <ScreenHeader title="Categories" eyebrow="Choose what to study" />
+      <ScreenHeader title="Categories" eyebrow="Choose what to practise" />
       <div className="list">
         {/* The alphabet leads the list rather than trailing it under a heading
             of its own. It is still optional and still gates nothing, but a
@@ -75,9 +75,10 @@ type RowProps = {
  * laid out. The decks used to unfold in place here; a category can now hold ten
  * of them, and ten rows springing open buries every category below it.
  *
- * A Memorise tick used to sit beside the row. It now sits on each deck's own
- * screen: a whole category is more than a learner four decks in wants dealt
- * into one read-through.
+ * A Memorise tick used to sit beside the row. Choosing what to read through now
+ * happens entirely in Review, which has its own browse: a whole category is more
+ * than a learner four decks in wants dealt into one read-through, and the
+ * decision does not belong on the screen she opens to be tested.
  */
 function CategoryRow({ category, gates, cardCount }: RowProps) {
   const mastered = gates.filter((g) => g.mastered).length;

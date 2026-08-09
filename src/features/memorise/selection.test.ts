@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Category, Deck, DeckProgress, Flashcard } from '../../types';
-import { memoriseDecks, memorisePool } from './selection';
+import {
+  memoriseDecks,
+  memorisePool,
+  resumeDeck,
+  unlockedDecks,
+} from './selection';
 
 const T0 = '2026-01-02T09:00:00.000Z';
 
@@ -90,6 +95,54 @@ describe('memoriseDecks', () => {
         selectedIds: ['a1'],
       }),
     ).toEqual([]);
+  });
+});
+
+describe('unlockedDecks', () => {
+  it('reads category by category, and up the ladder inside one', () => {
+    expect(unlockedDecks({ categories: CATEGORIES, decks: DECKS, deckProgress: ALL_OPEN }))
+      .toEqual([DECKS[0], DECKS[1], DECKS[2]]);
+  });
+
+  it('stops at the first deck the learner has not earned', () => {
+    // a2 is behind a1, and b1 opens its own category.
+    expect(
+      unlockedDecks({ categories: CATEGORIES, decks: DECKS, deckProgress: {} }).map(
+        (d) => d.id,
+      ),
+    ).toEqual(['a1', 'b1']);
+  });
+});
+
+describe('resumeDeck', () => {
+  function resume(
+    lastDeckId: string | undefined,
+    deckProgress: Record<string, DeckProgress> = ALL_OPEN,
+  ) {
+    return resumeDeck({
+      categories: CATEGORIES,
+      decks: DECKS,
+      deckProgress,
+      lastDeckId,
+    })?.id;
+  }
+
+  it('reopens the deck the tab was last reading', () => {
+    expect(resume('a2')).toBe('a2');
+  });
+
+  it('has nothing to reopen before the learner has read anything', () => {
+    expect(resume(undefined)).toBeUndefined();
+  });
+
+  it('forgets a deck that has since been deleted', () => {
+    expect(resume('deleted')).toBeUndefined();
+  });
+
+  it('forgets a deck that has since closed behind her', () => {
+    // A restored backup can undo the runs that opened a2. The tab falls back
+    // to its browse rather than reopening onto a wall.
+    expect(resume('a2', {})).toBeUndefined();
   });
 });
 

@@ -2050,6 +2050,13 @@ a.btn-primary:visited {
   padding: 0;
 }
 
+/* Beside a deck row it is one mark against a whole card, not a column of its
+   own: the row stretches its children, and a 30px square left to stretch pins
+   itself to the top edge. */
+.category-row .memorise-add {
+  align-self: center;
+}
+
 /* Ticked reads in the same colour as the tick on the deck screen, so the two
    places holding this one choice look like one choice. */
 .memorise-add.on {

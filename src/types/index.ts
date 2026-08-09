@@ -628,16 +628,31 @@ export type Settings = {
   practicePerspectiveOverride?: SpeechPerspective[];
 
   /**
-   * The decks the Memorise tab reads from, ticked on each deck's own screen.
+   * The decks the Review tab reads as one pile, ticked while browsing there.
    *
-   * Empty means "the first unlocked deck" rather than "nothing": Memorise is
-   * the middle tab and must always open on something, so a learner who has
-   * never ticked — or who has just unticked the last deck — still gets the deck
-   * she is meant to start with. Ids of decks that no longer exist, or that are
-   * still locked, are ignored on read, so neither deleting a deck nor a deck
-   * closing behind her can empty the tab.
+   * Empty means "the first unlocked deck" rather than "nothing": the pile must
+   * always open on something, so a learner who has never ticked — or who has
+   * just unticked the last deck — still gets the deck she is meant to start
+   * with. Ids of decks that no longer exist, or that are still locked, are
+   * ignored on read, so neither deleting a deck nor a deck closing behind her
+   * can empty it.
+   *
+   * Named for the tab's former title. The stored key is deliberately left
+   * alone: renaming it would need a migration on every install to buy nothing
+   * a comment cannot say.
    */
   memoriseDeckIds: string[];
+
+  /**
+   * The deck the Review tab was last reading, so the tab reopens on it.
+   *
+   * Written on opening a deck's read-through and cleared on leaving that
+   * screen — which is what makes the memory survive a trip to Practice or
+   * Settings but not survive backing out of the deck. A stale or since-locked
+   * id is ignored on read and the tab falls back to its browse, so this can
+   * never strand a learner on a deck that is no longer there.
+   */
+  memoriseLastDeckId?: string;
 
   // Study
   defaultMode: StudyMode;

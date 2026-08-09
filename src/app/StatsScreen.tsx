@@ -176,7 +176,7 @@ export default function StatsScreen() {
       {rows.length === 0 && (
         <div className="empty">
           <LevantMotif name="rosette" />
-          <p>Study a deck and the numbers will appear here.</p>
+          <p>Practise a deck and the numbers will appear here.</p>
         </div>
       )}
     </div>

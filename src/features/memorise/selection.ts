@@ -3,13 +3,13 @@ import { gateDecks } from '../review/unlock';
 import { sortCards } from '../../utils/cardOrder';
 
 /**
- * What the Memorise tab reads from.
+ * What the Review tab's selection run reads from.
  *
- * Memorise sits in the middle of the tab bar, so it is opened before it is ever
- * configured. It therefore has to answer "which cards?" with no stored choice at
- * all, and the answer is the first deck the learner can open — the one at the
- * top of the first category. She then ticks the decks she wants on each deck's
- * own screen, and that choice is what the tab reads from every time afterwards.
+ * The run can be opened before it is ever configured, so it has to answer
+ * "which cards?" with no stored choice at all, and the answer is the first deck
+ * the learner can open — the one at the top of the first category. She then
+ * ticks the decks she wants with the plus while browsing Review, and that
+ * choice is what the run reads from every time afterwards.
  *
  * The choice is per deck rather than per category because a category can hold
  * ten decks, and a learner four decks in does not want the six behind her dealt
@@ -39,6 +39,22 @@ export type MemoriseDeckParams = {
  * empty tab.
  */
 export function memoriseDecks(params: MemoriseDeckParams): Deck[] {
+  const open = unlockedDecks(params);
+  const chosen = open.filter((d) => params.selectedIds?.includes(d.id));
+  return chosen.length > 0 ? chosen : open.slice(0, 1);
+}
+
+/**
+ * Every deck the learner can open, category by category and inside a category
+ * up the ladder — the order Practice lays them out in.
+ *
+ * Split out because two things need it now: the pile above, and the tab's
+ * memory of the deck it was last reading, which has to be checked against the
+ * same ladder before it is honoured.
+ */
+export function unlockedDecks(
+  params: Pick<MemoriseDeckParams, 'categories' | 'decks' | 'deckProgress'>,
+): Deck[] {
   const open: Deck[] = [];
 
   for (const category of params.categories) {
@@ -51,8 +67,24 @@ export function memoriseDecks(params: MemoriseDeckParams): Deck[] {
     }
   }
 
-  const chosen = open.filter((d) => params.selectedIds?.includes(d.id));
-  return chosen.length > 0 ? chosen : open.slice(0, 1);
+  return open;
+}
+
+/**
+ * The remembered deck, but only if it is still one the learner can open.
+ *
+ * A deck can be deleted between two visits to the tab, and a restored backup
+ * can close one that was open — so the id is never trusted on its own.
+ * Anything that fails the check comes back undefined and the tab shows its
+ * browse, rather than a deck-not-found.
+ */
+export function resumeDeck(
+  params: Pick<MemoriseDeckParams, 'categories' | 'decks' | 'deckProgress'> & {
+    lastDeckId: string | undefined;
+  },
+): Deck | undefined {
+  if (!params.lastDeckId) return undefined;
+  return unlockedDecks(params).find((d) => d.id === params.lastDeckId);
 }
 
 /**

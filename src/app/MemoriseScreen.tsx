@@ -20,12 +20,24 @@ import { memoriseDecks, memorisePool } from '../features/memorise/selection';
 import MemoriseCard from '../components/cards/MemoriseCard';
 import ScreenHeader from '../components/controls/ScreenHeader';
 
+type Props = {
+  /**
+   * Read the ticked decks as one pile instead of a single deck.
+   *
+   * A route flag rather than "no deck id", because `/memorise` is now the
+   * Review browse and this screen is never reached without one of the two
+   * being meant.
+   */
+  pile?: boolean;
+};
+
 /**
- * Memorise mode: read the cards once, one at a time.
+ * Review: read the cards once, one at a time.
  *
- * Two ways in, one screen. `/memorise/:deckId` reads a single deck. `/memorise`
- * is the middle tab, and reads whichever decks the learner ticked on their own
- * screens — the first deck she can open until she ticks anything.
+ * Two ways in, one screen. `/memorise/:deckId` reads a single deck — the
+ * ordinary way in, chosen from the Review browse two taps earlier.
+ * `/memorise/selection` reads whichever decks the learner has ticked as one
+ * run, and falls back to the first deck she can open until she ticks anything.
  *
  * Nothing on this screen grades anything. There is no answer to give, no
  * correct / incorrect pair, no retry pile, and not a single write to
@@ -33,12 +45,18 @@ import ScreenHeader from '../components/controls/ScreenHeader';
  * cannot move while the learner is still meeting the words. The only tally is
  * how many cards have been turned over, which is kept in memory and forgotten
  * when the screen closes.
+ *
+ * The one thing it does persist is which deck it is on, so the tab reopens
+ * here rather than at the top of the browse. That memory is written on arrival
+ * and cleared by the acts that mean leaving — the back arrow, and the two
+ * buttons on the finished panel that lead out of the deck.
  */
-export default function MemoriseScreen() {
+export default function MemoriseScreen({ pile }: Props) {
   const { deckId } = useParams();
   const navigate = useNavigate();
 
   const settings = useSettings((s) => s.settings);
+  const updateSettings = useSettings((s) => s.update);
   const decks = useData((s) => s.decks);
   const categories = useData((s) => s.categories);
   const cards = useData((s) => s.cards);
@@ -56,13 +74,13 @@ export default function MemoriseScreen() {
   const deck = deckId ? decks.find((d) => d.id === deckId) : undefined;
   const category = categories.find((c) => c.id === deck?.categoryId);
 
-  // The tab's pile: the decks ticked on their own screens, the first unlocked
-  // deck until she ticks any. Deliberately not consulted in deck mode, where the
-  // deck the learner opened is the pile and her tab selection has nothing to
-  // say.
+  // The selection run: the decks ticked while browsing Review, and the first
+  // unlocked deck until she ticks any. Deliberately not consulted in deck mode,
+  // where the deck the learner opened is the pile and her selection has nothing
+  // to say.
   const chosen = useMemo(
     () =>
-      deckId
+      !pile || deckId
         ? []
         : memoriseDecks({
             categories,
@@ -70,7 +88,7 @@ export default function MemoriseScreen() {
             deckProgress,
             selectedIds: settings.memoriseDeckIds,
           }),
-    [deckId, categories, decks, deckProgress, settings.memoriseDeckIds],
+    [pile, deckId, categories, decks, deckProgress, settings.memoriseDeckIds],
   );
 
   // A bookmark can point straight at a deck the learner has not earned yet, so
@@ -83,6 +101,39 @@ export default function MemoriseScreen() {
       ).find((g) => g.deck.id === deck.id)
     : undefined;
   const locked = Boolean(gate && !gate.unlocked);
+
+  /*
+   * The deck the tab reopens on.
+   *
+   * Written on arrival rather than on the tap that got here, so a deep link and
+   * a browsed-to deck are remembered alike; guarded on the stored value so the
+   * write happens once per deck and not once per render. A locked deck is never
+   * remembered — reopening the tab onto a wall is worse than reopening it onto
+   * the browse — and neither is the selection run, which is a pile rather than
+   * a place.
+   */
+  const remembered = settings.memoriseLastDeckId;
+  useEffect(() => {
+    if (!deckId || locked) return;
+    if (remembered === deckId) return;
+    void updateSettings({ memoriseLastDeckId: deckId });
+  }, [deckId, locked, remembered, updateSettings]);
+
+  /**
+   * Leaving the deck, which is the act that forgets it.
+   *
+   * Deliberately not an unmount cleanup: unmounting is also what happens when
+   * the learner taps Practice or Settings, and the whole point of the memory is
+   * that it survives that and brings her back here. Only the ways *out* clear
+   * it.
+   */
+  const leave = useCallback(
+    (to: string) => {
+      if (remembered) void updateSettings({ memoriseLastDeckId: undefined });
+      navigate(to);
+    },
+    [remembered, updateSettings, navigate],
+  );
 
   // Sorted, not merely filtered: IndexedDB returns rows by id, so an unsorted
   // "shuffle off" pass would still deal a counting deck out of sequence.
@@ -210,22 +261,30 @@ export default function MemoriseScreen() {
     );
   }
 
-  // One deck names itself and says which category it came from; the tab names
-  // the mode and lists what she chose, so it is always clear which pile is
-  // being dealt without leaving the screen to check.
-  const title = deck ? deck.name : 'Memorise';
+  // One deck names itself and says which category it came from; the selection
+  // run lists what she chose, so it is always clear which pile is being dealt
+  // without leaving the screen to check.
+  const title = deck ? deck.name : 'Your selection';
   const eyebrow = deck
-    ? (category?.name ?? '') + ' · Memorise'
-    : chosen.map((c) => c.name).join(' · ') || 'Nothing to memorise yet';
-  // The tab is a root: there is nothing behind it to go back to.
-  const back = Boolean(deckId);
+    ? (category?.name ?? '') + ' · Review'
+    : chosen.map((c) => c.name).join(' · ') || 'Nothing to read here yet';
+
+  // Where backing out lands: the category she picked the deck from, or the
+  // Review browse for a run drawn from several. Both are inside Review — the
+  // arrow narrows the choice rather than leaving the tab.
+  const exitTo = deck ? '/memorise/category/' + deck.categoryId : '/memorise';
 
   // `locked` is only ever true with a deck in hand; naming it here keeps that
   // obvious to the reader as well as to the type checker.
   if (locked && deck) {
     return (
       <div className="screen">
-        <ScreenHeader title={deck.name} eyebrow={category?.name} back />
+        <ScreenHeader
+          title={deck.name}
+          eyebrow={category?.name}
+          back
+          onBack={() => leave('/memorise/category/' + deck.categoryId)}
+        />
         <div className="empty">
           <p>
             This deck is still locked. Master{' '}
@@ -234,7 +293,7 @@ export default function MemoriseScreen() {
           </p>
           <button
             className="btn btn-primary"
-            onClick={() => navigate('/category/' + deck.categoryId)}
+            onClick={() => leave('/memorise/category/' + deck.categoryId)}
           >
             Back to {category?.name ?? 'the category'}
           </button>
@@ -246,7 +305,12 @@ export default function MemoriseScreen() {
   if (deckCards.length === 0) {
     return (
       <div className="screen">
-        <ScreenHeader title={title} eyebrow={eyebrow} back={back} />
+        <ScreenHeader
+          title={title}
+          eyebrow={eyebrow}
+          back
+          onBack={() => leave(exitTo)}
+        />
         <div className="empty">
           {deck ? (
             <>
@@ -260,17 +324,17 @@ export default function MemoriseScreen() {
             </>
           ) : (
             <>
-              {/* The pile can be empty without anything being wrong: a brand
-                  new install, or a ticked deck that has since been emptied.
-                  Both are answered in Study, so that is where the button
-                  goes. */}
+              {/* The selection can be empty without anything being wrong: a
+                  brand new install, or a ticked deck that has since been
+                  emptied. Both are answered by browsing Review, so that is
+                  where the button goes. */}
               <p>
-                Nothing to read here yet. Open a deck in Study and tick
-                “Memorise this deck”.
+                Nothing to read here yet. Pick a category and add a deck with
+                the plus.
               </p>
               <button
                 className="btn btn-primary"
-                onClick={() => navigate('/categories')}
+                onClick={() => leave('/memorise')}
               >
                 Choose a deck
               </button>
@@ -287,7 +351,12 @@ export default function MemoriseScreen() {
 
     return (
       <div className="screen">
-        <ScreenHeader title={title} eyebrow={eyebrow} back={back} />
+        <ScreenHeader
+          title={title}
+          eyebrow={eyebrow}
+          back
+          onBack={() => leave(exitTo)}
+        />
         <div className="panel">
           <div className="headline">{deck ? 'Deck reviewed' : 'Pass finished'}</div>
           <p className="muted">
@@ -314,28 +383,31 @@ export default function MemoriseScreen() {
             </button>
             {deck ? (
               <>
+                {/* Both of these leave the deck, so both forget it: coming
+                    back to Review afterwards should land on the browse, not
+                    reopen the deck she has just finished. */}
                 <button
                   className="btn btn-primary btn-block"
-                  onClick={() => navigate('/study/' + deck.id + '?mode=normal')}
+                  onClick={() => leave('/study/' + deck.id + '?mode=normal')}
                 >
                   Start Normal practice
                 </button>
                 <button
                   className="btn btn-block"
-                  onClick={() => navigate('/category/' + deck.categoryId)}
+                  onClick={() => leave('/memorise/category/' + deck.categoryId)}
                 >
                   Choose another deck
                 </button>
               </>
             ) : (
-              // A pile drawn from several ticked decks has no single deck to be
+              // A run drawn from several ticked decks has no single deck to be
               // tested on, so it offers the choosing screen instead of picking
               // a deck on the learner's behalf.
               <button
                 className="btn btn-primary btn-block"
-                onClick={() => navigate('/categories')}
+                onClick={() => leave('/memorise')}
               >
-                Go to Study
+                Choose a deck
               </button>
             )}
           </div>
@@ -347,7 +419,12 @@ export default function MemoriseScreen() {
   if (!session || !currentCard) {
     return (
       <div className="screen">
-        <ScreenHeader title={title} eyebrow={eyebrow} back={back} />
+        <ScreenHeader
+          title={title}
+          eyebrow={eyebrow}
+          back
+          onBack={() => leave(exitTo)}
+        />
         <p className="muted">Laying the cards out…</p>
       </div>
     );
@@ -355,7 +432,12 @@ export default function MemoriseScreen() {
 
   return (
     <div className="screen study">
-      <ScreenHeader title={title} eyebrow={eyebrow} back={back} />
+      <ScreenHeader
+        title={title}
+        eyebrow={eyebrow}
+        back
+        onBack={() => leave(exitTo)}
+      />
 
       <div className="study-meta small">
         <span>

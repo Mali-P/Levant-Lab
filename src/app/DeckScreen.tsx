@@ -14,9 +14,8 @@ import { LevantMotif } from '../components/ornament/Ornament';
  * The mode picker a deck opens on.
  *
  * The order is the intended progression — be asked about the words, then be
- * asked until nothing slips. Reading a deck through is no longer one of these
- * choices: it belongs to the Memorise tab, and this screen only says whether
- * this deck is among what that tab deals.
+ * asked until nothing slips. Reading a deck through is not one of these
+ * choices: it belongs to the Review tab, which this screen only links to.
  */
 const CHOICES = [
   {
@@ -46,7 +45,6 @@ export default function DeckScreen() {
 
   const settings = useSettings((s) => s.settings);
   const languages = useSettings((s) => s.languages);
-  const update = useSettings((s) => s.update);
   const decks = useData((s) => s.decks);
   const categories = useData((s) => s.categories);
   const cards = useData((s) => s.cards);
@@ -100,13 +98,6 @@ export default function DeckScreen() {
       'mastered',
   ).length;
 
-  // The tick shows the stored choice literally rather than what the tab happens
-  // to be dealing: with nothing ticked at all the tab falls back to the first
-  // deck the learner can open, and drawing that as ticked would offer her an
-  // untick that changes nothing. The line under the list says so instead.
-  const thisDeckId = deck.id;
-  const inMemorise = settings.memoriseDeckIds?.includes(thisDeckId) ?? false;
-
   /*
    * The ordering drill, and only where there is an order to recall.
    *
@@ -130,14 +121,6 @@ export default function DeckScreen() {
   const orderPasses = languages.filter(
     (language) => progress?.orderRecallPassedAt?.[language],
   );
-
-  function toggleMemorise() {
-    const current = settings.memoriseDeckIds ?? [];
-    const next = inMemorise
-      ? current.filter((id) => id !== thisDeckId)
-      : [...current, thisDeckId];
-    void update({ memoriseDeckIds: next });
-  }
 
   return (
     <div className="screen">
@@ -165,7 +148,7 @@ export default function DeckScreen() {
         </div>
       ) : (
         <>
-          <h2 className="section-title">How do you want to study?</h2>
+          <h2 className="section-title">How do you want to practise?</h2>
 
           <div className="mode-choices">
             {CHOICES.map((choice) => (
@@ -226,37 +209,16 @@ export default function DeckScreen() {
               </Link>
             )}
 
-            {/* Not another way to study but a standing choice about the deck,
-                so it ticks in place instead of leading anywhere. It sits with
-                the modes because this screen is where a learner decides what
-                she is doing with this deck. */}
-            <button
-              type="button"
-              className={'mode-choice memorise-tick' + (inMemorise ? ' on' : '')}
-              aria-pressed={inMemorise}
-              onClick={toggleMemorise}
-            >
-              <span className="mode-choice-icon" aria-hidden="true">
-                <Icon name="codex" />
-              </span>
-              <span className="grow">
-                <span className="mode-choice-name">Memorise this deck</span>
-                <span className="small muted">
-                  {inMemorise
-                    ? 'The Memorise tab reads this deck. Nothing is scored.'
-                    : 'Add it to the Memorise tab’s read-through.'}
-                </span>
-              </span>
-              <span className="tickbox" aria-hidden="true">
-                {inMemorise && <Icon name="check" />}
-              </span>
-            </button>
+            {/* Reading this deck through used to be ticked here. It is chosen
+                in Review now, where the browse ends on the cards themselves —
+                a standing tick on the mode picker was a second way to say the
+                same thing, in the one place the learner has come to be
+                tested. */}
           </div>
 
-          <p className="small muted">
-            With no deck ticked anywhere, Memorise reads the first deck you can
-            open.
-          </p>
+          <Link className="small muted" to={'/memorise/' + deck.id}>
+            Read this deck instead, without being tested.
+          </Link>
         </>
       )}
     </div>

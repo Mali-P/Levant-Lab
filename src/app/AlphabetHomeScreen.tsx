@@ -104,7 +104,7 @@ export default function AlphabetHomeScreen() {
         </div>
       </div>
 
-      <h2 className="section-title">How do you want to study?</h2>
+      <h2 className="section-title">How do you want to practise?</h2>
 
       <div className="mode-choices">
         {MODES.map((mode) => (

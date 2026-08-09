@@ -9,6 +9,8 @@ import CategoriesScreen from './app/CategoriesScreen';
 import CategoryScreen from './app/CategoryScreen';
 import DeckScreen from './app/DeckScreen';
 import MemoriseScreen from './app/MemoriseScreen';
+import ReviewHomeScreen from './app/ReviewHomeScreen';
+import ReviewCategoryScreen from './app/ReviewCategoryScreen';
 import StudyScreen from './app/StudyScreen';
 import ManageScreen from './app/ManageScreen';
 import CardEditorScreen from './app/CardEditorScreen';
@@ -40,10 +42,10 @@ import Icon, { type IconName } from './components/ornament/Icon';
  * figures, and a rosette for the settings. The label stays under every one of
  * them — the icons are a second cue, never the only one.
  *
- * Memorise now takes the seat next to Home, in the order the work is actually
- * done: meet the words, then be asked about them. The letters live inside
- * Study, where the rest of the choosing happens — they are optional and gate
- * nothing, so they do not need a permanent seat in the bar.
+ * Review takes the seat next to Home, in the order the work is actually done:
+ * meet the words, then be asked about them. The letters live inside Practice,
+ * where the rest of the choosing happens — they are optional and gate nothing,
+ * so they do not need a permanent seat in the bar.
  *
  * The marks stayed where they were when the two destinations swapped seats.
  * Neither is a picture of what it leads to so precisely that moving it would
@@ -52,8 +54,8 @@ import Icon, { type IconName } from './components/ornament/Icon';
  */
 const TABS: { to: string; icon: IconName; label: string }[] = [
   { to: '/', icon: 'temple', label: 'Home' },
-  { to: '/memorise', icon: 'scroll', label: 'Memorise' },
-  { to: '/categories', icon: 'codex', label: 'Study' },
+  { to: '/memorise', icon: 'scroll', label: 'Review' },
+  { to: '/categories', icon: 'codex', label: 'Practice' },
   { to: '/stats', icon: 'columns', label: 'Stats' },
   { to: '/settings', icon: 'rosette', label: 'Settings' },
 ];
@@ -137,12 +139,18 @@ export default function App() {
         <Route path="/" element={<DashboardScreen />} />
         <Route path="/categories" element={<CategoriesScreen />} />
         <Route path="/category/:categoryId" element={<CategoryScreen />} />
-        {/* A deck opens on its mode picker, so Memorise comes before the
-            testing modes rather than after a failed run. */}
         <Route path="/deck/:deckId" element={<DeckScreen />} />
-        {/* Without a deck, Memorise reads the categories chosen in Study —
-            the same screen, dealt from a wider pile. */}
-        <Route path="/memorise" element={<MemoriseScreen />} />
+        {/* Review's own browse, laid out like Practice's but two taps shorter:
+            category, deck, cards. No mode picker on the way, because a learner
+            who came here has already chosen not to be tested. The two static
+            paths are matched ahead of `:deckId` rather than read as deck
+            ids. */}
+        <Route path="/memorise" element={<ReviewHomeScreen />} />
+        <Route
+          path="/memorise/category/:categoryId"
+          element={<ReviewCategoryScreen />}
+        />
+        <Route path="/memorise/selection" element={<MemoriseScreen pile />} />
         <Route path="/memorise/:deckId" element={<MemoriseScreen />} />
         <Route path="/study/:deckId" element={<StudyScreen />} />
         {/* Putting a deck back in order. Its own route rather than a study

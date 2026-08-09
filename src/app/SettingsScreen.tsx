@@ -94,7 +94,9 @@ export default function SettingsScreen() {
       <section className="panel">
         <span className="eyebrow">Languages I'm learning</span>
         <Choice<LanguageChoice>
-          label="Study"
+          // Not "Practice": this governs Review as well, and every other place
+          // a card is resolved. It decides which languages exist for her.
+          label="Learning"
           value={settings.studyLanguages}
           onChange={(v) => update({ studyLanguages: v })}
           options={[
@@ -125,7 +127,7 @@ export default function SettingsScreen() {
         )}
       </section>
 
-      {/* Not filed under Study: it decides which words the app teaches at all,
+      {/* Not filed under Practice: it decides which words the app teaches at all,
           which is a bigger question than how they are drilled. */}
       <section className="panel">
         <span className="eyebrow">Who are you learning to speak as, and to?</span>
@@ -167,7 +169,7 @@ export default function SettingsScreen() {
 
         <p className="small muted">
           {perspectives.length === 1
-            ? 'One form only — the one you need. Memorise can still reveal the ' +
+            ? 'One form only — the one you need. Review can still reveal the ' +
               'others on request.'
             : 'Cards lead with ' +
               SPEECH_PERSPECTIVE_MARKERS[perspectives[0]] +
@@ -197,9 +199,9 @@ export default function SettingsScreen() {
       </section>
 
       <section className="panel">
-        <span className="eyebrow">Study</span>
+        <span className="eyebrow">Practice</span>
         <Choice<StudyMode>
-          label="Default study mode"
+          label="Default practice mode"
           value={settings.defaultMode}
           onChange={(v) => update({ defaultMode: v })}
           options={[
@@ -232,7 +234,7 @@ export default function SettingsScreen() {
         {/* No shuffle toggles here any more. Testing is always drawn at
             random — a stage whose order the learner could fix would be recall
             of the order — and every mastery round reshuffles. The one place
-            order is still a choice is the Memorise tab, which carries its own
+            order is still a choice is the Review tab, which carries its own
             toggle beside the cards it applies to. */}
         <Toggle label="Show transliteration" checked={settings.showTransliteration}
           onChange={(v) => update({ showTransliteration: v })} />

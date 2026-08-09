@@ -17,7 +17,6 @@ export default function CategoryScreen() {
   const navigate = useNavigate();
   const settings = useSettings((s) => s.settings);
   const languages = useSettings((s) => s.languages);
-  const updateSettings = useSettings((s) => s.update);
   const categories = useData((s) => s.categories);
   const decks = useData((s) => s.decks);
   const cards = useData((s) => s.cards);
@@ -36,21 +35,6 @@ export default function CategoryScreen() {
   // outside the manage screen, so the sentences kept there can be added while
   // reading the deck they belong to.
   const own = category?.name === CUSTOM_CATEGORY;
-
-  const memoriseIds = settings.memoriseDeckIds ?? [];
-
-  /**
-   * The same standing choice the deck's own screen offers, reachable without
-   * opening the deck: from here a learner can deal several decks into the
-   * read-through in one pass. It is a button inside the card rather than part
-   * of the card's link, so tapping it never leads anywhere.
-   */
-  function toggleMemorise(deckId: string) {
-    const next = memoriseIds.includes(deckId)
-      ? memoriseIds.filter((id) => id !== deckId)
-      : [...memoriseIds, deckId];
-    void updateSettings({ memoriseDeckIds: next });
-  }
 
   /**
    * Opens a blank card in the chosen deck. It is written before the editor
@@ -105,7 +89,6 @@ export default function CategoryScreen() {
           (s) => s === 'rusty' || s === 'needs-review' || s === 'forgotten',
         ).length;
         const progress = deckProgress[deck.id];
-        const inMemorise = memoriseIds.includes(deck.id);
 
         return (
           <section
@@ -129,26 +112,6 @@ export default function CategoryScreen() {
                     <Icon name="lock" /> Locked
                   </span>
                 )}
-
-                {/* Only where the deck can actually be opened: the Memorise tab
-                    deals unlocked decks only, and a plus on a locked one would
-                    promise a read-through that never arrives. */}
-                {gate.unlocked && (
-                  <button
-                    type="button"
-                    className={'memorise-add' + (inMemorise ? ' on' : '')}
-                    aria-pressed={inMemorise}
-                    aria-label={
-                      (inMemorise ? 'Remove ' : 'Add ') +
-                      deck.name +
-                      (inMemorise ? ' from Memorise' : ' to Memorise')
-                    }
-                    title={inMemorise ? 'In Memorise' : 'Add to Memorise'}
-                    onClick={() => toggleMemorise(deck.id)}
-                  >
-                    <Icon name={inMemorise ? 'check' : 'plus'} />
-                  </button>
-                )}
               </div>
             </div>
 
@@ -158,10 +121,10 @@ export default function CategoryScreen() {
             />
 
             {gate.unlocked ? (
-              // One way in, so a deck always offers Memorise before it offers
-              // a test. The modes themselves live on the picker.
+              // One way in, and it leads to the modes. Reading the deck through
+              // is the Review tab's job and is chosen there.
               <Link className="btn btn-primary btn-block" to={'/deck/' + deck.id}>
-                Study this deck
+                Practise this deck
               </Link>
             ) : (
               <p className="small muted">

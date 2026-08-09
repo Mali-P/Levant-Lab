@@ -112,7 +112,7 @@ export default function PairedAlphabetScreen() {
                   ? 'Read this deck'
                   : gate.passed
                     ? 'Read it again'
-                    : 'Study this deck'}
+                    : 'Practise this deck'}
               </Link>
             ) : (
               <p className="small muted">

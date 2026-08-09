@@ -238,7 +238,7 @@ export default function MemoriseCard(props: MemoriseCardProps) {
 
         {/* The catalogue label at the head of the tablet. It names the mode,
             not the card, so it stays put when the card is turned over. */}
-        <div className="eyebrow memorise-eyebrow">Memorise</div>
+        <div className="eyebrow memorise-eyebrow">Review</div>
 
         <div className="card-prompt">
           {card.icon && (
