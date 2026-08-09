@@ -14,12 +14,14 @@ import { installStarterCards } from './seed';
 
 let howAreYou: Flashcard;
 let takeCare: Flashcard;
+let toothbrush: Flashcard;
 
 beforeAll(async () => {
   await installStarterCards();
   const cards = await db.cards.toArray();
   howAreYou = cards.find((card) => card.english === 'how are you?')!;
   takeCare = cards.find((card) => card.english === 'take care')!;
+  toothbrush = cards.find((card) => card.english === 'toothbrush')!;
 });
 
 describe('installStarterCards', () => {
@@ -79,5 +81,11 @@ describe('installStarterCards', () => {
     const progress = await db.cardProgress.get(howAreYou.id);
     expect(progress?.masteryScore).toBe(60);
     expect(progress?.arabic.currentStreak).toBe(3);
+  });
+
+  it('attaches newly bundled Arabic clips to starter cards', () => {
+    expect(toothbrush.arabic.audioPath).toBe(
+      'assets/audio/ar/care-and-hygiene__bathroom-shelf__toothbrush_neutral.mp3',
+    );
   });
 });
