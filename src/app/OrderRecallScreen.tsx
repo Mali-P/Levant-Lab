@@ -16,8 +16,9 @@ import Confetti from '../components/feedback/Confetti';
  *
  * The main run asks this once, part-way through the flawless rounds, and that
  * is where a learner normally meets it. This screen is the same drill on
- * demand: the deck arrives jumbled, she hangs each word on the number it
- * belongs to, and a word put in the wrong place goes straight back to the pile.
+ * demand: the deck arrives laid out in the wrong order, she swaps rows about
+ * until it reads right, and hands it in when she is satisfied. As many goes as
+ * she likes — a column handed in three times is one she has read three times.
  *
  * Hebrew first, then Arabic, with nothing in between — one toggle rather than a
  * menu, because they are two halves of the same sitting. The pass is recorded
@@ -226,7 +227,7 @@ export default function OrderRecallScreen() {
         </div>
         <p className="small muted">
           {language === 'hebrew'
-            ? 'Drag each word onto the number it belongs to. Put one in the wrong place and it goes back to the pile.'
+            ? 'They are laid out in the wrong order. Swap them about until the column reads right, then submit it — as many goes as you need.'
             : 'The same ' +
               deckCards.length +
               ', the other language. Counting in Hebrew and counting in Arabic are two things to know.'}

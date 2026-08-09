@@ -11,10 +11,12 @@ import {
 import {
   chunkForOrdering,
   createPlacementRound,
+  dismissRefusal,
   isSettled,
-  placeAt,
   placedCount,
   revealPlacement,
+  submitPlacement,
+  swapAt,
   type PlacementRound,
 } from '../features/ordering/placement';
 import { useAlphabet } from '../stores/alphabetStore';
@@ -117,16 +119,23 @@ export default function AlphabetOrderScreen() {
     [index],
   );
 
-  const place = useCallback(
-    (id: string, slot: number) => {
+  // Silent while she arranges. Nothing is right or wrong until she hands the
+  // column in, so there is nothing here to sound.
+  const swap = useCallback(
+    (a: number, b: number) => {
       if (!round) return;
-      const next = placeAt(round, id, slot);
-      if (next === round) return;
-      fireFeedback(next.rejected === id ? 'reject' : 'accept', settings);
-      replace(next);
+      replace(swapAt(round, a, b));
     },
-    [round, replace, settings],
+    [round, replace],
   );
+
+  const submit = useCallback(() => {
+    if (!round) return;
+    const next = submitPlacement(round);
+    if (next === round) return;
+    fireFeedback(next.solved ? 'accept' : 'reject', settings);
+    replace(next);
+  }, [round, replace, settings]);
 
   const advance = useCallback(() => {
     if (index + 1 < rounds.length) {
@@ -190,9 +199,10 @@ export default function AlphabetOrderScreen() {
         <div className="panel">
           <div className="headline">Put them in order</div>
           <p className="muted">
-            {pile.length} letters, jumbled. Drag each one onto the place it
-            holds in the alphabet. Put one in the wrong place and it goes back
-            to the pile.
+            {pile.length} letters, laid out in the wrong order. Swap them about
+            until the column reads the way it is recited, then submit it. Take
+            as many goes as you need — nothing here is marked until you hand it
+            in.
           </p>
           <p className="small muted">
             {earned === levels.length
@@ -303,15 +313,17 @@ export default function AlphabetOrderScreen() {
           </span>
         )}
         <span className="grow muted">Alphabet order</span>
-        <span className={'chip' + (round.slips > 0 ? ' chip-bad' : '')}>
-          {placedCount(round)} / {round.slots.length}
-        </span>
+        {/* How many she has right is never up here — only how many times she has
+            handed the column in, and only once that is more than once. */}
+        {round.slips > 0 && !isSettled(round) && (
+          <span className="chip">Try {round.slips + 1}</span>
+        )}
       </div>
 
       <PlacementBoard
         round={round}
         items={items}
-        onPlace={place}
+        onSwap={swap}
         reducedMotion={settings.reducedMotion}
       />
 
@@ -323,23 +335,58 @@ export default function AlphabetOrderScreen() {
           <div className="small muted">
             {round.solved
               ? round.slips === 0
-                ? 'Straight through, nothing out of place.'
+                ? 'Right first time, straight through.'
                 : round.slips === 1
-                  ? 'One letter went back before it landed.'
-                  : round.slips + ' letters went back before they landed.'
+                  ? 'Right on the second look.'
+                  : 'Right on look ' + (round.slips + 1) + '.'
               : 'Read it through — the order is the part worth taking away.'}
           </div>
           <button className="btn btn-primary btn-block" onClick={advance}>
             {index + 1 < rounds.length ? 'Next round' : 'Finish'}
           </button>
         </div>
+      ) : round.refused ? (
+        <div className="panel verdict-panel fail">
+          <strong>Not in order yet</strong>
+          {/* How close, never where: the count keeps her going, and naming the
+              letters that are out would hand her the rest of the alphabet. */}
+          <div className="small muted">
+            {placedCount(round) === 0
+              ? 'None of them are in the right place yet. Start from the letter you are surest of.'
+              : placedCount(round) +
+                ' of ' +
+                round.slots.length +
+                ' are in the right place — ' +
+                Math.round((placedCount(round) / round.slots.length) * 100) +
+                '%. Read it through and move the ones that are not.'}
+          </div>
+          <div className="stack">
+            <button
+              className="btn btn-primary btn-block"
+              onClick={() => replace(dismissRefusal(round))}
+            >
+              Try again
+            </button>
+            <button
+              className="btn btn-block"
+              onClick={() => replace(revealPlacement(round))}
+            >
+              Show me the order
+            </button>
+          </div>
+        </div>
       ) : (
-        <button
-          className="btn btn-block"
-          onClick={() => replace(revealPlacement(round))}
-        >
-          Show me the order
-        </button>
+        <div className="stack">
+          <button className="btn btn-primary btn-block" onClick={submit}>
+            Submit
+          </button>
+          <button
+            className="btn btn-block"
+            onClick={() => replace(revealPlacement(round))}
+          >
+            Show me the order
+          </button>
+        </div>
       )}
     </div>
   );

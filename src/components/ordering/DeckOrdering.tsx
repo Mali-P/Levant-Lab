@@ -4,10 +4,12 @@ import { wordForms } from '../../utils/wordForms';
 import {
   chunkForOrdering,
   createPlacementRound,
+  dismissRefusal,
   isSettled,
-  placeAt,
   placedCount,
   revealPlacement,
+  submitPlacement,
+  swapAt,
   type PlacementRound,
 } from '../../features/ordering/placement';
 import PlacementBoard, { type PlacementItem } from './PlacementBoard';
@@ -21,7 +23,7 @@ type Props = {
   lead: 'feminine' | 'masculine';
   showTransliteration: boolean;
   reducedMotion: boolean;
-  /** Sounded on each placement, right or wrong. */
+  /** Sounded on each submission, right or wrong — and at no other moment. */
   onFeedback: (kind: 'accept' | 'reject') => void;
   /** Every round done. `solved` is false if any column had to be shown. */
   onDone: (summary: { solved: boolean; slips: number }) => void;
@@ -64,8 +66,8 @@ export default function DeckOrdering({
   if (dealt !== dealKey) {
     // A different language, or a deck that has changed under us: deal again.
     // Done in render rather than in an effect so the board never paints a frame
-    // of the old language's pile. The key is the card list rather than the
-    // array itself, so an unrelated re-render cannot reshuffle a pile the
+    // of the old language's column. The key is the card list rather than the
+    // array itself, so an unrelated re-render cannot rejumble a column the
     // learner is halfway through.
     setRounds(
       chunkForOrdering(cards.map((c) => c.id)).map((solution) =>
@@ -92,8 +94,8 @@ export default function DeckOrdering({
         language,
         sub: showTransliteration ? form.transliteration : undefined,
         answer: card.english,
-        // Only ever rendered in a filled slot, so the speaker cannot be used to
-        // hunt through the pile for the word that goes next.
+        // Only ever rendered on a locked row, so the speaker cannot be used to
+        // hunt down the column for the word that goes next.
         aside: <SpeakerButton form={form} language={language} />,
       };
     }
@@ -109,16 +111,23 @@ export default function DeckOrdering({
     [index],
   );
 
-  const place = useCallback(
-    (id: string, slot: number) => {
+  // Silent. Nothing is right or wrong until she says the column is finished, so
+  // there is nothing here to sound.
+  const swap = useCallback(
+    (a: number, b: number) => {
       if (!round) return;
-      const next = placeAt(round, id, slot);
-      if (next === round) return;
-      onFeedback(next.rejected === id ? 'reject' : 'accept');
-      replace(next);
+      replace(swapAt(round, a, b));
     },
-    [round, replace, onFeedback],
+    [round, replace],
   );
+
+  const submit = useCallback(() => {
+    if (!round) return;
+    const next = submitPlacement(round);
+    if (next === round) return;
+    onFeedback(next.solved ? 'accept' : 'reject');
+    replace(next);
+  }, [round, replace, onFeedback]);
 
   const advance = useCallback(() => {
     if (index + 1 < rounds.length) {
@@ -133,7 +142,6 @@ export default function DeckOrdering({
 
   if (!round) return null;
 
-  const placed = placedCount(round);
   const settled = isSettled(round);
 
   return (
@@ -147,15 +155,15 @@ export default function DeckOrdering({
         <span className="grow muted">
           {language === 'hebrew' ? 'Hebrew, lowest first' : 'Arabic, lowest first'}
         </span>
-        <span className={'chip' + (round.slips > 0 ? ' chip-bad' : '')}>
-          {placed} / {round.slots.length}
-        </span>
+        {/* How many she has right is never up here — only how many times she has
+            handed the column in, and only once that is more than once. */}
+        {round.slips > 0 && !settled && <span className="chip">Try {round.slips + 1}</span>}
       </div>
 
       <PlacementBoard
         round={round}
         items={items}
-        onPlace={place}
+        onSwap={swap}
         reducedMotion={reducedMotion}
       />
 
@@ -164,25 +172,76 @@ export default function DeckOrdering({
           <strong>{round.solved ? 'That is the order' : 'This is how they run'}</strong>
           <div className="small muted">
             {round.solved
-              ? round.slips === 0
-                ? 'Straight through, nothing out of place.'
-                : round.slips === 1
-                  ? 'One word went back before it landed.'
-                  : round.slips + ' words went back before they landed.'
+              ? attemptNote(round.slips)
               : 'Read it through — the order is the part worth taking away.'}
           </div>
           <button className="btn btn-primary btn-block" onClick={advance}>
             {index + 1 < rounds.length ? 'Next round' : doneLabel}
           </button>
         </div>
+      ) : round.refused ? (
+        <div className="panel verdict-panel fail">
+          <strong>Not in order yet</strong>
+          <div className="small muted">{scoreNote(round)}</div>
+          <div className="stack">
+            <button
+              className="btn btn-primary btn-block"
+              onClick={() => replace(dismissRefusal(round))}
+            >
+              Try again
+            </button>
+            <button
+              className="btn btn-block"
+              onClick={() => replace(revealPlacement(round))}
+            >
+              Show me the order
+            </button>
+          </div>
+        </div>
       ) : (
-        <button
-          className="btn btn-block"
-          onClick={() => replace(revealPlacement(round))}
-        >
-          Show me the order
-        </button>
+        <div className="stack">
+          <button className="btn btn-primary btn-block" onClick={submit}>
+            Submit
+          </button>
+          <button
+            className="btn btn-block"
+            onClick={() => replace(revealPlacement(round))}
+          >
+            Show me the order
+          </button>
+        </div>
       )}
     </>
   );
+}
+
+/**
+ * How close she was, and nothing about where.
+ *
+ * The count is what keeps her going — three out of ten and ten out of ten are
+ * different situations — while which three would hand her the rest.
+ */
+function scoreNote(round: PlacementRound): string {
+  const right = placedCount(round);
+  const total = round.slots.length;
+  const share = Math.round((right / total) * 100);
+
+  if (right === 0) {
+    return 'Nothing is in the right place yet. Read it from the top and start with the one you are surest of.';
+  }
+  return (
+    right +
+    ' of ' +
+    total +
+    ' are in the right place — ' +
+    share +
+    '%. Read it through and move the ones that are not.'
+  );
+}
+
+/** What it took, said plainly, because a fourth look is not a failure. */
+function attemptNote(slips: number): string {
+  if (slips === 0) return 'Right first time, straight through.';
+  if (slips === 1) return 'Right on the second look.';
+  return 'Right on look ' + (slips + 1) + '.';
 }

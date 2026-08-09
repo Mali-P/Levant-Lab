@@ -2814,17 +2814,17 @@ a.btn-primary:active {
    Ordering drills
    ============================================================================
 
-   A numbered column with nothing in it, and a pile of words to hang on it —
-   the numbers of a deck put back in counting order, the letters put back in
-   alphabet order.
+   A numbered column, full from the first frame and in the wrong order — the
+   numbers of a deck put back in counting order, the letters put back in
+   alphabet order. Two rows swap over at a time.
 
-   Three things this has to get right. The empty column has to read as somewhere
-   to put things rather than as a list of missing rows, so a slot is a dashed
-   outline and nothing else. A chip has to be a comfortable thing to pick up
-   with a thumb, which means a full tap target and a wide one. And nothing is
-   tinted until it is actually in place: the board never grades a guess before
-   the learner has made it, and it never has to, because a wrong guess never
-   lands in the first place. */
+   Three things this has to get right. A row in play has to read as something
+   that can still be moved, which means the chip fills the row rather than
+   sitting inside it and there is a full tap target either way she reaches for
+   it. Nothing is tinted while she works — not one row, not a count, because a
+   board that marks itself as she goes has done the drill for her. And the
+   moment she hands the column in, it stops looking like something to move and
+   starts looking like something to read. */
 
 .place-board {
   display: flex;
@@ -2872,22 +2872,24 @@ a.btn-primary:active {
   padding: 4px 10px;
 }
 
-/* Empty is an outline and a hint, no more: a filled-looking row would read as
-   an answer nobody has given. */
-.place-slot.empty {
-  border-style: dashed;
+/* Still loose. The row is only a frame around the chip that fills it, so the
+   whole width of it is a thing the thumb can pick up. */
+.place-slot.loose {
+  border-color: transparent;
   background: transparent;
   padding: 0;
 }
 
-/* Under the word being dragged. The only thing on the board that lights up
-   before a drop, and it says "this one" rather than "this is right". */
+/* Under the row being dragged. The only thing on the board that lights up
+   before a drop, and it says "swap with this one" rather than "this is right". */
 .place-slot.hot {
   border-style: solid;
   border-color: var(--focus);
   background: color-mix(in srgb, var(--focus) 14%, transparent);
 }
 
+/* Handed in and right. The only green on the board, and it arrives all at once
+   for the whole column, because that is when the answer was given. */
 .place-slot.filled {
   border-color: color-mix(in srgb, var(--ok) 45%, transparent);
   background: color-mix(in srgb, var(--ok) 9%, var(--surface));
@@ -2899,26 +2901,6 @@ a.btn-primary:active {
   border-style: dashed;
   border-color: var(--line);
   background: var(--surface-2);
-}
-
-.place-drop {
-  flex: 1;
-  min-height: var(--tap);
-  padding: 0 10px;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  font-size: 0.78rem;
-  text-align: start;
-  color: var(--ink-dim);
-  cursor: default;
-}
-
-/* With a word picked up by tapping, every empty slot becomes somewhere to put
-   it down — which is what makes the drill work without a drag at all. */
-.place-board.holding .place-drop {
-  color: var(--focus);
-  cursor: pointer;
 }
 
 .place-word {
@@ -2935,30 +2917,17 @@ a.btn-primary:active {
   line-height: 1.3;
 }
 
-/* The pile stays with the learner as she scrolls the column. Ten slots is
-   taller than a phone, and a pile that scrolled off the top would leave her
-   dragging blind towards a word she can no longer see. */
-.place-pool {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  box-shadow: var(--shadow-sm);
-}
-
+/* A row still in play: the whole width of it, so there is no aiming to do
+   before picking one up. */
 .place-chip {
-  /* Positioned so the chip being dragged can be lifted above the column it is
+  /* Positioned so the chip being dragged can be lifted above the rows it is
      being dragged over. */
   position: relative;
+  flex: 1;
   display: flex;
   align-items: baseline;
   gap: 8px;
+  min-width: 0;
   min-height: var(--tap);
   padding: 8px 14px;
   border: 1px solid var(--line);
@@ -2966,6 +2935,7 @@ a.btn-primary:active {
   background: var(--surface);
   color: inherit;
   font: inherit;
+  text-align: start;
   /* Dragged in both directions, so the browser must not claim the gesture for
      scrolling before the board has seen it. */
   touch-action: none;
@@ -2976,17 +2946,10 @@ a.btn-primary:active {
   cursor: grabbing;
 }
 
-/* Picked up by tapping rather than dragging, and waiting for a slot. */
+/* Picked up by tapping rather than dragging, and waiting for its partner. */
 .place-chip.held {
   border-color: var(--focus);
   background: color-mix(in srgb, var(--focus) 14%, var(--surface));
-}
-
-/* Just turned away. Colour only — the chip is being sprung home by a spring
-   animation at the same moment, and a transform here would fight it. */
-.place-chip.rejected {
-  border-color: color-mix(in srgb, var(--bad) 60%, transparent);
-  background: color-mix(in srgb, var(--bad) 12%, var(--surface));
 }
 
 /* A level not yet on the reorder list. Legible, plainly not in play. */

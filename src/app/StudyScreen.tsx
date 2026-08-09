@@ -700,7 +700,7 @@ export default function StudyScreen() {
           </div>
           <p className="small muted">
             {language === 'hebrew'
-              ? 'Drag each word onto the number it belongs to. Put one in the wrong place and it goes back to the pile.'
+              ? 'They are laid out in the wrong order. Swap them about until the column reads right, then submit it — as many goes as you need.'
               : 'The same ten, the other language. Counting in Hebrew and counting in Arabic are two things to know.'}
           </p>
         </div>
