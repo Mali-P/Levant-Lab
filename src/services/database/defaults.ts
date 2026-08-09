@@ -53,6 +53,8 @@ export const DEFAULT_SETTINGS: Settings = {
   showPronunciationMarks: true,
   showStrokeOrder: true,
   autoplayLetterPronunciation: false,
+  // Nothing run yet, which the ladder reads as "only the first deck is open".
+  pairedLetterRuns: {},
 
   theme: 'system',
   highContrast: false,

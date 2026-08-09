@@ -162,7 +162,7 @@ export default function AlphabetCardsScreen() {
 
     return (
       <div className="screen">
-        <ScreenHeader title={deck.title} eyebrow="Name the letter" back />
+        <ScreenHeader title={deck.title} eyebrow="Learn the letter" back />
         <Confetti active={unsure === 0 && known === letters.length} />
 
         <div className="panel">
@@ -218,7 +218,7 @@ export default function AlphabetCardsScreen() {
 
   return (
     <div className="screen study">
-      <ScreenHeader title={deck.title} eyebrow="Name the letter" back />
+      <ScreenHeader title={deck.title} eyebrow="Learn the letter" back />
 
       <div className="study-meta small">
         <span>

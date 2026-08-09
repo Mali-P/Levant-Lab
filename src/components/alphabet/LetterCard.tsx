@@ -45,10 +45,14 @@ const SWIPE_VELOCITY = 300;
  *
  * Deliberately the Memorise card's shape rather than the practice screen's four
  * buttons. Four options let a learner arrive at ج by ruling out the other
- * three, which is not the same as knowing it; a card asks them to say the name
- * out loud, turn it over, and be honest. That honesty is the whole mode, so the
+ * three, which is not the same as knowing it; a card asks them to say it out
+ * loud, turn it over, and be honest. That honesty is the whole mode, so the
  * marking is a pair of plain buttons and the swipe is left to mean only "next"
  * and "back" — exactly as it does everywhere else a card is read.
+ *
+ * The letterform and its name are both on the outside, large. This is the
+ * memorising pass, not the test — Practise is where a learner finds out
+ * whether it stuck.
  *
  * Left is forward and right is back, matching every other card in the app, so a
  * learner never has to remember which deck they are in to know which way their
@@ -123,7 +127,7 @@ export default function LetterCard(props: LetterCardProps) {
           if (dragged.current) return;
           props.onFlip();
         }}
-        aria-label={'Letter card: ' + (flipped ? letter.nameEnglish : 'face down')}
+        aria-label={'Letter card: ' + letter.nameEnglish}
       >
         {/* Neither direction grades anything, so neither borrows the study
             card's green and red. */}
@@ -150,10 +154,18 @@ export default function LetterCard(props: LetterCardProps) {
             ? 'Marked known'
             : props.marked === 'unknown'
               ? 'Marked not yet'
-              : 'Name it'}
+              : 'Sound it out'}
         </div>
 
+        {/* Shape and name as one mark, on the outside where they can be stared
+            at: a learner who memorises ל and then reads "lamed" off the back
+            has learned two things separately. Everything that explains the name
+            — how it is written in Latin letters, what it sounds like, a word
+            that uses it — waits inside. */}
         <div className="card-prompt">
+          {props.showTransliteration && (
+            <div className="sound-hint">{letter.transliteration}</div>
+          )}
           <LetterGlyph
             script={script}
             print={printFormOf(letter)}
@@ -161,16 +173,15 @@ export default function LetterCard(props: LetterCardProps) {
             display={props.display}
             size="lg"
           />
+          <h2 className="word english letter-card-name">{letter.nameEnglish}</h2>
         </div>
 
         <EngravedDivider tone="card" tight={flipped} />
 
         {flipped ? (
           <div className="answer-block">
-            <h2 className="word english">{letter.nameEnglish}</h2>
-            {props.showTransliteration && (
-              <div className="translit">{letter.transliteration}</div>
-            )}
+            {/* The romanisation is on the face now, above the letter, so the
+                back explains the sound rather than restating it. */}
             <div className="small muted">{letter.commonSound}</div>
 
             {/* The Levantine reading, where the textbook one would mislead. It
@@ -201,7 +212,7 @@ export default function LetterCard(props: LetterCardProps) {
             </span>
           </div>
         ) : (
-          <p className="memorise-hint small muted">Say its name, then tap to check</p>
+          <p className="memorise-hint small muted">Say it aloud, then tap for the detail</p>
         )}
       </motion.article>
     </div>

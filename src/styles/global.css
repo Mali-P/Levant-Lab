@@ -1547,6 +1547,133 @@ a.btn-primary:visited {
   font-size: 1.6rem;
 }
 
+/* Both scripts in one mark, overlapped rather than set side by side: two
+   letters in a row read as a word, and this is one idea, not two. */
+.script-icon.both {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.35rem;
+}
+
+.script-icon-join {
+  margin-inline-start: -0.04em;
+  opacity: 0.72;
+}
+
+/* The front holds the two letterforms. Centring them turns the room the card
+   must reserve for its back into a frame rather than a gap under the prompt —
+   the same rule the Memorise card follows. */
+.pair-card:not(.revealed) .card-prompt {
+  margin: auto 0;
+}
+
+/* Small against the letterforms, but a line to be read rather than a caption:
+   set in the serif, lowercase, at something near body size. It is a
+   romanisation, not a label, so it does not take the eyebrow's tracking-out. */
+.sound-hint {
+  text-align: center;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+  font-size: calc(clamp(1.15rem, 5.2vw, 1.5rem) * var(--fit));
+  color: var(--ink-dim);
+  padding-bottom: calc(8px * var(--fit));
+}
+
+/* The sound and the two letters travel as one block, so the block is what the
+   card centres rather than the letters alone. */
+.pair-prompt-block {
+  align-self: stretch;
+}
+
+/* Side by side, because the pairing is the lesson: ב and ب read as one fact
+   when they share a line and as two when they are stacked. Wrapping is the
+   safety valve: in handwritten mode each half carries two forms, and a row that
+   cannot fit is better broken than clipped. */
+.pair-prompt {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  /* Horizontal air is not the fit's to take: the card shrinks its type to make
+     room vertically, and letting it also pull the two scripts together would
+     undo the one thing this layout is for. */
+  gap: clamp(24px, 10vw, 64px);
+}
+
+/*
+ * Each script gets half the row, whatever its letter is shaped like.
+ *
+ * ا and و are narrow and ش and מ are wide, so centring the pair as a group sets
+ * two letters that happen to be thin almost touching. An even column each keeps
+ * the gap the same on every card in the deck, which is what makes the two
+ * columns read as two alphabets rather than as one crowded word.
+ */
+.pair-prompt-half {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(4px * var(--fit));
+  padding: 0 clamp(4px, 2vw, 12px);
+}
+
+/* The letterforms are the card, so they are set at the size a shape has to be
+   to be remembered rather than merely identified — several times the study
+   screen's own prompt, which this has to outrank by name to escape. The fit
+   shrinks them when the back of the card needs the room, and the row wraps
+   before it would ever push a glyph off the edge. */
+.screen.study .pair-card .card-prompt .glyph {
+  font-size: calc(clamp(3.6rem, 24vw, 7rem) * var(--fit));
+}
+
+/* What the shared sound is in words, opening the back. */
+.pair-sound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(2px * var(--fit));
+  text-align: center;
+  padding-bottom: calc(4px * var(--fit));
+}
+
+/*
+ * The paired card: one sound above, its two letterforms below.
+ *
+ * Stacked rather than in two columns. On a phone, two columns of Semitic script
+ * at a legible size leaves neither of them legible, and the halves are marked
+ * one at a time anyway — a learner reads down the card the same way they answer
+ * it.
+ */
+.pair-answers {
+  gap: calc(8px * var(--fit));
+}
+
+.pair-half {
+  display: flex;
+  flex-direction: column;
+  gap: calc(2px * var(--fit));
+  padding: calc(6px * var(--fit)) 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.pair-half-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pair-note {
+  margin: 0;
+  padding-top: calc(4px * var(--fit));
+  border-top: 1px dashed rgba(120, 96, 58, 0.28);
+}
+
+
 .letter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
@@ -3208,6 +3335,29 @@ a.btn-primary:active {
 @keyframes splash-breathe {
   0%, 100% { opacity: 0.38; }
   50% { opacity: 0.92; }
+}
+
+/* The letterform on the outside of a memorise card, at the size a shape has to
+   be to be remembered rather than merely read. Named past the study screen's
+   own prompt sizing, which is set for a line of words and would shrink this to
+   a caption. */
+.screen.study .letter-card .card-prompt .glyph {
+  font-size: calc(clamp(4.5rem, 34vw, 9rem) * var(--fit));
+}
+
+/* Its name, directly underneath and part of the same mark — set smaller than
+   the letter, because the shape is what is being learned and the name is what
+   the shape is called. */
+.screen.study .letter-card .card-prompt .letter-card-name {
+  margin: 0;
+  font-size: calc(clamp(1.15rem, 5.4vw, 1.55rem) * var(--fit));
+  letter-spacing: 0.06em;
+}
+
+/* The front holds a letter and its name; centring them frames the room kept
+   for the back rather than leaving it hanging under the prompt. */
+.letter-card:not(.flipped) .card-prompt {
+  margin: auto 0;
 }
 
 /* The example word on the back of a letter card. */

@@ -21,6 +21,7 @@ import {
 
 export * from './hebrew';
 export * from './arabic';
+export * from './pairs';
 
 /** The two alphabets, in the order the selection screen lists them. */
 export const ALPHABET_SCRIPTS: readonly AlphabetScript[] = ['hebrew', 'arabic'];

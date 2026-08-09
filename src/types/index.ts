@@ -99,6 +99,28 @@ export type GenderedForms = {
 };
 
 /**
+ * Who decides which half of a `forms` pair is the one to say.
+ *
+ * A pair on its own is only two strings; it does not say what the choice
+ * between them turns on, and the app answered that for years by showing both
+ * and leaving the learner to work it out. This is the missing answer, and the
+ * reason the From / To settings can reach a `forms` card at all.
+ *
+ * `speaker`  — the form follows whoever is talking. "I'm tired" is تعبانة from
+ *   a woman and تعبان from a man, whoever is listening.
+ * `listener` — the form follows whoever is addressed: imperatives, and anything
+ *   said about the person in front of you.
+ * `word`     — neither. The gender belongs to the word itself or to a third
+ *   person: a cat, a colour, a heavy suitcase, "her house". Nothing about the
+ *   learner picks between these, so both stay on screen.
+ *
+ * Undefined reads as `word`, which is the safe default in both directions: it
+ * can never hide a form the learner needed, and a pair that genuinely follows a
+ * person in the conversation has to say so before the setting will touch it.
+ */
+export type FormAgreement = 'speaker' | 'listener' | 'word';
+
+/**
  * Who is speaking, and who is being spoken to.
  *
  * A separate axis from `GenderedForms`. "How are you?" changes its ending to
@@ -223,6 +245,14 @@ export type LanguageSide = {
    */
   tts?: TtsPronunciation;
   forms?: GenderedForms;
+  /**
+   * Whose gender picks between the two halves of `forms`. Defaults to `word`,
+   * so a pair says nothing about the conversation until it is told to.
+   *
+   * Meaningless without `forms`, and deliberately separate from `speechForms`,
+   * which carries its perspective in the key already.
+   */
+  agreement?: FormAgreement;
   /**
    * Speaker/listener variants, where this phrase has any. Independent of
    * `forms`: a card can carry a grammatical pair and a set of perspectives at
@@ -620,6 +650,15 @@ export type Settings = {
   showPronunciationMarks: boolean;
   showStrokeOrder: boolean;
   autoplayLetterPronunciation: boolean;
+  /**
+   * Flawless runs through each deck of the paired Both alphabet, keyed by deck
+   * id. This is the one piece of alphabet standing that is not a per-letter
+   * score, because the Both ladder gates on runs rather than on mastery, and a
+   * run has nowhere else to be recorded — letter decks are deliberately absent
+   * from the Dexie schema. It rides the settings row so it syncs and restores
+   * with everything else.
+   */
+  pairedLetterRuns: Record<string, number>;
 
   // Appearance
   theme: ThemeMode;

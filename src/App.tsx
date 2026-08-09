@@ -19,6 +19,8 @@ import SyncScreen from './app/SyncScreen';
 import PronunciationReviewScreen from './app/PronunciationReviewScreen';
 import AlphabetsScreen from './app/AlphabetsScreen';
 import AlphabetHomeScreen from './app/AlphabetHomeScreen';
+import PairedAlphabetScreen from './app/PairedAlphabetScreen';
+import PairedDeckScreen from './app/PairedDeckScreen';
 import LetterListScreen from './app/LetterListScreen';
 import LetterDetailScreen from './app/LetterDetailScreen';
 import AlphabetProgressScreen from './app/AlphabetProgressScreen';
@@ -150,6 +152,11 @@ export default function App() {
         {/* The alphabets sit beside the decks, never in front of them: nothing
             here gates the vocabulary. */}
         <Route path="/alphabets" element={<AlphabetsScreen />} />
+        {/* Both alphabets at once, and the only part of the module that is a
+            ladder: ten paired sounds a deck, each opening the next. Static, so
+            it is matched ahead of `:script` rather than read as one. */}
+        <Route path="/alphabet/both" element={<PairedAlphabetScreen />} />
+        <Route path="/alphabet/both/:deckId" element={<PairedDeckScreen />} />
         <Route path="/alphabet/:script" element={<AlphabetHomeScreen />} />
         <Route path="/alphabet/:script/letters" element={<LetterListScreen />} />
         <Route

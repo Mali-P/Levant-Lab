@@ -1,9 +1,17 @@
 import { Link } from 'react-router-dom';
-import { ALPHABET_SCRIPTS, SCRIPT_LABEL, alphabetCounts } from '../data/alphabets';
+import {
+  ALPHABET_SCRIPTS,
+  LETTER_PAIRS,
+  SCRIPT_LABEL,
+  alphabetCounts,
+} from '../data/alphabets';
+import { PAIR_DECK_SIZE } from '../features/alphabet/pairDecks';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon from '../components/ornament/Icon';
 
 const SCRIPT_ICON = { hebrew: 'א', arabic: 'ع' } as const;
+
+const pairCount = LETTER_PAIRS.length;
 
 /**
  * The alphabets live beside the vocabulary categories rather than in front of
@@ -16,6 +24,24 @@ export default function AlphabetsScreen() {
       <ScreenHeader title="Alphabets" eyebrow="Learn to read the letters" />
 
       <div className="list">
+        {/* Both leads, because it is the only entry here that is a course
+            rather than a reference: ten paired sounds at a time, the first
+            deck open and the rest waiting on it. A learner who wants one
+            script alone still has it, one row down. */}
+        <Link className="list-item" to="/alphabet/both">
+          <span className="icon script-icon both" aria-hidden="true">
+            א<span className="script-icon-join">ع</span>
+          </span>
+          <span className="grow">
+            <strong>Both Alphabets</strong>
+            <div className="small muted">
+              {pairCount} paired sounds · decks of {PAIR_DECK_SIZE} · Hebrew and
+              Arabic together
+            </div>
+          </span>
+          <Icon name="forward" className="chevron" />
+        </Link>
+
         {ALPHABET_SCRIPTS.map((script) => {
           const counts = alphabetCounts(script);
           const extras = [
