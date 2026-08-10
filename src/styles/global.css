@@ -2360,7 +2360,7 @@ a.btn-primary:visited {
 /* Fluid for the same reason the spacing above it is, and floored at a size the
    pointed Hebrew and Arabic scripts are still read at rather than decoded. */
 .screen.study .memorise-form .form-line {
-  font-size: max(0.95rem, calc(clamp(1.05rem, 2.6vh, 1.3rem) * var(--fit)));
+  font-size: max(0.9rem, calc(clamp(0.98rem, 2.25vh, 1.16rem) * var(--fit)));
 }
 
 /*
@@ -2924,7 +2924,7 @@ a.btn-primary:active {
   letter-spacing: 0.01em;
   text-align: center;
   text-transform: none;
-  font-size: calc(clamp(1.3rem, 5.5vw, 1.8rem) * var(--fit));
+  font-size: calc(clamp(1.7rem, 7vw, 2.45rem) * var(--fit));
 }
 
 .memorise-card .lang-label {
