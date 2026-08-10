@@ -223,7 +223,9 @@ export const useData = create<DataState>((set, get) => ({
     });
     await noteDeletions('cards', [id]);
     await noteDeletions('cardProgress', [id]);
-    set({ cards: get().cards.filter((c) => c.id !== id) });
+    const cardProgress = { ...get().cardProgress };
+    delete cardProgress[id];
+    set({ cards: get().cards.filter((c) => c.id !== id), cardProgress });
   },
 
   async duplicateCard(id) {
