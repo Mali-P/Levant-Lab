@@ -2204,13 +2204,6 @@ a.btn-primary:visited {
     display: none;
   }
 
-  /* The pips and the "2 / 5" beside the stage label count the same thing. The
-     number survives, because it is the one that fits on a line already spoken
-     for. The pips carry an aria-label the number's own text replaces. */
-  .screen.study .stage-banner .runs {
-    display: none;
-  }
-
   /* The step back to the last card. The left swipe is the primary path and
      ArrowLeft is its keyboard equivalent — both still work here; what goes is
      a full row spent restating them on the one screen size that cannot spare

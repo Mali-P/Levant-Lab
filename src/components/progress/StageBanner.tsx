@@ -26,7 +26,7 @@ export default function StageBanner({ session }: Props) {
         <span className="stage-label">{label}</span>
         {phase === 'testing' && !session.drill && (
           <span className="small muted">
-            {recalled} / {total}
+            {recalled} of {total} recalled
           </span>
         )}
       </div>
