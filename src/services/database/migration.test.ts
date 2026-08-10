@@ -5,6 +5,7 @@ import { CUSTOM_CATEGORY, SEED_CATEGORIES } from '../../constants/seed';
 import { db } from './db';
 import { DEFAULT_SETTINGS } from './defaults';
 import {
+  STARTER_CONTENT_VERSION,
   installStarterCards,
   OFFICIAL_CARD_COUNT,
   prepareStarterContent,
@@ -259,5 +260,62 @@ describe('refreshing starter cards over an existing install', () => {
     const third = await prepareStarterContent();
     expect(third.ran).toBe(false);
     expect(await db.cards.get(id)).toBeUndefined();
+  });
+});
+
+describe('current-version installs with missing starter content', () => {
+  it('still restores every missing practice deck and card', async () => {
+    await db.delete();
+    await db.open();
+
+    const now = '2026-08-10T08:00:00.000Z';
+    await db.settings.put({
+      ...DEFAULT_SETTINGS,
+      starterContentVersion: STARTER_CONTENT_VERSION,
+    });
+    await db.categories.add({
+      id: 'cat_numbers',
+      name: 'Numbers',
+      icon: '🔢',
+      order: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.decks.add({
+      id: 'deck_numbers',
+      categoryId: 'cat_numbers',
+      name: 'One to ten',
+      perfectRunsRequired: 10,
+      promptDirections: ['en>he+ar'],
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.cards.add({
+      id: 'card_one',
+      categoryId: 'cat_numbers',
+      deckId: 'deck_numbers',
+      english: 'one',
+      hebrew: { script: 'אחד' },
+      arabic: { script: 'واحد', dialect: 'Palestinian' },
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const report = await prepareStarterContent();
+    expect(report.ran).toBe(true);
+
+    const wants = await db.categories.where('name').equals('Wants and feelings').first();
+    expect(wants).toBeTruthy();
+
+    const wantDecks = await db.decks.where('categoryId').equals(wants!.id).toArray();
+    expect(wantDecks.map((deck) => deck.name).sort()).toEqual([
+      'I want and I need',
+      'Saying what you want',
+      'You, he and she',
+    ]);
+
+    const wantCards = await db.cards.where('categoryId').equals(wants!.id).toArray();
+    expect(wantCards).toHaveLength(30);
+    expect(await starterCoverage()).toMatchObject({ missing: 0, present: OFFICIAL_CARD_COUNT });
   });
 });

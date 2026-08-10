@@ -456,7 +456,14 @@ export async function reshapeRenamedCategories(): Promise<number> {
     }
   }
 
-  if (!changedCategories.length && !newCategories.length) return 0;
+  if (
+    !changedCategories.length &&
+    !newCategories.length &&
+    !changedDecks.length &&
+    !changedCards.length
+  ) {
+    return 0;
+  }
 
   // The half-step above has to be spent before the top-up runs: that pass
   // numbers each category it adds from the count of those already present, so
@@ -486,7 +493,12 @@ export async function reshapeRenamedCategories(): Promise<number> {
     if (changedCards.length) await db.cards.bulkPut(changedCards);
   });
 
-  return changedCategories.length + newCategories.length;
+  return (
+    changedCategories.length +
+    newCategories.length +
+    changedDecks.length +
+    changedCards.length
+  );
 }
 
 export type StartupReport = InstallReport & { ran: boolean; merged: MergeReport };
@@ -530,8 +542,11 @@ async function runStarterContent(): Promise<StartupReport> {
   // categories as duplicates rather than having its own rows moved across.
   if (seeded) await reshapeRenamedCategories();
 
+  const coverage = seeded ? await starterCoverage() : null;
+  const hasEveryCategory =
+    coverage !== null && coverage.emptyCategories.length === 0;
   const install =
-    seeded && current
+    seeded && current && hasEveryCategory
       ? { ran: false, added: 0, updated: 0 }
       : { ran: true, ...(await installStarterCards()) };
 
