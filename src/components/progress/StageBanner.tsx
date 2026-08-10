@@ -39,12 +39,10 @@ export default function StageBanner({ session }: Props) {
           role="img"
           aria-label={recalled + ' of ' + total + ' recalled in this set'}
         >
-          {session.activeCardIds.map((id) => (
+          {session.activeCardIds.map((id, index) => (
             <span
               key={id}
-              className={
-                'seg' + (session.stageCorrect.includes(id) ? ' filled' : '')
-              }
+              className={'seg' + (index < recalled ? ' filled' : '')}
             />
           ))}
         </div>

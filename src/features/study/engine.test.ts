@@ -192,6 +192,13 @@ describe('testing a stage', () => {
     expect(stageProgress(out.session)).toEqual({ recalled: 1, total: 3 });
   });
 
+  it('keeps recalled progress as a chronological count separate from card order', () => {
+    const s = readIntroduction(start(), rng());
+    const out = answerCurrentCard(s, BOTH, { now: T, rng: rng() });
+    expect(out.session.stageCorrect).toHaveLength(1);
+    expect(stageProgress(out.session).recalled).toBe(1);
+  });
+
   it('clears at 3/3 and introduces the next two words', () => {
     const out = clearStage(readIntroduction(start(), rng()), rng());
     expect(out.event).toBe('stage-complete');
