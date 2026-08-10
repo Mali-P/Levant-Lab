@@ -16,6 +16,7 @@ import {
   stageProgress,
   type AnswerOutcome,
 } from './engine';
+import { selfGradeResult } from './selfGrade';
 
 const T = '2026-01-01T00:00:00.000Z';
 const BOTH = { hebrew: true, arabic: true };
@@ -237,6 +238,13 @@ describe('testing a stage', () => {
     expect(out.fullyCorrect).toBe(false);
     expect(out.event).toBe('retry-queued');
     expect(out.session.stageCorrect).toEqual([]);
+  });
+
+  it('counts one-language self-graded correct answers as fully recalled', () => {
+    const s = readIntroduction(start(), rng());
+    const out = answer(s, selfGradeResult('correct', 'hebrew'));
+    expect(out.fullyCorrect).toBe(true);
+    expect(stageProgress(out.session)).toEqual({ recalled: 1, total: 3 });
   });
 
   it('does not ask the same card twice running', () => {

@@ -9,6 +9,7 @@ import { wordForms } from '../utils/wordForms';
 import { LANGUAGE_LONG_LABEL } from '../utils/languageSelection';
 import { sortCards } from '../utils/cardOrder';
 import { buildPromptPlan, gradePlan } from '../features/study/prompts';
+import { selfGradeResult } from '../features/study/selfGrade';
 import {
   currentIntroCardId,
   introRemaining,
@@ -803,7 +804,7 @@ export default function StudyScreen() {
         onSpeak={(language) => void speak(currentCard, language)}
         onSwipeRight={() => {
           if (answerMode === 'typed') submitTyped();
-          else void grade({ hebrew: true, arabic: true });
+          else void grade(selfGradeResult('both-correct'));
         }}
         // Only where there is an answer to take back. Hard and brutal never
         // offer it: a run you can rewind is not a run.
@@ -823,17 +824,13 @@ export default function StudyScreen() {
           <div className="grade-grid">
             <button
               className="btn btn-primary"
-              onClick={() =>
-                void grade({ hebrew: only !== 'arabic', arabic: only !== 'hebrew' })
-              }
+              onClick={() => void grade(selfGradeResult('correct', only))}
             >
               ✓ Correct
             </button>
             <button
               className="btn btn-danger"
-              onClick={() =>
-                void grade({ hebrew: only === 'arabic', arabic: only === 'hebrew' })
-              }
+              onClick={() => void grade(selfGradeResult('wrong', only))}
             >
               ✗ Wrong
             </button>
@@ -842,25 +839,25 @@ export default function StudyScreen() {
           <div className="grade-grid">
             <button
               className="btn btn-primary"
-              onClick={() => void grade({ hebrew: true, arabic: true })}
+              onClick={() => void grade(selfGradeResult('both-correct'))}
             >
               ✓ Both correct
             </button>
             <button
               className="btn btn-danger"
-              onClick={() => void grade({ hebrew: false, arabic: false })}
+              onClick={() => void grade(selfGradeResult('both-wrong'))}
             >
               ✗ Both wrong
             </button>
             <button
               className="btn"
-              onClick={() => void grade({ hebrew: false, arabic: true })}
+              onClick={() => void grade(selfGradeResult('hebrew-wrong'))}
             >
               Hebrew wrong
             </button>
             <button
               className="btn"
-              onClick={() => void grade({ hebrew: true, arabic: false })}
+              onClick={() => void grade(selfGradeResult('arabic-wrong'))}
             >
               Arabic wrong
             </button>
