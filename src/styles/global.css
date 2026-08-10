@@ -2363,6 +2363,23 @@ a.btn-primary:visited {
   font-size: max(0.9rem, calc(clamp(0.98rem, 2.25vh, 1.16rem) * var(--fit)));
 }
 
+.screen.study .memorise-card.flipped .memorise-form .form-line {
+  font-size: clamp(0.86rem, 2vh, 1.05rem);
+  justify-content: center;
+  text-align: center;
+}
+
+.screen.study .memorise-card.flipped .memorise-form .translit,
+.screen.study .memorise-card.flipped .memorise-form .translit-line {
+  font-size: clamp(0.62rem, 1.45vh, 0.74rem);
+}
+
+.screen.study .memorise-card.flipped .memorise-form > .grow,
+.screen.study .memorise-card.flipped .memorise-form .translit-lines {
+  justify-content: center;
+  text-align: center;
+}
+
 /*
  * Script and transliteration share a line rather than stacking. Four stacked
  * pairs plus their romanisations do not fit one card face, and the reading
@@ -2918,13 +2935,21 @@ a.btn-primary:active {
   letter-spacing: 0.22em;
 }
 
+.memorise-card:not(.flipped) .card-prompt .word {
+  font-family: var(--serif);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-transform: none;
+  font-size: calc(clamp(2.15rem, 9vw, 3.35rem) * var(--fit));
+}
+
 .memorise-card .card-prompt .word {
   font-family: var(--serif);
   font-weight: 600;
   letter-spacing: 0.01em;
   text-align: center;
   text-transform: none;
-  font-size: calc(clamp(1.7rem, 7vw, 2.45rem) * var(--fit));
 }
 
 .memorise-card .lang-label {
