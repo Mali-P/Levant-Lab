@@ -25,6 +25,17 @@ export const PRONUNCIATION_OVERRIDES: Record<string, string> = {
   // where the romanisation does. This clip only — تلاتة inside a longer phrase
   // is a different recording and is not known to be wrong.
   'ar/counting-and-numbers__one-to-ten__three_neutral': 'تَلاتِه',
+
+  // Medical deck Arabic. These were coming back with formal case endings such
+  // as -un/-atun at the end. The visible cards stay in natural everyday
+  // spelling; the clips get pause-form spelling/diacritics so the recording
+  // stops where the transliteration stops.
+  'ar/medical__at-the-clinic__nurse_feminine': 'ممرّضه',
+  'ar/medical__at-the-clinic__nurse_masculine': 'مُمَرِّضْ',
+  'ar/medical__at-the-clinic__clinic_neutral': 'عِيادِه',
+  'ar/medical__at-the-clinic__pharmacy_neutral': 'صَيْدَلِيِّه',
+  'ar/medical__at-the-clinic__fever_neutral': 'حَرارَه',
+  'ar/medical__at-the-clinic__appointment_neutral': 'مَوْعِدْ',
 };
 
 /** The override for a clip, if a reviewer has recorded one. */
