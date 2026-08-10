@@ -8,6 +8,7 @@ import {
 import type { Flashcard, SpeechPerspective } from '../../types';
 import type { PromptPlan } from '../../features/study/prompts';
 import { useFitToBox } from '../../hooks/useFitToBox';
+import { sentenceCase } from '../../utils/textCase';
 import { wordForms, type WordForm } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
 import Transliteration from './Transliteration';
@@ -223,7 +224,9 @@ export default function StudyCard(props: StudyCardProps) {
                   promptSize
                 }
               >
-                {plan.promptText}
+                {plan.promptLanguage === 'english'
+                  ? sentenceCase(plan.promptText)
+                  : plan.promptText}
               </h2>
             </>
           )}
@@ -236,7 +239,7 @@ export default function StudyCard(props: StudyCardProps) {
           const answerSide = field.input === 'hebrew' ? card.hebrew : card.arabic;
           const revealForms: WordForm[] =
             field.input === 'english'
-              ? [{ script: card.english, key: 'only' }]
+              ? [{ script: sentenceCase(card.english), key: 'only' }]
               : wordForms(answerSide, props.perspectives, props.lead);
           const translitForms = wordForms(
             field.scores === 'hebrew' ? card.hebrew : card.arabic,

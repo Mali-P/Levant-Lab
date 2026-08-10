@@ -238,7 +238,8 @@
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
+  width: 100%;
 }
 
 /*
@@ -254,6 +255,8 @@ html {
 
 body {
   margin: 0;
+  min-width: 320px;
+  min-height: 100%;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--sans);
@@ -426,17 +429,19 @@ input, select, textarea {
 /* ---------- shell ---------- */
 
 .app {
-  min-height: 100%;
+  min-height: 100dvh;
+  width: min(100%, var(--shell));
   display: flex;
   flex-direction: column;
-  max-width: var(--shell);
   margin: 0 auto;
   padding: env(safe-area-inset-top) 0 0;
 }
 
 .screen {
   flex: 1;
-  padding: 12px 10px 92px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px clamp(10px, 3vw, 18px) 92px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -811,7 +816,8 @@ textarea.input {
   font-size: calc(clamp(1.5rem, 6.5vw, 2.1rem) * var(--fit));
   font-weight: 800;
   letter-spacing: -0.03em;
-  text-transform: uppercase;
+  text-align: center;
+  text-transform: none;
 }
 
 .card-prompt .word.script-prompt {
@@ -1215,7 +1221,8 @@ a.btn-primary:visited {
  * stay put under the thumb while the controls stay reachable below it.
  */
 .screen.study {
-  height: 100dvh;
+  min-height: calc(100dvh - env(safe-area-inset-top));
+  height: calc(100dvh - env(safe-area-inset-top));
   overflow: hidden;
   /* The tab bar's own height plus the clearance a thumb still needs under the
      lowest button, and nothing spare. */
@@ -2149,7 +2156,7 @@ a.btn-primary:visited {
    */
   min-height: min(46%, 150px);
   max-height: 100%;
-  width: 100%;
+  width: min(100%, 420px);
   margin-inline: auto;
   align-self: center;
   /* The meta row above is text about the card, not part of it. Standing the
@@ -2349,16 +2356,6 @@ a.btn-primary:visited {
 .memorise-form > :last-child {
   grid-column: 3;
   justify-self: end;
-}
-
-/*
- * A variant the learner is not studying, revealed by "Show other forms".
- * Set back rather than hidden: it is there for reference and should not
- * compete with the form she actually needs to say. Contrast stays above the
- * 4.5:1 floor, so this is a matter of emphasis and never of legibility.
- */
-.memorise-form.muted-form {
-  opacity: 0.62;
 }
 
 .memorise-form .form-line {
@@ -2932,6 +2929,7 @@ a.btn-primary:active {
   font-family: var(--serif);
   font-weight: 600;
   letter-spacing: 0.01em;
+  text-align: center;
   text-transform: none;
   font-size: calc(clamp(1.3rem, 5.5vw, 1.8rem) * var(--fit));
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   motion,
   useMotionValue,
@@ -7,7 +7,6 @@ import {
 } from 'framer-motion';
 import {
   LANGUAGES,
-  SPEECH_PERSPECTIVES,
   type Flashcard,
   type Language,
   type LanguageSide,
@@ -15,6 +14,7 @@ import {
 } from '../../types';
 import { useFitToBox } from '../../hooks/useFitToBox';
 import { LANGUAGE_LONG_LABEL } from '../../utils/languageSelection';
+import { sentenceCase } from '../../utils/textCase';
 import { wordForms, type WordForm } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
 import Transliteration from './Transliteration';
@@ -28,14 +28,13 @@ export type MemoriseCardProps = {
   perspectives: readonly SpeechPerspective[];
   /**
    * The languages she is studying. The back is one block per language, so one
-   * switched off simply has no block — no forms, no speaker button, no "show
-   * other forms". Absent means both.
+   * switched off simply has no block — no forms, no speaker button. Absent
+   * means both.
    */
   languages?: readonly Language[];
   /**
    * Which half of a grammatical pair to read first, from her identity. Display
-   * only, and `otherForms` is unaffected: a variant she is not studying is
-   * found by wording rather than by position.
+   * only — it reorders the forms shown, it does not choose them.
    */
   lead?: 'feminine' | 'masculine';
   showTransliteration: boolean;
@@ -68,42 +67,18 @@ const SWIPE_VELOCITY = 300;
  * freely in both directions in every mode: reading a deck is browsing, and
  * nothing behind the learner has been written down.
  */
-/**
- * The forms this card has that the learner is *not* currently studying.
- *
- * Asked of every side rather than only the ones carrying speaker/listener
- * variants: a gendered pair that agrees with the speaker or the listener is
- * now narrowed to one form on screen too, and the half she is not being taught
- * is exactly what this control exists to show her on request.
- *
- * Compared by wording rather than by perspective, so a phrase whose ♂→♀ form
- * happens to be worded exactly like her ♀→♂ one contributes nothing to expand
- * — there would be no second thing to read. A word nothing narrows returns the
- * same list twice over and so offers nothing, which is the right answer for a
- * cat or a colour.
- */
-function otherForms(
-  side: LanguageSide,
-  selected: readonly SpeechPerspective[],
-): WordForm[] {
-  const shown = new Set(wordForms(side, selected).map((f) => f.script));
-  return wordForms(side, SPEECH_PERSPECTIVES).filter((f) => !shown.has(f.script));
-}
-
-/** One form and its speaker button. `muted` marks a variant she is not studying. */
+/** One form and its speaker button. */
 function FormRow({
   form,
   language,
   showTransliteration,
-  muted,
 }: {
   form: WordForm;
   language: 'hebrew' | 'arabic';
   showTransliteration: boolean;
-  muted?: boolean;
 }) {
   return (
-    <div className={'memorise-form' + (muted ? ' muted-form' : '')}>
+    <div className="memorise-form">
       <div className="grow">
         <div className="form-line">
           {form.marker && (
@@ -133,11 +108,6 @@ export default function MemoriseCard(props: MemoriseCardProps) {
   const { card, flipped, perspectives, lead, reducedMotion } = props;
   const x = useMotionValue(0);
 
-  // Collapsed again on every new card: the learner asked to see the other
-  // forms of *that* phrase, not to change how the deck reads from here on.
-  const [showOthers, setShowOthers] = useState(false);
-  useEffect(() => setShowOthers(false), [card.id]);
-
   const sides = (props.languages ?? LANGUAGES).map((language) => ({
     language,
     label: LANGUAGE_LONG_LABEL[language],
@@ -158,7 +128,7 @@ export default function MemoriseCard(props: MemoriseCardProps) {
    * down.
    */
   const face = useFitToBox<HTMLElement>(
-    [card.id, flipped, showOthers, perspectives, sides.length],
+    [card.id, flipped, perspectives, sides.length],
     true,
   );
 
@@ -260,7 +230,7 @@ export default function MemoriseCard(props: MemoriseCardProps) {
               {card.icon}
             </span>
           )}
-          <h2 className="word english">{card.english}</h2>
+          <h2 className="word english">{sentenceCase(card.english)}</h2>
         </div>
 
         <EngravedDivider tone="card" tight={flipped} />
@@ -294,35 +264,7 @@ export default function MemoriseCard(props: MemoriseCardProps) {
                   />
                 ))}
 
-                {/* The rest of the variants stay behind a press. Reading is a
-                    first pass, and putting a form she will never say beside
-                    the one she will is exactly the habit this replaces. */}
-                {showOthers &&
-                  otherForms(side, perspectives).map((form) => (
-                    <FormRow
-                      key={form.key}
-                      form={form}
-                      language={language}
-                      showTransliteration={props.showTransliteration}
-                      muted
-                    />
-                  ))}
               </div>
-
-              {otherForms(side, perspectives).length > 0 && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-compact"
-                  aria-expanded={showOthers}
-                  onClick={(event) => {
-                    // The card flips on tap; this press must not reach it.
-                    event.stopPropagation();
-                    setShowOthers((s) => !s);
-                  }}
-                >
-                  {showOthers ? 'Hide other forms' : 'Show other forms'}
-                </button>
-              )}
             </div>
           ))
         ) : (
