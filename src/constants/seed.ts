@@ -1053,6 +1053,18 @@ const CUSTOM_DECKS: SeedDeck[] = [
         ['بتحكي إنجليزي', 'btiḥki inglīzi'],
         { ar: 'إنجليزي is the spoken form; انكليزي is what you hear further north.' },
       ),
+      c(
+        'look what I found',
+        toL(['תראה מה מצאתי', 'tir\'e ma matsati'], ['תראי מה מצאתי', 'tir\'i ma matsati']),
+        toL(['شوف شو لقيت', 'shūf shū laʾēt'], ['شوفي شو لقيت', 'shūfi shū laʾēt']),
+        { he: 'תראה is said to a man; תראי to a woman. מצאתי is "I found" whoever is speaking.', ar: 'شوف is said to a man; شوفي to a woman. لقيت is "I found" whoever is speaking.' },
+      ),
+      c(
+        'I missed you',
+        toL(['התגעגעתי אליך', 'hitgaʿgaʿti elekha'], ['התגעגעתי אלייך', 'hitgaʿgaʿti elayikh']),
+        toL(['اشتقتلك', 'ishtaʾtilak'], ['اشتقتلك', 'ishtaʾtilek']),
+        { ar: 'Written the same either way; only the ending is said differently.' },
+      ),
     ],
   },
 ];

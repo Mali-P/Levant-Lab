@@ -369,6 +369,10 @@ export const CURATED_GLOSSES: Record<GlossLanguage, Record<string, string>> = {
     likhtov: 'to write',
     letargel: 'to practise',
     tirgul: 'practice',
+    "tir'e": 'look (to a man)',
+    "tir'i": 'look (to a woman)',
+    matsati: 'I found',
+    "hitgaʿgaʿti": 'I missed',
     ledaber: 'to speak',
     "la'asot": 'to do',
     lehipagesh: 'to meet',
@@ -693,6 +697,9 @@ export const CURATED_GLOSSES: Record<GlossLanguage, Record<string, string>> = {
     ākol: 'I eat',
     arūḥ: 'I go',
     biddo: 'he wants',
+    "shūf": 'look (to a man)',
+    shūfi: 'look (to a woman)',
+    "laʾēt": 'I found',
 
     // --- the "I" form, where it only ever shows up inside a phrase -----------
     baḥḍar: 'I watch',

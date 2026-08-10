@@ -251,6 +251,8 @@ describe('starter cards', () => {
       'do you speak Hebrew?',
       'do you speak Arabic?',
       'do you speak English?',
+      'look what I found',
+      'I missed you',
     ]);
   });
 

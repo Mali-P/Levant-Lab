@@ -19,7 +19,7 @@ export const STARTER_CONTENT_VERSION = 33;
 
 /**
  * How many cards the official starter set contains: every taught deck is a ten,
- * so this is ten times the number of decks, plus the nine sentences the Custom
+ * so this is ten times the number of decks, plus the sentences the Custom
  * category opens with. Sentences added there afterwards are the learner's own
  * and are counted nowhere here.
  */
