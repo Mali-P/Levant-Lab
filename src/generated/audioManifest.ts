@@ -249,11 +249,11 @@ export const AUDIO_CLIPS: Record<string, AudioClipRecord> = {
     "voice": "gemini-2.5-flash-preview-tts/Kore/f1fb7f6a",
     "english": "one",
     "text": "واحد",
-    "spoken": "واحَد",
+    "spoken": "واحَدْ",
     "transliteration": "wāḥad",
-    "sourceHash": "084d7cb47bf4bf05",
-    "bytes": 11852,
-    "generatedAt": "2026-08-08T21:33:24.743Z"
+    "sourceHash": "a9375e0e04a5d540",
+    "bytes": 15596,
+    "generatedAt": "2026-08-11T13:54:07.299Z"
   },
   "ar/counting-and-numbers__one-to-ten__seven_neutral": {
     "path": "assets/audio/ar/counting-and-numbers__one-to-ten__seven_neutral.mp3",
@@ -268,6 +268,20 @@ export const AUDIO_CLIPS: Record<string, AudioClipRecord> = {
     "sourceHash": "fef0d52fc91e915b",
     "bytes": 8972,
     "generatedAt": "2026-08-11T11:22:04.101Z"
+  },
+  "ar/counting-and-numbers__one-to-ten__six_neutral": {
+    "path": "assets/audio/ar/counting-and-numbers__one-to-ten__six_neutral.mp3",
+    "language": "arabic",
+    "form": "neutral",
+    "provider": "gemini",
+    "voice": "gemini-2.5-flash-preview-tts/Kore/f1fb7f6a",
+    "english": "six",
+    "text": "ستّة",
+    "spoken": "سِتِّه",
+    "transliteration": "sitte",
+    "sourceHash": "380a300ba6814f5b",
+    "bytes": 11852,
+    "generatedAt": "2026-08-11T13:54:29.069Z"
   },
   "ar/counting-and-numbers__one-to-ten__ten_neutral": {
     "path": "assets/audio/ar/counting-and-numbers__one-to-ten__ten_neutral.mp3",
