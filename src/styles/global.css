@@ -354,7 +354,7 @@ input, select, textarea {
  * back to plain text apart from a hairline underline, so a line of them still
  * reads as one romanised phrase rather than a row of controls.
  */
-.translit-word {
+.tip-trigger {
   position: relative;
   font: inherit;
   color: inherit;
@@ -364,6 +364,9 @@ input, select, textarea {
   padding: 0;
   margin: 0;
   cursor: help;
+}
+
+.translit-word {
   text-decoration: underline dotted;
   text-decoration-color: color-mix(in srgb, currentColor 32%, transparent);
   text-underline-offset: 3px;
@@ -377,19 +380,52 @@ input, select, textarea {
 }
 
 /*
- * The meaning itself: a chip of dark stone against the word.
+ * The (i) beside a letter's name, holding the prose that used to sit on the
+ * card face. A mark rather than a sentence, so the face keeps to the answer —
+ * the name and the reading — and the paragraph waits to be asked for.
  *
- * Fixed and drawn into the body, because the cards scroll and clip their own
- * contents and a gloss cut in half by the card it explains would be worse than
- * none. `Transliteration` sets `left` and `top` once it has measured both the
- * word and this; everything here is the look, not the placement.
+ * The padding-and-negative-margin pair grows the tap target without growing
+ * the mark: the visible circle stays a caption-sized detail while the finger
+ * gets something closer to the 24px WCAG 2.5.8 floor to land on.
  */
-.translit-gloss {
+.info-tip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  color: var(--ink-dim);
+  padding: 5px;
+  margin: -5px -5px -5px -1px;
+}
+
+.info-tip .ico {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.info-tip:hover,
+.info-tip:focus-visible,
+.info-tip.showing {
+  color: var(--card-ink);
+}
+
+/*
+ * The tip itself: a chip of dark stone against the thing it explains — the
+ * meaning of a romanised word, or the note behind a letter's (i).
+ *
+ * Fixed and drawn into the body, because the cards clip their own contents and
+ * a tip cut in half by the card it explains would be worse than none. `Tip`
+ * sets `left` and `top` once it has measured both the trigger and this;
+ * everything here is the look, not the placement.
+ */
+.tip-bubble {
   position: fixed;
   transform: translateX(-50%);
   z-index: 40;
   width: max-content;
-  max-width: 210px;
+  /* Roomy enough for a letter note that runs to a sentence or two; a one-word
+     gloss still shrinks to fit itself. */
+  max-width: 250px;
   padding: 6px 9px;
   border-radius: var(--radius-sm);
   background: var(--tip-stone);
@@ -407,6 +443,16 @@ input, select, textarea {
   /* The word underneath owns the pointer: a gloss that could be hovered would
      keep itself open under a mouse that has already moved on. */
   pointer-events: none;
+}
+
+/* One thought per line inside a tip that carries more than one — a letter's
+   sound and then its Levantine drift — read as two sentences, not one run-on. */
+.tip-line {
+  display: block;
+}
+
+.tip-line + .tip-line {
+  margin-top: 4px;
 }
 
 /*
@@ -1365,6 +1411,36 @@ a.btn-primary:visited {
 .screen.study .answer-block {
   padding-top: calc(clamp(4px, 0.9vh, 7px) * var(--fit));
   gap: calc(3px * var(--fit));
+}
+
+/*
+ * The three-band practice card: Hebrew above the English, Arabic below it, the
+ * same axis every card in Review already reads on. The English was at the head
+ * with both scripts stacked under it, which made the second one an afterthought
+ * of the first; with the meaning in the middle each script has the English
+ * directly against it and neither is the one further away.
+ *
+ * The engraved rules either side of the prompt are the separation now, so the
+ * blocks give up the hairline they used to draw on their own top edge — under
+ * the rule above the Hebrew it drew a second line, and below the Arabic's rule
+ * it drew one line directly under another.
+ */
+.screen.study .card.banded .answer-block {
+  border-top: none;
+}
+
+/* The block above the English pads its lower edge instead of its upper one, so
+   the two scripts stand off the word by the same distance. */
+.screen.study .card.banded .answer-block.above {
+  padding-top: 0;
+  padding-bottom: calc(clamp(4px, 0.9vh, 7px) * var(--fit));
+}
+
+/* The prompt is the middle of the card, and a middle needs room on both sides
+   of it to read as one. At the head of the card it needed none; held between
+   two rules it looked wedged rather than framed. */
+.screen.study .card.banded .card-prompt {
+  padding-block: calc(clamp(6px, 1.6vh, 13px) * var(--fit));
 }
 
 /* The floor is where a pointed script is still read rather than decoded; the

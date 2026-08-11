@@ -31,6 +31,7 @@ export type IconName =
   | 'stylus'
   // controls
   | 'speaker'
+  | 'info'
   | 'lock'
   | 'check'
   | 'plus'
@@ -142,6 +143,13 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <path d="M4 9.2h3.2L12 5.2v13.6l-4.8-4H4z" />
       <path d="M15.6 9.4a4 4 0 0 1 0 5.2M18.2 7.2a7.5 7.5 0 0 1 0 9.6" />
+    </>
+  ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="8.6" />
+      <path d="M12 11v5.4" />
+      <path d="M12 7.4h.01" />
     </>
   ),
   lock: (

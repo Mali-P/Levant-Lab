@@ -11,6 +11,8 @@ import { handwrittenOf, printFormOf } from '../../features/alphabet/forms';
 import { useFitToBox } from '../../hooks/useFitToBox';
 import LetterGlyph from '../alphabet/LetterGlyph';
 import LetterSpeaker from '../alphabet/LetterSpeaker';
+import Tip from '../controls/Tip';
+import Icon from '../ornament/Icon';
 import { EngravedDivider } from '../ornament/Ornament';
 
 export type LetterReviewCardProps = {
@@ -136,23 +138,33 @@ export default function LetterReviewCard(props: LetterReviewCardProps) {
 
         {/* Everything that *answers* the shape waits on the back — the name,
             the reading, the note — so the front is the letterform and its
-            language and nothing else. */}
+            language and nothing else. The prose about the letter waits one
+            step further, behind the (i): the face keeps to the answer, and
+            the explanation appears only when it is asked for. */}
         {flipped && (
           <>
             <div className="letter-review-name">
               <strong className="english">{letter.nameEnglish}</strong>
               {props.showTransliteration && (
                 <span className="translit"> {letter.transliteration}</span>
-              )}
+              )}{' '}
+              <Tip
+                className="info-tip"
+                label={'About ' + letter.nameEnglish}
+                content={
+                  <>
+                    <span className="tip-line">{letter.commonSound}</span>
+                    {/* The Levantine reading, where the textbook one would
+                        mislead. Hebrew letters carry no such note. */}
+                    {'levantineNote' in letter && letter.levantineNote && (
+                      <span className="tip-line">{letter.levantineNote}</span>
+                    )}
+                  </>
+                }
+              >
+                <Icon name="info" />
+              </Tip>
             </div>
-
-            <div className="small muted">{letter.commonSound}</div>
-
-            {/* The Levantine reading, where the textbook one would mislead.
-                Hebrew letters carry no such note. */}
-            {'levantineNote' in letter && letter.levantineNote && (
-              <div className="small muted">{letter.levantineNote}</div>
-            )}
 
             {place === 'below' && speaker}
           </>
@@ -266,41 +278,56 @@ export default function LetterReviewCard(props: LetterReviewCardProps) {
             and each letter's name underneath its own shape. */}
         {above.map((half) => renderHalf(half, 'above'))}
 
-        {/* A rule on each side of the middle band on both faces — they are what
-            make the sound the centre of the card rather than its heading, and a
-            rule that appeared on the flip would be the frame moving when only
-            the answer should have. Each is drawn only where there is a block on
-            its far side to divide from. */}
-        {above.length > 0 && <EngravedDivider tone="card" />}
+        {/* A rule on each side of the middle band — they are what make the
+            sound the centre of the card rather than its heading. The front
+            carries no band, so the pair closes to the single rule dividing the
+            two letterforms, and neither face ends on a hanging one: each is
+            drawn only where there is something on its far side to divide from. */}
+        {above.length > 0 && (flipped || below.length > 0) && (
+          <EngravedDivider tone="card" />
+        )}
 
         {/*
-          The middle band: the sound on the back, the instruction to say it on
-          the front. The same slot either way, so the answer arrives where the
-          learner was already looking rather than shunting the shapes apart.
+          The middle band, and the answer itself: the sound the letterforms
+          share. The front asks with the shapes alone — no instruction under
+          them, because a learner turning cards over needs telling once, not on
+          every card in the run.
         */}
-        <div className="card-prompt">
-          {flipped ? (
-            <>
+        {flipped && (
+          <div className="card-prompt">
+            <h2 className="word english">
               {/* Where both scripts are on the card this is the reading they
                   share; where one is, it is that letter's own. */}
-              <h2 className="word english">{entry.sound}</h2>
-              <span className="small muted">{entry.description}</span>
-            </>
-          ) : (
-            <p className="memorise-hint small muted">
-              {halves.length === 1
-                ? 'Say the sound it makes, then tap'
-                : 'Say the sound they share, then tap'}
-            </p>
-          )}
-        </div>
-
-        {below.length > 0 && <EngravedDivider tone="card" />}
-        {below.map((half) => renderHalf(half, 'below'))}
-
-        {flipped && entry.note && (
-          <p className="small muted pair-note">{entry.note}</p>
+              {entry.sound}
+              {/* The sound in words, and where the two scripts have drifted
+                  apart — a paragraph's worth, behind the (i). A single-script
+                  card carries no mark here: its description is the letter's
+                  own sound, already behind the letter's (i) below. */}
+              {halves.length === 2 && (
+                <>
+                  {' '}
+                  <Tip
+                    className="info-tip"
+                    label={'About the sound ' + entry.sound}
+                    content={
+                      <>
+                        <span className="tip-line">{entry.description}</span>
+                        {entry.note && (
+                          <span className="tip-line">{entry.note}</span>
+                        )}
+                      </>
+                    }
+                  >
+                    <Icon name="info" />
+                  </Tip>
+                </>
+              )}
+            </h2>
+          </div>
         )}
+
+        {flipped && below.length > 0 && <EngravedDivider tone="card" />}
+        {below.map((half) => renderHalf(half, 'below'))}
       </motion.article>
     </div>
   );

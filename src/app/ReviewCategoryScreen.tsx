@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { gateDecks } from '../features/review/unlock';
@@ -23,6 +23,7 @@ import { LevantMotif } from '../components/ornament/Ornament';
  */
 export default function ReviewCategoryScreen() {
   const { categoryId = '' } = useParams();
+  const navigate = useNavigate();
 
   const settings = useSettings((s) => s.settings);
   const update = useSettings((s) => s.update);
@@ -46,17 +47,28 @@ export default function ReviewCategoryScreen() {
     void update({ memoriseDeckIds: next });
   }
 
+  // Up a level, not back a step. A deck's own arrow lands here by navigating
+  // rather than by popping history, so the entry behind this screen is usually
+  // the deck itself — navigate(-1) would hand the learner straight back to the
+  // card she just left. The arrow means "out to the categories", so it says so.
+  const toBrowse = () => navigate('/memorise');
+
   if (!category) {
     return (
       <div className="screen">
-        <ScreenHeader title="Category not found" back />
+        <ScreenHeader title="Category not found" back onBack={toBrowse} />
       </div>
     );
   }
 
   return (
     <div className="screen">
-      <ScreenHeader title={category.name} eyebrow="Review" back />
+      <ScreenHeader
+        title={category.name}
+        eyebrow="Review"
+        back
+        onBack={toBrowse}
+      />
 
       {gates.length === 0 && (
         <div className="empty">

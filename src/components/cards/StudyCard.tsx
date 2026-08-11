@@ -13,6 +13,7 @@ import { wordForms, type WordForm } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
 import Transliteration from './Transliteration';
 import Icon from '../ornament/Icon';
+import { EngravedDivider } from '../ornament/Ornament';
 
 export type StudyCardProps = {
   card: Flashcard;
@@ -144,6 +145,146 @@ export default function StudyCard(props: StudyCardProps) {
         ? ' word-long'
         : '';
 
+  /*
+   * The same axis as the reading cards: Hebrew above the English, Arabic below
+   * it. An English prompt is the meaning, and the meaning is the middle of
+   * every card in this app — stacked under one head, the second script read as
+   * an afterthought of the first. A script or audio prompt stays at the head of
+   * the card instead, because there the prompt is the question rather than the
+   * meaning, and a question belongs before its answers.
+   */
+  const split = plan.promptLanguage === 'english' && !plan.audio;
+  const aboveFields = split
+    ? plan.fields.filter((field) => field.scores === 'hebrew')
+    : [];
+  const belowFields = split
+    ? plan.fields.filter((field) => field.scores !== 'hebrew')
+    : plan.fields;
+
+  /* One language's block: label, answer — typed or revealed — romanisation,
+     play. `place` is spacing, not meaning: the block above an English prompt
+     closes with a rule at its foot rather than opening with one at its head,
+     so the two scripts stand off the meaning by the same distance. */
+  const renderField = (
+    field: (typeof plan.fields)[number],
+    place?: 'above',
+  ) => {
+    // The reveal shows the language being asked for; the transliteration
+    // line stays tied to the scored language, so an English answer field
+    // still hints at the word it is standing in for.
+    const answerSide = field.input === 'hebrew' ? card.hebrew : card.arabic;
+    const revealForms: WordForm[] =
+      field.input === 'english'
+        ? [{ script: sentenceCase(card.english), key: 'only' }]
+        : wordForms(answerSide, props.perspectives, props.lead);
+    const translitForms = wordForms(
+      field.scores === 'hebrew' ? card.hebrew : card.arabic,
+      props.perspectives,
+      props.lead,
+    );
+
+    return (
+      <div
+        className={'answer-block' + (place === 'above' ? ' above' : '')}
+        key={field.scores}
+      >
+        <div
+          className={
+            'lang-label ' +
+            (field.scores === 'hebrew' ? 'hebrew-label' : 'arabic-label')
+          }
+        >
+          <span>{field.label}</span>
+        </div>
+
+        {typed ? (
+          <input
+            ref={field === plan.fields[0] ? firstField : undefined}
+            className={
+              'answer-input ' +
+              (field.input === 'english' ? 'english' : field.input) +
+              (field.input === 'arabic' ? ' arabic-input' : '')
+            }
+            value={values[field.scores]}
+            onChange={(e) => props.onChange(field.scores, e.target.value)}
+            dir={field.input === 'english' ? 'ltr' : 'rtl'}
+            lang={field.input === 'english' ? 'en' : field.input === 'hebrew' ? 'he' : 'ar'}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-label={field.label + ' answer'}
+          />
+        ) : (
+          <div
+            className={
+              'answer-reveal ' +
+              (field.input === 'english' ? 'english' : field.input)
+            }
+            aria-live="polite"
+          >
+            {revealed
+              ? revealForms.map((form) => (
+                  <div className="form-line" key={form.key}>
+                    {form.marker && (
+                      <span className="form-marker" aria-label={form.label}>
+                        {form.marker}
+                      </span>
+                    )}
+                    <span>{form.script}</span>
+                  </div>
+                ))
+              : '• • •'}
+          </div>
+        )}
+
+        {revealed && props.showTransliteration && (
+          // One element per form rather than one joined string, so every
+          // word stays its own thing to hover. They sit on one line while
+          // they fit and wrap onto a second when they do not.
+          <div className="translit-lines">
+            {translitForms
+              .filter((form) => form.transliteration)
+              .map((form) => (
+                <span className="translit-line" key={form.key}>
+                  {form.marker && (
+                    <span className="form-marker" aria-label={form.label}>
+                      {form.marker}
+                    </span>
+                  )}
+                  <Transliteration
+                    text={form.transliteration!}
+                    language={field.scores}
+                  />
+                </span>
+              ))}
+          </div>
+        )}
+
+        {/*
+          The last line of the block, under the word and its romanisation
+          rather than between the label and the answer. A control sitting
+          above the thing it plays cut the block in two and pushed the
+          script off the middle of the card; at the foot it closes the block
+          instead, and the reading runs label, word, romanisation, play.
+
+          One button per form, so a gendered word can be heard both ways
+          rather than only in its headline form.
+        */}
+        {field.input !== 'english' && (
+          <div className="speaker-row answer-speakers">
+            {translitForms.map((form) => (
+              <SpeakerButton
+                key={form.key}
+                form={form}
+                language={field.scores}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="card-stage">
       <div className="card-shadow deep" aria-hidden="true" />
@@ -151,7 +292,13 @@ export default function StudyCard(props: StudyCardProps) {
 
       <motion.article
         ref={face}
-        className={'card' + (tapToReveal ? ' tappable' : '')}
+        className={
+          'card' +
+          (tapToReveal ? ' tappable' : '') +
+          // The three-band face: the engraved rules either side of the prompt
+          // are the separation, so the blocks give up their own hairlines.
+          (split ? ' banded' : '')
+        }
         style={{ x, y, rotate }}
         /*
          * Both axes throughout. Dragging on both makes framer set
@@ -200,6 +347,13 @@ export default function StudyCard(props: StudyCardProps) {
           </motion.span>
         )}
 
+        {aboveFields.length > 0 && (
+          <>
+            {aboveFields.map((field) => renderField(field, 'above'))}
+            <EngravedDivider tone="card" />
+          </>
+        )}
+
         <div className="card-prompt">
           {plan.audio ? (
             <button
@@ -234,119 +388,11 @@ export default function StudyCard(props: StudyCardProps) {
           )}
         </div>
 
-        {plan.fields.map((field) => {
-          // The reveal shows the language being asked for; the transliteration
-          // line stays tied to the scored language, so an English answer field
-          // still hints at the word it is standing in for.
-          const answerSide = field.input === 'hebrew' ? card.hebrew : card.arabic;
-          const revealForms: WordForm[] =
-            field.input === 'english'
-              ? [{ script: sentenceCase(card.english), key: 'only' }]
-              : wordForms(answerSide, props.perspectives, props.lead);
-          const translitForms = wordForms(
-            field.scores === 'hebrew' ? card.hebrew : card.arabic,
-            props.perspectives,
-            props.lead,
-          );
-
-          return (
-          <div className="answer-block" key={field.scores}>
-            <div
-              className={
-                'lang-label ' +
-                (field.scores === 'hebrew' ? 'hebrew-label' : 'arabic-label')
-              }
-            >
-              <span>{field.label}</span>
-            </div>
-
-            {typed ? (
-              <input
-                ref={field === plan.fields[0] ? firstField : undefined}
-                className={
-                  'answer-input ' +
-                  (field.input === 'english' ? 'english' : field.input) +
-                  (field.input === 'arabic' ? ' arabic-input' : '')
-                }
-                value={values[field.scores]}
-                onChange={(e) => props.onChange(field.scores, e.target.value)}
-                dir={field.input === 'english' ? 'ltr' : 'rtl'}
-                lang={field.input === 'english' ? 'en' : field.input === 'hebrew' ? 'he' : 'ar'}
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
-                aria-label={field.label + ' answer'}
-              />
-            ) : (
-              <div
-                className={
-                  'answer-reveal ' +
-                  (field.input === 'english' ? 'english' : field.input)
-                }
-                aria-live="polite"
-              >
-                {revealed
-                  ? revealForms.map((form) => (
-                      <div className="form-line" key={form.key}>
-                        {form.marker && (
-                          <span className="form-marker" aria-label={form.label}>
-                            {form.marker}
-                          </span>
-                        )}
-                        <span>{form.script}</span>
-                      </div>
-                    ))
-                  : '• • •'}
-              </div>
-            )}
-
-            {revealed && props.showTransliteration && (
-              // One element per form rather than one joined string, so every
-              // word stays its own thing to hover. They sit on one line while
-              // they fit and wrap onto a second when they do not.
-              <div className="translit-lines">
-                {translitForms
-                  .filter((form) => form.transliteration)
-                  .map((form) => (
-                    <span className="translit-line" key={form.key}>
-                      {form.marker && (
-                        <span className="form-marker" aria-label={form.label}>
-                          {form.marker}
-                        </span>
-                      )}
-                      <Transliteration
-                        text={form.transliteration!}
-                        language={field.scores}
-                      />
-                    </span>
-                  ))}
-              </div>
-            )}
-
-            {/*
-              The last line of the block, under the word and its romanisation
-              rather than between the label and the answer. A control sitting
-              above the thing it plays cut the block in two and pushed the
-              script off the middle of the card; at the foot it closes the block
-              instead, and the reading runs label, word, romanisation, play.
-
-              One button per form, so a gendered word can be heard both ways
-              rather than only in its headline form.
-            */}
-            {field.input !== 'english' && (
-              <div className="speaker-row answer-speakers">
-                {translitForms.map((form) => (
-                  <SpeakerButton
-                    key={form.key}
-                    form={form}
-                    language={field.scores}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-          );
-        })}
+        {/* Each rule is drawn only where there is a block on its far side to
+            divide from, so a run with one language switched off ends at the
+            English rather than on a hanging line. */}
+        {split && belowFields.length > 0 && <EngravedDivider tone="card" />}
+        {belowFields.map((field) => renderField(field))}
       </motion.article>
     </div>
   );
