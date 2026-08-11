@@ -11,6 +11,8 @@ import { handwrittenOf, printFormOf } from '../../features/alphabet/forms';
 import { useFitToBox } from '../../hooks/useFitToBox';
 import LetterGlyph from './LetterGlyph';
 import LetterSpeaker from './LetterSpeaker';
+import Tip from '../controls/Tip';
+import Icon from '../ornament/Icon';
 import { EngravedDivider } from '../ornament/Ornament';
 
 export type LetterCardProps = {
@@ -159,9 +161,9 @@ export default function LetterCard(props: LetterCardProps) {
 
         {/* Shape and name as one mark, on the outside where they can be stared
             at: a learner who memorises ל and then reads "lamed" off the back
-            has learned two things separately. Everything that explains the name
-            — how it is written in Latin letters, what it sounds like, a word
-            that uses it — waits inside. */}
+            has learned two things separately. What explains the name — how it
+            sounds, a word that uses it — waits inside, and the prose one step
+            further behind the (i). */}
         <div className="card-prompt">
           {props.showTransliteration && (
             <div className="sound-hint">{letter.transliteration}</div>
@@ -173,23 +175,45 @@ export default function LetterCard(props: LetterCardProps) {
             display={props.display}
             size="lg"
           />
-          <h2 className="word english letter-card-name">{letter.nameEnglish}</h2>
+          <h2 className="word english letter-card-name">
+            {letter.nameEnglish}
+            {/* How the letter is sounded, and how the Levant actually says it,
+                behind the (i) rather than set out under the name. The mark
+                arrives with the flip: it is part of what the card is holding
+                back, and on the front it would answer a card that has not been
+                turned over yet. */}
+            {flipped && (
+              <>
+                {' '}
+                <Tip
+                  className="info-tip"
+                  label={'About ' + letter.nameEnglish}
+                  content={
+                    <>
+                      <span className="tip-line">{letter.commonSound}</span>
+                      {/* The Levantine reading, where the textbook one would
+                          mislead. Hebrew letters carry no such note. */}
+                      {!hebrew && letter.levantineNote && (
+                        <span className="tip-line">{letter.levantineNote}</span>
+                      )}
+                    </>
+                  }
+                >
+                  <Icon name="info" />
+                </Tip>
+              </>
+            )}
+          </h2>
         </div>
 
         <EngravedDivider tone="card" tight={flipped} />
 
         {flipped ? (
           <div className="answer-block">
-            {/* The romanisation is on the face now, above the letter, so the
-                back explains the sound rather than restating it. */}
-            <div className="small muted">{letter.commonSound}</div>
-
-            {/* The Levantine reading, where the textbook one would mislead. It
-                belongs on the face of the card, not in a note underneath it. */}
-            {!hebrew && letter.levantineNote && (
-              <div className="small muted">{letter.levantineNote}</div>
-            )}
-
+            {/* The romanisation is on the face, above the letter, and the prose
+                about the sound is behind the (i) beside the name. What the back
+                is left with is the thing prose cannot do: the letter at work in
+                a word, and the sound of it. */}
             {example && (
               <div className="letter-card-example">
                 <span className={script} dir="rtl">

@@ -6,6 +6,9 @@ import { handwrittenOf, printFormOf } from '../../features/alphabet/forms';
 import { useFitToBox } from '../../hooks/useFitToBox';
 import LetterGlyph from './LetterGlyph';
 import LetterSpeaker from './LetterSpeaker';
+import Tip from '../controls/Tip';
+import Icon from '../ornament/Icon';
+import { EngravedDivider } from '../ornament/Ornament';
 
 type Props = {
   pair: LetterPair;
@@ -29,12 +32,12 @@ const SWIPE_VELOCITY = 480;
 /**
  * One sound, written twice — the study card, with letters where the words go.
  *
- * The front asks in the scripts themselves — ב beside ب, as large as the face
- * allows — and the back answers with the sound, the two names and where the
- * readings have drifted. That is the whole argument for the Both module: a
- * learner who meets ב and ب on separate screens learns two unrelated shapes,
- * and a learner who meets them side by side on one card learns that they are
- * the same letter wearing different clothes.
+ * The front asks in the scripts themselves — ב above ب, one rule between them —
+ * and the back answers with the two names, the prose about them a press away
+ * behind an (i). That is the whole argument for the Both module: a learner who
+ * meets ב and ب on separate screens learns two unrelated shapes, and a learner
+ * who meets them on one card learns that they are the same letter wearing
+ * different clothes.
  *
  * The letterforms stay on the face when the card is turned over, because the
  * answer is about them; only the words underneath change.
@@ -92,6 +95,113 @@ export default function PairCard(props: Props) {
   if (hebrew) halves.push({ script: 'hebrew', letter: hebrew });
   if (arabic) halves.push({ script: 'arabic', letter: arabic });
 
+  /*
+   * Hebrew above the rule, Arabic below it.
+   *
+   * The two letterforms used to sit side by side, on the argument that ב and ب
+   * read as one fact when they share a line. On a phone they did not: two
+   * columns of Semitic script left each shape half a card wide, so the letters
+   * — the one thing this card exists to teach — were the smallest they are
+   * anywhere in the app, and the answers underneath were stacked anyway, which
+   * asked the learner to read across the question and down the answer. Stacked,
+   * each shape has the width of the card to itself.
+   *
+   * A pair with only one script keeps its own side, Arabic below rather than
+   * moved to the top because Hebrew is absent.
+   */
+  const above = halves.filter(({ script }) => script === 'hebrew');
+  const below = halves.filter(({ script }) => script !== 'hebrew');
+
+  /*
+   * `place` is spacing, not meaning: the block below the rule pads its upper
+   * edge, the block above it pads its lower one, so the two letterforms stand
+   * off it by the same distance.
+   */
+  const renderHalf = (
+    { script, letter }: (typeof halves)[number],
+    place: 'above' | 'below',
+  ) => {
+    /* Inside a draggable card that reveals on tap, so neither the press nor the
+       click may reach it. */
+    const speaker = (
+      <span
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <LetterSpeaker
+          script={script}
+          entryKind="letter"
+          entryId={letter.id}
+          clipKind="name"
+          fallbackText={letter.nameSpokenText}
+          label={'Hear ' + letter.nameEnglish}
+        />
+      </span>
+    );
+
+    return (
+      <div className={'answer-block ' + place} key={script}>
+        <div className={'lang-label ' + script + '-label'}>
+          <span>{script === 'hebrew' ? 'Hebrew' : 'Arabic'}</span>
+        </div>
+
+        <div className="letter-half">
+          {/* The button beside the letterform rather than at the block's outer
+              edge. The two used to mirror each other around the sound in the
+              middle of the card; with the sound gone there is nothing to mirror
+              around, and a button on its own above the Hebrew label read as the
+              card's control rather than that letter's. Here it is unmistakably
+              the shape's own — press it and hear this letter. */}
+          <div className={'letter-glyph-row' + (revealed ? ' with-speaker' : '')}>
+            <LetterGlyph
+              script={script}
+              print={printFormOf(letter)}
+              handwritten={handwrittenOf(letter)}
+              display={props.display}
+              size="lg"
+            />
+
+            {revealed && speaker}
+          </div>
+
+          {/* The name is the answer, so it arrives with the reveal; how the
+              letter is sounded, and how the Levant actually says it, wait one
+              step further behind the (i). */}
+          {revealed && (
+            <div className="letter-half-name">
+              <strong className="english">{letter.nameEnglish}</strong>
+              {props.showTransliteration && (
+                <span className="translit"> {letter.transliteration}</span>
+              )}{' '}
+              <Tip
+                className="info-tip"
+                label={'About ' + letter.nameEnglish}
+                content={
+                  <>
+                    <span className="tip-line">{letter.commonSound}</span>
+                    {/* The Levantine reading, where the textbook one would
+                        mislead. Hebrew letters carry no such note. */}
+                    {'levantineNote' in letter && letter.levantineNote && (
+                      <span className="tip-line">{letter.levantineNote}</span>
+                    )}
+                    {/* Where the two have drifted apart, or what an Arabic-only
+                        letter branched off. It was behind the sound's own (i)
+                        while there was a sound in the middle; with the middle
+                        gone it belongs to both letters, so both marks carry it
+                        and either one answers the question it settles. */}
+                    {pair.note && <span className="tip-line">{pair.note}</span>}
+                  </>
+                }
+              >
+                <Icon name="info" />
+              </Tip>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="card-stage">
       <div className="card-shadow deep" aria-hidden="true" />
@@ -136,83 +246,25 @@ export default function PairCard(props: Props) {
           Correct
         </motion.span>
 
-        {/* The question, and it stays put: the shared sound, then both
-            letterforms side by side and as large as the face will allow. The
-            sound sits with the letters rather than at the top of the card, so
-            it holds them together as one letter instead of floating away from
-            them; the description and the two names wait inside. */}
-        <div className="card-prompt pair-prompt-block">
-          <div className="sound-hint">{pair.sound}</div>
+        {/* The letterforms stay put when the card is turned over: the answer is
+            about these shapes, so they have to be under the learner's eye while
+            she reads it. What the reveal adds is each letter's name under its
+            own shape, and the prose behind the marks. */}
+        {above.map((half) => renderHalf(half, 'above'))}
 
-          <div className="pair-prompt">
-            {halves.map(({ script, letter }) => (
-              <div className="pair-prompt-half" key={script}>
-                <LetterGlyph
-                  script={script}
-                  print={printFormOf(letter)}
-                  handwritten={handwrittenOf(letter)}
-                  display={props.display}
-                  size="lg"
-                />
-                <span className="eyebrow">
-                  {script === 'hebrew' ? 'Hebrew' : 'Arabic'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* One rule between the two scripts, and nothing on it.
 
-        {revealed ? (
-          <div className="answer-block pair-answers">
-            {/* The sound itself is already on the face, above the letters, so
-                the back opens with what it is rather than repeating it. */}
-            <div className="pair-sound">
-              <span className="small muted">{pair.description}</span>
-            </div>
+            The sound they share used to be set here, between a pair of rules,
+            as the middle band the word cards read on. On those cards the middle
+            is the English — the one thing the two scripts have in common that
+            neither of them says. Here it was neither: each letter's own reading
+            is already under its own shape, so "w / o / u" in the middle was the
+            two halves' answer stated a third time, and it cost the letterforms
+            the height it took. What the rule has to do is separate them, which
+            it does on its own. */}
+        {above.length > 0 && below.length > 0 && <EngravedDivider tone="card" />}
 
-            {halves.map(({ script, letter }) => (
-              <div className="pair-half" key={script}>
-                <div className={'lang-label ' + script + '-label'}>
-                  <span>{script === 'hebrew' ? 'Hebrew' : 'Arabic'}</span>
-                  {/* Inside a draggable card, so the press must not be read as
-                      the start of a swipe. */}
-                  <span onPointerDown={(event) => event.stopPropagation()}>
-                    <LetterSpeaker
-                      script={script}
-                      entryKind="letter"
-                      entryId={letter.id}
-                      clipKind="name"
-                      fallbackText={letter.nameSpokenText}
-                      label={'Hear ' + letter.nameEnglish}
-                    />
-                  </span>
-                </div>
-
-                <div className="pair-half-body">
-                  <span className="grow">
-                    <strong className="english">{letter.nameEnglish}</strong>
-                    {props.showTransliteration && (
-                      <span className="translit"> {letter.transliteration}</span>
-                    )}
-                    <div className="small muted">{letter.commonSound}</div>
-                  </span>
-                </div>
-              </div>
-            ))}
-
-            {/* Where the two have drifted apart, or what an Arabic-only letter
-                branched off. It belongs on the face of the card: a learner
-                reading ט against ط needs to know now, not later, that only one
-                of them is still emphatic. */}
-            {pair.note && <p className="small muted pair-note">{pair.note}</p>}
-          </div>
-        ) : (
-          <p className="memorise-hint small muted">
-            {halves.length === 1
-              ? 'Name the letter and its sound, then tap'
-              : 'Name both letters and the sound they share, then tap'}
-          </p>
-        )}
+        {below.map((half) => renderHalf(half, 'below'))}
       </motion.article>
     </div>
   );

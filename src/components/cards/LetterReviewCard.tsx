@@ -127,7 +127,7 @@ export default function LetterReviewCard(props: LetterReviewCardProps) {
         <span>{SCRIPT_LABEL[script]}</span>
       </div>
 
-      <div className="letter-review-half">
+      <div className="letter-half">
         <LetterGlyph
           script={script}
           print={printFormOf(letter)}
@@ -143,7 +143,7 @@ export default function LetterReviewCard(props: LetterReviewCardProps) {
             the explanation appears only when it is asked for. */}
         {flipped && (
           <>
-            <div className="letter-review-name">
+            <div className="letter-half-name">
               <strong className="english">{letter.nameEnglish}</strong>
               {props.showTransliteration && (
                 <span className="translit"> {letter.transliteration}</span>

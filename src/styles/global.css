@@ -1734,21 +1734,10 @@ a.btn-primary:visited {
   opacity: 0.72;
 }
 
-/* The front holds the two letterforms. Centring them turns the room the card
-   must reserve for its back into a frame rather than a gap under the prompt —
-   the same rule the Memorise card follows. */
-/* The same anchoring the memorise tablet uses: the eyebrow at the head of the
-   card, everything under it centred in what is left, on both faces. */
+/* Three bands centred as one group, so the room the card must hold in reserve
+   for its answer is a frame around the question rather than a gap under it. */
 .screen.study .pair-card {
-  justify-content: flex-start;
-}
-
-.screen.study .pair-card .card-prompt {
-  margin-top: auto;
-}
-
-.screen.study .pair-card > :last-child {
-  margin-bottom: auto;
+  justify-content: center;
 }
 
 /* Small against the letterforms, but a line to be read rather than a caption:
@@ -1764,98 +1753,6 @@ a.btn-primary:visited {
   padding-bottom: calc(8px * var(--fit));
 }
 
-/* The sound and the two letters travel as one block, so the block is what the
-   card centres rather than the letters alone. */
-.pair-prompt-block {
-  align-self: stretch;
-}
-
-/* Side by side, because the pairing is the lesson: ב and ب read as one fact
-   when they share a line and as two when they are stacked. Wrapping is the
-   safety valve: in handwritten mode each half carries two forms, and a row that
-   cannot fit is better broken than clipped. */
-.pair-prompt {
-  display: flex;
-  width: 100%;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-  /* Horizontal air is not the fit's to take: the card shrinks its type to make
-     room vertically, and letting it also pull the two scripts together would
-     undo the one thing this layout is for. */
-  gap: clamp(24px, 10vw, 64px);
-}
-
-/*
- * Each script gets half the row, whatever its letter is shaped like.
- *
- * ا and و are narrow and ش and מ are wide, so centring the pair as a group sets
- * two letters that happen to be thin almost touching. An even column each keeps
- * the gap the same on every card in the deck, which is what makes the two
- * columns read as two alphabets rather than as one crowded word.
- */
-.pair-prompt-half {
-  display: flex;
-  flex: 1 1 0;
-  min-width: 0;
-  flex-direction: column;
-  align-items: center;
-  gap: calc(4px * var(--fit));
-  padding: 0 clamp(4px, 2vw, 12px);
-}
-
-/* The letterforms are the card, so they are set at the size a shape has to be
-   to be remembered rather than merely identified — several times the study
-   screen's own prompt, which this has to outrank by name to escape. The fit
-   shrinks them when the back of the card needs the room, and the row wraps
-   before it would ever push a glyph off the edge. */
-.screen.study .pair-card .card-prompt .glyph {
-  font-size: calc(clamp(3.6rem, 24vw, 7rem) * var(--fit));
-}
-
-/* What the shared sound is in words, opening the back. */
-.pair-sound {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: calc(2px * var(--fit));
-  text-align: center;
-  padding-bottom: calc(4px * var(--fit));
-}
-
-/*
- * The paired card: one sound above, its two letterforms below.
- *
- * Stacked rather than in two columns. On a phone, two columns of Semitic script
- * at a legible size leaves neither of them legible, and the halves are marked
- * one at a time anyway — a learner reads down the card the same way they answer
- * it.
- */
-.pair-answers {
-  gap: calc(8px * var(--fit));
-}
-
-.pair-half {
-  display: flex;
-  flex-direction: column;
-  gap: calc(2px * var(--fit));
-  padding: calc(6px * var(--fit)) 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-}
-
-.pair-half-body {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pair-note {
-  margin: 0;
-  padding-top: calc(4px * var(--fit));
-  border-top: 1px dashed rgba(120, 96, 58, 0.28);
-}
 
 
 .letter-grid {
@@ -2555,7 +2452,10 @@ a.btn-primary:visited {
   margin-bottom: auto;
 }
 
-.screen.study .letter-review-card .answer-block {
+/* Both letter cards read on the same axis — the Review tab's and the graded
+   pair drill's — so the bands either side of the sound are shaped once here. */
+.screen.study .letter-review-card .answer-block,
+.screen.study .pair-card .answer-block {
   padding-top: calc(clamp(3px, 0.9vh, 6px) * var(--fit));
   gap: calc(2px * var(--fit));
   align-items: center;
@@ -2565,29 +2465,87 @@ a.btn-primary:visited {
   border-top: none;
 }
 
-.screen.study .letter-review-card .answer-block.above {
+.screen.study .letter-review-card .answer-block.above,
+.screen.study .pair-card .answer-block.above {
   padding-top: 0;
   padding-bottom: calc(clamp(3px, 0.9vh, 6px) * var(--fit));
 }
 
-/* The letterform, then — once turned over — its name, its reading and the
-   button that says it. One centred column, the way the word card's forms are. */
-.letter-review-half {
+/* The letterform with its play button beside it. */
+.letter-glyph-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10px * var(--fit));
+}
+
+/*
+ * A phantom of the button on the letter's other side.
+ *
+ * Without it the row centres the pair — letter *and* button — and the letter
+ * comes to rest half a button left of the card's axis, out of line with the
+ * label above it and the name below it. Balanced by an empty slot of the same
+ * width, the shape stays exactly on the axis and the button hangs off it.
+ */
+.letter-glyph-row.with-speaker::before {
+  content: '';
+  flex: none;
+  width: var(--speaker);
+}
+
+/* The letterform, then — once the answer is out — its name and its reading.
+   One centred column, the way the word card's forms are. */
+.letter-half {
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
   gap: calc(4px * var(--fit));
 }
 
 /* Large enough that the shape is remembered rather than merely identified, and
    measured against the viewport's height because height is what the card is
-   short of. `--fit` takes it down when the back needs the room. */
-.screen.study .letter-review-card .glyph-lg {
+   short of. `--fit` takes it down when the answer needs the room.
+   Keyed to the block rather than to either card, so a letter is the same size
+   wherever it is met. */
+.screen.study .letter-half .glyph-lg {
   font-size: calc(clamp(2.5rem, 8.5vh, 4rem) * var(--fit));
 }
 
-.screen.study .letter-review-card .letter-review-name {
+/*
+ * Set close under its label.
+ *
+ * A glyph carries a line and a half of leading and a band of padding either
+ * side of it, so that niqqud and harakat are never clipped by the line box —
+ * which is right everywhere a pointed word is shown, and is dead space here:
+ * these cards show the bare letterform, and the room reserved for marks it does
+ * not carry opened a gap under "Hebrew" and "Arabic" wide enough to read as a
+ * break between the label and the letter it names.
+ */
+.screen.study .letter-half .glyph {
+  line-height: 1.1;
+  padding-block: 0;
+}
+
+/*
+ * Arabic sits low in its own line box: the face carries a high baseline and a
+ * deep descent, so ح renders near the foot of the box it is given. Trimmed to
+ * the same leading as Hebrew, that put all of the block's air above the letter
+ * — a gap under the "Arabic" label wide enough to read as a break — and left
+ * the name underneath sitting against the letter's tail.
+ *
+ * So the letter is pulled up into the room it was not using and given back the
+ * room it needs below, which is what sets it the same distance off its label
+ * and its name as ח is off its own.
+ */
+.screen.study .letter-half .glyph.arabic {
+  margin-top: -0.12em;
+  padding-bottom: 0.18em;
+}
+
+.screen.study .letter-half .letter-half-name {
   font-size: calc(clamp(0.98rem, 2.2vh, 1.18rem) * var(--fit));
+  line-height: 1.35;
 }
 
 /*
