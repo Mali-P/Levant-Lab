@@ -129,6 +129,25 @@ export const CURATED_GLOSSES: Record<GlossLanguage, Record<string, string>> = {
     akhi: 'my brother',
     akhoti: 'my sister',
 
+    // --- the numbers that only count masculine nouns -------------------------
+    // "One to ten" teaches counting, which in Hebrew is the feminine column, so
+    // these are no longer single-word cards and stopped glossing themselves.
+    // They still appear inside every compound — esrim ve-shnayim — and a
+    // learner hovering one there is asking precisely why it is not the shtayim
+    // she was taught. Written out rather than left to derive from the "(with a
+    // noun)" cards, which would answer "two (with a noun)" without saying which
+    // noun, and would leave shnayim with no meaning at all.
+    ekhad: 'one — counting masculine nouns',
+    shnayim: 'two — counting masculine nouns',
+    shlosha: 'three — counting masculine nouns',
+    "arba'a": 'four — counting masculine nouns',
+    khamisha: 'five — counting masculine nouns',
+    shisha: 'six — counting masculine nouns',
+    "shiv'a": 'seven — counting masculine nouns',
+    shmona: 'eight — counting masculine nouns',
+    "tish'a": 'nine — counting masculine nouns',
+    asara: 'ten — counting masculine nouns',
+
     // --- times of day, days and the calendar --------------------------------
     boker: 'morning',
     tsohorayim: 'noon',
@@ -451,6 +470,75 @@ export const CURATED_GLOSSES: Record<GlossLanguage, Record<string, string>> = {
     titkasher: 'call (to a man)',
     titkashri: 'call (to a woman)',
     kvar: 'already — with khozeret, "right back"',
+
+    // --- telling somebody where to put themselves ----------------------------
+    // The command decks under Directions. Every ending here is the listener's,
+    // because these are things said to the person in front of you, so the pairs
+    // are tagged "(to a woman)" / "(to a man)" throughout rather than (f) / (m).
+    //
+    // Two verbs English runs together are kept apart, because Hebrew keeps them
+    // apart: tazuz moves the person spoken to, taziz moves a thing.
+    "bo'i": 'come (to a woman)',
+    bo: 'come (to a man)',
+    "tavo'i": 'come (to a woman)',
+    tavo: 'come (to a man)',
+    "ta'ali": 'go up (to a woman)',
+    "ta'ale": 'go up (to a man)',
+    terdi: 'go down (to a woman)',
+    tered: 'go down (to a man)',
+    tazuzi: 'move yourself (to a woman)',
+    tazuz: 'move yourself (to a man)',
+    tazizi: 'move something (to a woman)',
+    taziz: 'move something (to a man)',
+    "ta'asi": 'do / make (to a woman)',
+    "ta'ase": 'do / make (to a man)',
+    "tisha'ari": 'stay (to a woman)',
+    "tisha'er": 'stay (to a man)',
+    "tisha'ani": 'lean (to a woman)',
+    "tisha'en": 'lean (to a man)',
+    tistakli: 'look (to a woman)',
+    tistakel: 'look (to a man)',
+    tarimi: 'lift (to a woman)',
+    tarim: 'lift (to a man)',
+    toridi: 'lower (to a woman)',
+    torid: 'lower (to a man)',
+    titafsi: 'grab (to a woman)',
+    titpos: 'grab (to a man)',
+    tithapkhi: 'turn over (to a woman)',
+    tithapekh: 'turn over (to a man)',
+    simi: 'put (to a woman)',
+    sim: 'put (to a man)',
+    tanikhi: 'put down (to a woman)',
+    taniakh: 'put down (to a man)',
+    "tavi'i": 'bring (to a woman)',
+    tavi: 'bring (to a man)',
+    tiftekhi: 'open (to a woman)',
+    tiftakh: 'open (to a man)',
+    tisgeri: 'close (to a woman)',
+    tisgor: 'close (to a man)',
+
+    // The things, places and manner words those commands point at.
+    hayad: 'the hand / the arm',
+    haregel: 'the leg / the foot',
+    haraglayim: 'the legs / the feet',
+    hagav: 'the back',
+    hatsad: 'the side',
+    latsad: 'to the side',
+    hakarit: 'the pillow',
+    hakise: 'the chair',
+    lakatse: 'to the edge',
+    lepo: 'to here',
+    lakivun: 'towards',
+    haze: 'this (m)',
+    hasheni: 'the second — and so "the other one"',
+    akharay: 'after me',
+    "tsa'ad": 'a step',
+    zkufa: 'upright (f)',
+    zakuf: 'upright (m)',
+    bizhirut: 'carefully',
+    maspik: 'enough',
+    pakhot: 'less',
+    kol: 'all — with kakh, "so much"',
   },
 
   arabic: {
@@ -833,5 +921,84 @@ export const CURATED_GLOSSES: Record<GlossLanguage, Record<string, string>> = {
     "ʾūlīli": 'tell me (to a woman)',
     "tizʿal": 'be sad (to a man)',
     "tizʿali": 'be sad (to a woman)',
+
+    // --- telling somebody where to put themselves ----------------------------
+    // The command decks under Directions. As with the Hebrew, the ending is the
+    // listener's throughout — and Palestinian marks that listener twice over,
+    // once in the verb and again in whatever hangs off it, so "lift your head"
+    // changes in both halves: irfaʿi rāsik beside irfaʿ rāsak.
+    //
+    // tḥarrak moves the person spoken to; ḥarrik moves a thing. They are the
+    // same root, and the pair below is the only place a learner can see that.
+    "taʿāli": 'come (to a woman)',
+    "taʿāl": 'come (to a man)',
+    "tḥarraki": 'move yourself (to a woman)',
+    "tḥarrak": 'move yourself (to a man)',
+    "ḥarrki": 'move something (to a woman)',
+    "ḥarrik": 'move something (to a man)',
+    "titḥarraki": 'you move (f) — with ma, "do not move"',
+    "titḥarrak": 'you move (m) — with ma, "do not move"',
+    "ḍalli": 'stay (to a woman)',
+    "ḍall": 'stay (to a man)',
+    "zīḥi": 'shift over (to a woman)',
+    "zīḥ": 'shift over (to a man)',
+    "mīli": 'lean (to a woman)',
+    "mīl": 'lean (to a man)',
+    "inḥani": 'bend down — said the same way to anybody',
+    "ʿaddli": 'straighten (to a woman)',
+    "ʿaddil": 'straighten (to a man)',
+    "irfaʿi": 'lift (to a woman)',
+    "irfaʿ": 'lift (to a man)',
+    "nazzli": 'lower (to a woman)',
+    "nazzil": 'lower (to a man)',
+    "shīli": 'pick up (to a woman)',
+    "shīl": 'pick up (to a man)',
+    "ḥuṭṭi": 'put (to a woman)',
+    "ḥuṭṭ": 'put (to a man)',
+    "jībi": 'bring (to a woman)',
+    "jīb": 'bring (to a man)',
+    "iftaḥi": 'open (to a woman)',
+    "iftaḥ": 'open (to a man)',
+    "sakkri": 'close (to a woman)',
+    "sakkir": 'close (to a man)',
+    "iʾlibi": 'flip over (to a woman)',
+    "iʾlib": 'flip over (to a man)',
+    "aʿṭīni": 'give me',
+
+    // The body and the things the commands point at, each ending marking who
+    // is being spoken to rather than who owns it.
+    "rāsik": 'your head (to a woman)',
+    "rāsak": 'your head (to a man)',
+    "īdik": 'your hand (to a woman)',
+    "īdak": 'your hand (to a man)',
+    "īdi": 'my hand',
+    "ijrik": 'your foot / leg (to a woman)',
+    "ijrak": 'your foot / leg (to a man)',
+    "rijlēki": 'your feet (to a woman)',
+    "rijlēk": 'your feet (to a man)',
+    "kursīki": 'your chair (to a woman)',
+    "kursīk": 'your chair (to a man)',
+    "rāḥtik": 'your ease (to a woman) — "your time"',
+    "rāḥtak": 'your ease (to a man) — "your time"',
+    "ʿa-janbik": 'onto your side (to a woman)',
+    "ʿa-janbak": 'onto your side (to a man)',
+    "ʿa-ẓahrik": 'onto your back (to a woman)',
+    "ʿa-ẓahrak": 'onto your back (to a man)',
+    "ʿa-baṭnik": 'onto your stomach (to a woman)',
+    "ʿa-baṭnak": 'onto your stomach (to a man)',
+
+    // The places and the manner words.
+    "hnāk": 'there',
+    "la-hnāk": 'to there',
+    "ʿal-jiha": 'to the side / direction',
+    "it-tānye": 'the second (f) — and so "the other one"',
+    "khuṭwe": 'a step',
+    "mashi": 'walking — with kammil, "keep walking"',
+    "ʿadl": 'straight / upright',
+    "shway": 'a little',
+    "kamān": 'more / another',
+    "ʾaʾall": 'less',
+    "bikaffi": 'it is enough',
+    "warāy": 'behind me',
   },
 };

@@ -58,6 +58,18 @@ const VERB_DECK_PERSON: Record<string, 'first' | 'imperative'> = {
   'Power and connection': 'first',
   'Core verbs': 'first',
   'More everyday verbs': 'first',
+  // Directions: telling somebody where to put themselves. Every pair in these
+  // is the listener's gender, never a third-person conjugation.
+  'Sit, stand and lie': 'imperative',
+  'Going and stepping': 'imperative',
+  'Come here and stay there': 'imperative',
+  'Stop, wait and walk': 'imperative',
+  'Holding and letting go': 'imperative',
+  'Bending and leaning': 'imperative',
+  'Head and looking': 'imperative',
+  'In bed': 'imperative',
+  'Moving things': 'imperative',
+  'Slowly and gently': 'imperative',
 };
 
 describe('the starter table', () => {

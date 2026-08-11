@@ -368,8 +368,8 @@ const NUMBERS_WITH_NOUNS: SeedDeck = {
 };
 
 /**
- * Counting out loud: one Arabic answer per number, and it is the isolated
- * counting form.
+ * Counting out loud: one answer per number in each language, and it is the
+ * isolated counting form.
  *
  * Spoken Palestinian has more than one word for several of these — تنتين beside
  * تنين for "two", تلات beside تلاتة for "three" — but in every case the second
@@ -378,9 +378,19 @@ const NUMBERS_WITH_NOUNS: SeedDeck = {
  * language gives her one, so the second form lives in "Numbers with nouns"
  * above, in the grammar that calls for it.
  *
- * Hebrew keeps its feminine/masculine pair, because there the choice is the
- * gender of what is being counted rather than a counting/counting-things split,
- * and a Hebrew speaker counting aloud really is choosing a column.
+ * Hebrew is now the same shape, and used not to be. Counting aloud in Hebrew is
+ * not a choice between columns: the citation form is the feminine one — akhat,
+ * shtayim, shalosh — and שניים, שלושה and the rest are what you say in front of
+ * a masculine noun. So the pair here was word gender being asked before there
+ * was a noun to agree with, and on the card it could only read as *her* form
+ * beside a man's — the ♀/♂ contrast borrowing symbols from an identity setting
+ * that has no say over a number. Nothing is lost: every masculine form dropped
+ * here is taught by "Numbers with nouns" above, in the grammar that picks
+ * between them.
+ *
+ * The teens and the compounds keep their pairs. They are the same word gender,
+ * but no deck teaches their with-a-noun forms, so narrowing them would delete
+ * content rather than move it.
  *
  * After ten it is decks of ten all the way to a hundred: the teens are
  * irregular in both languages and are written out, and everything from
@@ -391,16 +401,16 @@ const NUMBER_DECKS: SeedDeck[] = [
   {
     name: 'One to ten',
     cards: [
-      c('one', ['אחת', 'akhat', 'אחד', 'ekhad'], ['واحد', 'wāḥad']),
-      c('two', ['שתיים', 'shtayim', 'שניים', 'shnayim'], ['تنين', 'tnēn']),
-      c('three', ['שלוש', 'shalosh', 'שלושה', 'shlosha'], ['تلاتة', 'talāte']),
-      c('four', ['ארבע', 'arba', 'ארבעה', 'arba\'a'], ['أربعة', 'arbaʿa']),
-      c('five', ['חמש', 'khamesh', 'חמישה', 'khamisha'], ['خمسة', 'khamse']),
-      c('six', ['שש', 'shesh', 'שישה', 'shisha'], ['ستّة', 'sitte']),
-      c('seven', ['שבע', 'sheva', 'שבעה', 'shiv\'a'], ['سبعة', 'sabʿa']),
-      c('eight', ['שמונה', 'shmone', 'שמונה', 'shmona'], ['تمانية', 'tmānye'], { he: 'Hebrew spelling is identical; pronunciation differs.' }),
-      c('nine', ['תשע', 'tesha', 'תשעה', 'tish\'a'], ['تسعة', 'tisʿa']),
-      c('ten', ['עשר', 'eser', 'עשרה', 'asara'], ['عشرة', 'ʿashara']),
+      c('one', ['אחת', 'akhat'], ['واحد', 'wāḥad']),
+      c('two', ['שתיים', 'shtayim'], ['تنين', 'tnēn']),
+      c('three', ['שלוש', 'shalosh'], ['تلاتة', 'talāte']),
+      c('four', ['ארבע', 'arba'], ['أربعة', 'arbaʿa']),
+      c('five', ['חמש', 'khamesh'], ['خمسة', 'khamse']),
+      c('six', ['שש', 'shesh'], ['ستّة', 'sitte']),
+      c('seven', ['שבע', 'sheva'], ['سبعة', 'sabʿa']),
+      c('eight', ['שמונה', 'shmone'], ['تمانية', 'tmānye']),
+      c('nine', ['תשע', 'tesha'], ['تسعة', 'tisʿa']),
+      c('ten', ['עשר', 'eser'], ['عشرة', 'ʿashara']),
     ],
   },
   {
@@ -1836,6 +1846,25 @@ export const SEED_CATEGORIES: SeedCategory[] = [
         ],
       },
       {
+        // The bearings "Finding the way" leaves out. Left, right, up and down
+        // are taught there and are deliberately not repeated here.
+        name: 'Which way',
+        cards: [
+          c('forward', ['קדימה', 'kadima'], ['قدّام', 'ʾuddām']),
+          c('backwards', ['אחורה', 'akhora'], ['ورا', 'wara']),
+          c('sideways', ['הצידה', 'hatsida'], ['عجنب', 'ʿa-janab']),
+          c('north', ['צפון', 'tsafon'], ['شمال', 'shamāl'], {
+            ar: 'The same word as "left". Only the sentence tells them apart.',
+          }),
+          c('south', ['דרום', 'darom'], ['جنوب', 'janūb']),
+          c('east', ['מזרח', 'mizrakh'], ['شرق', 'sharʾ']),
+          c('west', ['מערב', 'ma\'arav'], ['غرب', 'gharb']),
+          c('in the middle', ['באמצע', 'ba\'emtsa'], ['بالنص', 'bin-nuṣṣ']),
+          c('at the edge', ['בקצה', 'baktse'], ['عالطرف', 'ʿaṭ-ṭaraf']),
+          c('the other way', ['לכיוון השני', 'lakivun hasheni'], ['عالجهة التانية', 'ʿal-jiha it-tānye']),
+        ],
+      },
+      {
         name: 'Asking the way',
         cards: [
           c('how do I get there?', ['איך מגיעים לשם', 'ekh magi\'im lesham'], ['كيف بوصل لهنيك', 'kīf bōṣal la-hnīk']),
@@ -1863,6 +1892,189 @@ export const SEED_CATEGORIES: SeedCategory[] = [
           c('bank', ['בנק', 'bank'], ['بنك', 'bank']),
           c('post office', ['דואר', 'do\'ar'], ['بريد', 'barīd']),
           c('park', ['פארק', 'park'], ['حديقة', 'ḥadīʾa']),
+        ],
+      },
+
+      // --- telling somebody where to put themselves ---------------------------
+      //
+      // Ten decks of commands, and every pair in them is the *listener's*
+      // gender: these are things said to the person in front of you, so the
+      // From / To settings narrow each card to the one form she needs rather
+      // than showing both and leaving her to guess.
+      //
+      // Where Palestinian or Hebrew says a command one way to anybody it is
+      // written as a single word, never split into two to match the other
+      // language. Where the English collapses — "stand up" and "get up",
+      // "hold still" and "don't move" — one card carries it, because the
+      // languages make no distinction there either.
+      {
+        name: 'Sit, stand and lie',
+        cards: [
+          c('sit down', ofListener('תשבי', 'teshvi', 'תשב', 'teshev'), ofListener('اقعدي', 'uʾʿudi', 'اقعد', 'uʾʿud')),
+          c('sit up straight', ofListener('תשבי זקופה', 'teshvi zkufa', 'תשב זקוף', 'teshev zakuf'), ofListener('اقعدي عدل', 'uʾʿudi ʿadl', 'اقعد عدل', 'uʾʿud ʿadl'), {
+            he: 'Bare "sit" covers sitting down and sitting up; this says upright.',
+          }),
+          c('stand up', ofListener('תקומי', 'takumi', 'תקום', 'takum'), ofListener('قومي', 'ʾūmi', 'قوم', 'ʾūm'), {
+            he: 'Also "get up" — one command in both languages.',
+          }),
+          c('lie down', ofListener('תשכבי', 'tishkevi', 'תשכב', 'tishkav'), ofListener('تمددي', 'tmaddadi', 'تمدد', 'tmaddad'), {
+            ar: 'Not نامي, which tells her to go to sleep.',
+          }),
+          c('turn around', ofListener('תסתובבי', 'tistovevi', 'תסתובב', 'tistovev'), ofListener('لفّي', 'liffi', 'لفّ', 'liff')),
+          c('move up', ofListener('תעלי למעלה', 'ta\'ali lema\'la', 'תעלה למעלה', 'ta\'ale lema\'la'), ofListener('تحرّكي لفوق', 'tḥarraki la-fōʾ', 'تحرّك لفوق', 'tḥarrak la-fōʾ')),
+          c('move down', ofListener('תרדי למטה', 'terdi lemata', 'תרד למטה', 'tered lemata'), ofListener('تحرّكي لتحت', 'tḥarraki la-taḥt', 'تحرّك لتحت', 'tḥarrak la-taḥt')),
+          c('move left', ofListener('תזוזי שמאלה', 'tazuzi smola', 'תזוז שמאלה', 'tazuz smola'), ofListener('تحرّكي عالشمال', 'tḥarraki ʿash-shimāl', 'تحرّك عالشمال', 'tḥarrak ʿash-shimāl')),
+          c('move right', ofListener('תזוזי ימינה', 'tazuzi yamina', 'תזוז ימינה', 'tazuz yamina'), ofListener('تحرّكي عاليمين', 'tḥarraki ʿal-yamīn', 'تحرّك عاليمين', 'tḥarrak ʿal-yamīn')),
+          c('move forward', ofListener('תתקדמי', 'titkadmi', 'תתקדם', 'titkadem'), ofListener('تحرّكي لقدّام', 'tḥarraki la-ʾuddām', 'تحرّك لقدّام', 'tḥarrak la-ʾuddām')),
+        ],
+      },
+      {
+        name: 'Going and stepping',
+        cards: [
+          c('move back', ofListener('תזוזי אחורה', 'tazuzi akhora', 'תזוז אחורה', 'tazuz akhora'), ofListener('تحرّكي لورا', 'tḥarraki la-wara', 'تحرّك لورا', 'tḥarrak la-wara')),
+          c('go forward', ofListener('תלכי קדימה', 'telkhi kadima', 'תלך קדימה', 'telekh kadima'), ofListener('روحي لقدّام', 'rūḥi la-ʾuddām', 'روح لقدّام', 'rūḥ la-ʾuddām')),
+          c('go back', ofListener('תלכי אחורה', 'telkhi akhora', 'תלך אחורה', 'telekh akhora'), ofListener('روحي لورا', 'rūḥi la-wara', 'روح لورا', 'rūḥ la-wara')),
+          c('go left', ofListener('תלכי שמאלה', 'telkhi smola', 'תלך שמאלה', 'telekh smola'), ofListener('روحي عالشمال', 'rūḥi ʿash-shimāl', 'روح عالشمال', 'rūḥ ʿash-shimāl')),
+          c('go right', ofListener('תלכי ימינה', 'telkhi yamina', 'תלך ימינה', 'telekh yamina'), ofListener('روحي عاليمين', 'rūḥi ʿal-yamīn', 'روح عاليمين', 'rūḥ ʿal-yamīn')),
+          c('come forward', ofListener('תבואי קדימה', 'tavo\'i kadima', 'תבוא קדימה', 'tavo kadima'), ofListener('تعالي لقدّام', 'taʿāli la-ʾuddām', 'تعال لقدّام', 'taʿāl la-ʾuddām')),
+          c('step forward', ofListener('תעשי צעד קדימה', 'ta\'asi tsa\'ad kadima', 'תעשה צעד קדימה', 'ta\'ase tsa\'ad kadima'), ofListener('خدي خطوة لقدّام', 'khudi khuṭwe la-ʾuddām', 'خد خطوة لقدّام', 'khud khuṭwe la-ʾuddām')),
+          c('step back', ofListener('תעשי צעד אחורה', 'ta\'asi tsa\'ad akhora', 'תעשה צעד אחורה', 'ta\'ase tsa\'ad akhora'), ofListener('خدي خطوة لورا', 'khudi khuṭwe la-wara', 'خد خطوة لورا', 'khud khuṭwe la-wara')),
+          c('take a step', ofListener('תעשי צעד', 'ta\'asi tsa\'ad', 'תעשה צעד', 'ta\'ase tsa\'ad'), ofListener('خدي خطوة', 'khudi khuṭwe', 'خد خطوة', 'khud khuṭwe')),
+          c('take another step', ofListener('תעשי עוד צעד', 'ta\'asi od tsa\'ad', 'תעשה עוד צעד', 'ta\'ase od tsa\'ad'), ofListener('خدي كمان خطوة', 'khudi kamān khuṭwe', 'خد كمان خطوة', 'khud kamān khuṭwe')),
+        ],
+      },
+      {
+        name: 'Come here and stay there',
+        cards: [
+          c('come here', ofListener('בואי לפה', 'bo\'i lepo', 'בוא לפה', 'bo lepo'), ofListener('تعالي هون', 'taʿāli hōn', 'تعال هون', 'taʿāl hōn')),
+          c('go there', ofListener('תלכי לשם', 'telkhi lesham', 'תלך לשם', 'telekh lesham'), ofListener('روحي هناك', 'rūḥi hnāk', 'روح هناك', 'rūḥ hnāk')),
+          c('stay here', ofListener('תישארי פה', 'tisha\'ari po', 'תישאר פה', 'tisha\'er po'), ofListener('ضلّي هون', 'ḍalli hōn', 'ضلّ هون', 'ḍall hōn')),
+          c('stay there', ofListener('תישארי שם', 'tisha\'ari sham', 'תישאר שם', 'tisha\'er sham'), ofListener('ضلّي هناك', 'ḍalli hnāk', 'ضلّ هناك', 'ḍall hnāk')),
+          c('come closer', ofListener('תתקרבי', 'titkarvi', 'תתקרב', 'titkarev'), ofListener('قرّبي', 'ʾarrbi', 'قرّب', 'ʾarrib')),
+          c('move closer', ofListener('תתקרבי קצת', 'titkarvi ktsat', 'תתקרב קצת', 'titkarev ktsat'), ofListener('قرّبي شوي', 'ʾarrbi shway', 'قرّب شوي', 'ʾarrib shway')),
+          c('move away', ofListener('תתרחקי', 'titrakhaki', 'תתרחק', 'titrakhak'), ofListener('ابعدي', 'ibʿadi', 'ابعد', 'ibʿad')),
+          c('move over', ofListener('תזוזי קצת', 'tazuzi ktsat', 'תזוז קצת', 'tazuz ktsat'), ofListener('زيحي شوي', 'zīḥi shway', 'زيح شوي', 'zīḥ shway')),
+          c('move aside', ofListener('תזוזי הצידה', 'tazuzi hatsida', 'תזוז הצידה', 'tazuz hatsida'), ofListener('زيحي عجنب', 'zīḥi ʿa-janab', 'زيح عجنب', 'zīḥ ʿa-janab')),
+          c('follow me', ofListener('בואי אחריי', 'bo\'i akharay', 'בוא אחריי', 'bo akharay'), ['امشي وراي', 'imshi warāy'], {
+            ar: 'Said the same way to a woman and to a man.',
+          }),
+        ],
+      },
+      {
+        name: 'Stop, wait and walk',
+        cards: [
+          c('stop', ofListener('תעצרי', 'ta\'atsri', 'תעצור', 'ta\'atsor'), ofListener('وقّفي', 'waʾʾfi', 'وقّف', 'waʾʾif')),
+          c('wait', ofListener('תחכי', 'tekhaki', 'תחכה', 'tekhake'), ofListener('استني', 'istanni', 'استنى', 'istanna')),
+          c('walk', ofListener('תלכי', 'telkhi', 'תלך', 'telekh'), ['امشي', 'imshi'], {
+            ar: 'One form for everybody.',
+          }),
+          c('walk slowly', ofListener('תלכי לאט', 'telkhi le\'at', 'תלך לאט', 'telekh le\'at'), ['امشي شوي شوي', 'imshi shway shway']),
+          c('walk carefully', ofListener('תלכי בזהירות', 'telkhi bizhirut', 'תלך בזהירות', 'telekh bizhirut'), ofListener('امشي وديري بالك', 'imshi w-dīri bālik', 'امشي ودير بالك', 'imshi w-dīr bālak')),
+          c('be careful', ofListener('תיזהרי', 'tizahari', 'תיזהר', 'tizaher'), ofListener('ديري بالك', 'dīri bālik', 'دير بالك', 'dīr bālak')),
+          c('keep going', ofListener('תמשיכי', 'tamshikhi', 'תמשיך', 'tamshikh'), ofListener('كمّلي', 'kammli', 'كمّل', 'kammil')),
+          c('keep walking', ofListener('תמשיכי ללכת', 'tamshikhi lalekhet', 'תמשיך ללכת', 'tamshikh lalekhet'), ofListener('كمّلي مشي', 'kammli mashi', 'كمّل مشي', 'kammil mashi')),
+          c('back up', ofListener('תחזרי אחורה', 'takhzeri akhora', 'תחזור אחורה', 'takhzor akhora'), ofListener('ارجعي لورا', 'irjaʿi la-wara', 'ارجع لورا', 'irjaʿ la-wara')),
+          c('come with me', ofListener('בואי איתי', 'bo\'i iti', 'בוא איתי', 'bo iti'), ofListener('تعالي معي', 'taʿāli maʿi', 'تعال معي', 'taʿāl maʿi')),
+        ],
+      },
+      {
+        name: 'Holding and letting go',
+        cards: [
+          c('hold on', ofListener('תחזיקי', 'takhziki', 'תחזיק', 'takhzik'), ofListener('امسكي', 'imsiki', 'امسك', 'imsik')),
+          c('hold still', ofListener('אל תזוזי', 'al tazuzi', 'אל תזוז', 'al tazuz'), ofListener('ما تتحركي', 'ma titḥarraki', 'ما تتحرك', 'ma titḥarrak'), {
+            he: 'Also "don\'t move" — the same command in both languages.',
+          }),
+          c('hold this', ofListener('תחזיקי את זה', 'takhziki et ze', 'תחזיק את זה', 'takhzik et ze'), ofListener('امسكي هاد', 'imsiki hād', 'امسك هاد', 'imsik hād'), {
+            ar: 'هاد — "this" — rather than an object ending, which would have to pick a gender for the thing.',
+          }),
+          c('grab this', ofListener('תתפסי את זה', 'titafsi et ze', 'תתפוס את זה', 'titpos et ze'), ofListener('امسكي هاد منيح', 'imsiki hād mnīḥ', 'امسك هاد منيح', 'imsik hād mnīḥ')),
+          c('let go', ofListener('תשחררי', 'teshakhreri', 'תשחרר', 'teshakhrer'), ofListener('اتركي', 'itruki', 'اترك', 'itruk')),
+          c('give me your hand', ofListener('תני לי את היד', 'tni li et hayad', 'תן לי את היד', 'ten li et hayad'), ofListener('أعطيني إيدك', 'aʿṭīni īdik', 'أعطيني إيدك', 'aʿṭīni īdak'), {
+            ar: 'Arabic spelling is identical; the ending is pronounced differently.',
+          }),
+          c('hold my hand', ofListener('תחזיקי לי את היד', 'takhziki li et hayad', 'תחזיק לי את היד', 'takhzik li et hayad'), ofListener('امسكي إيدي', 'imsiki īdi', 'امسك إيدي', 'imsik īdi')),
+          c('push', ofListener('תדחפי', 'tidkhafi', 'תדחוף', 'tidkhof'), ofListener('ادفعي', 'idfaʿi', 'ادفع', 'idfaʿ')),
+          c('pull', ofListener('תמשכי', 'timshekhi', 'תמשוך', 'timshokh'), ofListener('اسحبي', 'isḥabi', 'اسحب', 'isḥab')),
+          c('pick it up', ofListener('תרימי את זה', 'tarimi et ze', 'תרים את זה', 'tarim et ze'), ofListener('شيلي هاد', 'shīli hād', 'شيل هاد', 'shīl hād'), {
+            he: 'Also "lift it" — Hebrew raises and picks up with one verb.',
+          }),
+        ],
+      },
+      {
+        name: 'Bending and leaning',
+        cards: [
+          c('bend down', ofListener('תתכופפי', 'titkofefi', 'תתכופף', 'titkofef'), ['انحني لتحت', 'inḥani la-taḥt'], {
+            ar: 'انحني is said to a woman and to a man alike.',
+          }),
+          c('bend forward', ofListener('תתכופפי קדימה', 'titkofefi kadima', 'תתכופף קדימה', 'titkofef kadima'), ['انحني لقدّام', 'inḥani la-ʾuddām']),
+          c('lean back', ofListener('תישעני אחורה', 'tisha\'ani akhora', 'תישען אחורה', 'tisha\'en akhora'), ofListener('ميلي لورا', 'mīli la-wara', 'ميل لورا', 'mīl la-wara')),
+          c('lean forward', ofListener('תישעני קדימה', 'tisha\'ani kadima', 'תישען קדימה', 'tisha\'en kadima'), ofListener('ميلي لقدّام', 'mīli la-ʾuddām', 'ميل لقدّام', 'mīl la-ʾuddām')),
+          c('straighten up', ofListener('תתיישרי', 'tityashri', 'תתיישר', 'tityasher'), ofListener('عدّلي حالك', 'ʿaddli ḥālik', 'عدّل حالك', 'ʿaddil ḥālak')),
+          c('sit back', ofListener('תשבי יותר אחורה', 'teshvi yoter akhora', 'תשב יותר אחורה', 'teshev yoter akhora'), ofListener('اقعدي لورا', 'uʾʿudi la-wara', 'اقعد لورا', 'uʾʿud la-wara')),
+          c('sit forward', ofListener('תשבי יותר קדימה', 'teshvi yoter kadima', 'תשב יותר קדימה', 'teshev yoter kadima'), ofListener('اقعدي لقدّام', 'uʾʿudi la-ʾuddām', 'اقعد لقدّام', 'uʾʿud la-ʾuddām')),
+          c('scoot forward', ofListener('תזוזי קצת קדימה', 'tazuzi ktsat kadima', 'תזוז קצת קדימה', 'tazuz ktsat kadima'), ofListener('زيحي شوي لقدّام', 'zīḥi shway la-ʾuddām', 'زيح شوي لقدّام', 'zīḥ shway la-ʾuddām')),
+          c('scoot back', ofListener('תזוזי קצת אחורה', 'tazuzi ktsat akhora', 'תזוז קצת אחורה', 'tazuz ktsat akhora'), ofListener('زيحي شوي لورا', 'zīḥi shway la-wara', 'زيح شوي لورا', 'zīḥ shway la-wara')),
+          c('move to the edge', ofListener('תזוזי לקצה', 'tazuzi lakatse', 'תזוז לקצה', 'tazuz lakatse'), ofListener('زيحي عالطرف', 'zīḥi ʿaṭ-ṭaraf', 'زيح عالطرف', 'zīḥ ʿaṭ-ṭaraf')),
+        ],
+      },
+      {
+        name: 'Head and looking',
+        cards: [
+          c('lift your head', ofListener('תרימי את הראש', 'tarimi et harosh', 'תרים את הראש', 'tarim et harosh'), ofListener('ارفعي راسك', 'irfaʿi rāsik', 'ارفع راسك', 'irfaʿ rāsak')),
+          c('lower your head', ofListener('תורידי את הראש', 'toridi et harosh', 'תוריד את הראש', 'torid et harosh'), ofListener('نزّلي راسك', 'nazzli rāsik', 'نزّل راسك', 'nazzil rāsak')),
+          c('look up', ofListener('תסתכלי למעלה', 'tistakli lema\'la', 'תסתכל למעלה', 'tistakel lema\'la'), ofListener('شوفي لفوق', 'shūfi la-fōʾ', 'شوف لفوق', 'shūf la-fōʾ')),
+          c('look down', ofListener('תסתכלי למטה', 'tistakli lemata', 'תסתכל למטה', 'tistakel lemata'), ofListener('شوفي لتحت', 'shūfi la-taḥt', 'شوف لتحت', 'shūf la-taḥt')),
+          c('look left', ofListener('תסתכלי שמאלה', 'tistakli smola', 'תסתכל שמאלה', 'tistakel smola'), ofListener('شوفي عالشمال', 'shūfi ʿash-shimāl', 'شوف عالشمال', 'shūf ʿash-shimāl')),
+          c('look right', ofListener('תסתכלי ימינה', 'tistakli yamina', 'תסתכל ימינה', 'tistakel yamina'), ofListener('شوفي عاليمين', 'shūfi ʿal-yamīn', 'شوف عاليمين', 'shūf ʿal-yamīn')),
+          c('raise your arm', ofListener('תרימי את היד', 'tarimi et hayad', 'תרים את היד', 'tarim et hayad'), ofListener('ارفعي إيدك', 'irfaʿi īdik', 'ارفع إيدك', 'irfaʿ īdak')),
+          c('lower your arm', ofListener('תורידי את היד', 'toridi et hayad', 'תוריד את היד', 'torid et hayad'), ofListener('نزّلي إيدك', 'nazzli īdik', 'نزّل إيدك', 'nazzil īdak')),
+          c('lift your leg', ofListener('תרימי את הרגל', 'tarimi et haregel', 'תרים את הרגל', 'tarim et haregel'), ofListener('ارفعي إجرك', 'irfaʿi ijrik', 'ارفع إجرك', 'irfaʿ ijrak')),
+          c('lower your leg', ofListener('תורידי את הרגל', 'toridi et haregel', 'תוריד את הרגל', 'torid et haregel'), ofListener('نزّلي إجرك', 'nazzli ijrik', 'نزّل إجرك', 'nazzil ijrak')),
+        ],
+      },
+      {
+        name: 'In bed',
+        cards: [
+          c('turn onto your side', ofListener('תסתובבי על הצד', 'tistovevi al hatsad', 'תסתובב על הצד', 'tistovev al hatsad'), ofListener('لفّي عجنبك', 'liffi ʿa-janbik', 'لفّ عجنبك', 'liff ʿa-janbak')),
+          c('turn onto your back', ofListener('תסתובבי על הגב', 'tistovevi al hagav', 'תסתובב על הגב', 'tistovev al hagav'), ofListener('لفّي عظهرك', 'liffi ʿa-ẓahrik', 'لفّ عظهرك', 'liff ʿa-ẓahrak')),
+          c('turn onto your stomach', ofListener('תסתובבי על הבטן', 'tistovevi al habeten', 'תסתובב על הבטן', 'tistovev al habeten'), ofListener('لفّي عبطنك', 'liffi ʿa-baṭnik', 'لفّ عبطنك', 'liff ʿa-baṭnak')),
+          c('roll over', ofListener('תתהפכי לצד השני', 'tithapkhi latsad hasheni', 'תתהפך לצד השני', 'tithapekh latsad hasheni'), ofListener('اقلبي عالجهة التانية', 'iʾlibi ʿal-jiha it-tānye', 'اقلب عالجهة التانية', 'iʾlib ʿal-jiha it-tānye')),
+          c('lift yourself up', ofListener('תתרוממי', 'titromemi', 'תתרומם', 'titromem'), ofListener('ارفعي حالك', 'irfaʿi ḥālik', 'ارفع حالك', 'irfaʿ ḥālak')),
+          c('lower yourself down', ofListener('תורידי את עצמך למטה', 'toridi et atsmekh lemata', 'תוריד את עצמך למטה', 'torid et atsmekha lemata'), ofListener('نزّلي حالك', 'nazzli ḥālik', 'نزّل حالك', 'nazzil ḥālak')),
+          c('put your head on the pillow', ofListener('שימי את הראש על הכרית', 'simi et harosh al hakarit', 'שים את הראש על הכרית', 'sim et harosh al hakarit'), ofListener('حطي راسك عالمخدة', 'ḥuṭṭi rāsik ʿal-mkhadde', 'حط راسك عالمخدة', 'ḥuṭṭ rāsak ʿal-mkhadde')),
+          c('put your hand here', ofListener('שימי את היד פה', 'simi et hayad po', 'שים את היד פה', 'sim et hayad po'), ofListener('حطي إيدك هون', 'ḥuṭṭi īdik hōn', 'حط إيدك هون', 'ḥuṭṭ īdak hōn')),
+          c('put your foot down', ofListener('שימי את הרגל למטה', 'simi et haregel lemata', 'שים את הרגל למטה', 'sim et haregel lemata'), ofListener('حطي إجرك لتحت', 'ḥuṭṭi ijrik la-taḥt', 'حط إجرك لتحت', 'ḥuṭṭ ijrak la-taḥt')),
+          c('put your feet here', ofListener('שימי את הרגליים פה', 'simi et haraglayim po', 'שים את הרגליים פה', 'sim et haraglayim po'), ofListener('حطي رجليكي هون', 'ḥuṭṭi rijlēki hōn', 'حط رجليك هون', 'ḥuṭṭ rijlēk hōn')),
+        ],
+      },
+      {
+        name: 'Moving things',
+        cards: [
+          c('lower it', ofListener('תורידי את זה', 'toridi et ze', 'תוריד את זה', 'torid et ze'), ofListener('نزّلي هاد', 'nazzli hād', 'نزّل هاد', 'nazzil hād')),
+          c('put it down', ofListener('תניחי את זה', 'tanikhi et ze', 'תניח את זה', 'taniakh et ze'), ofListener('حطي هاد', 'ḥuṭṭi hād', 'حط هاد', 'ḥuṭṭ hād')),
+          c('put it here', ofListener('שימי את זה פה', 'simi et ze po', 'שים את זה פה', 'sim et ze po'), ofListener('حطي هاد هون', 'ḥuṭṭi hād hōn', 'حط هاد هون', 'ḥuṭṭ hād hōn')),
+          c('bring it here', ofListener('תביאי את זה לפה', 'tavi\'i et ze lepo', 'תביא את זה לפה', 'tavi et ze lepo'), ofListener('جيبي هاد هون', 'jībi hād hōn', 'جيب هاد هون', 'jīb hād hōn')),
+          c('take it there', ofListener('קחי את זה לשם', 'kkhi et ze lesham', 'קח את זה לשם', 'kakh et ze lesham'), ofListener('خدي هاد لهناك', 'khudi hād la-hnāk', 'خد هاد لهناك', 'khud hād la-hnāk')),
+          c('open it', ofListener('תפתחי את זה', 'tiftekhi et ze', 'תפתח את זה', 'tiftakh et ze'), ofListener('افتحي هاد', 'iftaḥi hād', 'افتح هاد', 'iftaḥ hād')),
+          c('close it', ofListener('תסגרי את זה', 'tisgeri et ze', 'תסגור את זה', 'tisgor et ze'), ofListener('سكّري هاد', 'sakkri hād', 'سكّر هاد', 'sakkir hād')),
+          c('move your chair', ofListener('תזיזי את הכיסא שלך', 'tazizi et hakise shelakh', 'תזיז את הכיסא שלך', 'taziz et hakise shelkha'), ofListener('حرّكي كرسيك', 'ḥarrki kursīki', 'حرّك كرسيك', 'ḥarrik kursīk')),
+          c('move the chair', ofListener('תזיזי את הכיסא', 'tazizi et hakise', 'תזיז את הכיסא', 'taziz et hakise'), ofListener('حرّكي الكرسي', 'ḥarrki il-kursi', 'حرّك الكرسي', 'ḥarrik il-kursi')),
+          c('give me that', ofListener('תני לי את זה', 'tni li et ze', 'תן לי את זה', 'ten li et ze'), ['أعطيني هاد', 'aʿṭīni hād']),
+        ],
+      },
+      {
+        name: 'Slowly and gently',
+        cards: [
+          c('relax', ofListener('תירגעי', 'tirga\'i', 'תירגע', 'tiraga'), ofListener('ارتاحي', 'irtāḥi', 'ارتاح', 'irtāḥ')),
+          c('take your time', ofListener('קחי את הזמן', 'kkhi et hazman', 'קח את הזמן', 'kakh et hazman'), ofListener('خدي راحتك', 'khudi rāḥtik', 'خد راحتك', 'khud rāḥtak')),
+          c('slowly', ['לאט', 'le\'at'], ['شوي شوي', 'shway shway']),
+          c('a little more', ['עוד קצת', 'od ktsat'], ['كمان شوي', 'kamān shway']),
+          c('a little less', ['קצת פחות', 'ktsat pakhot'], ['أقل شوي', 'ʾaʾall shway']),
+          c('not so far', ['לא כל כך רחוק', 'lo kol kakh rakhok'], ['مش بعيد كتير', 'mish baʿīd ktīr']),
+          c('that\'s enough', ['זה מספיק', 'ze maspik'], ['هيك بكفي', 'hēk bikaffi']),
+          c('like this', ['ככה', 'kakha'], ['هيك', 'hēk']),
+          c('this way', ['לכיוון הזה', 'lakivun haze'], ['من هون', 'min hōn']),
+          c('that way', ['לכיוון ההוא', 'lakivun hahu'], ['من هنيك', 'min hnīk']),
         ],
       },
     ],

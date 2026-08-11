@@ -163,12 +163,12 @@ describe('refreshing starter cards over an existing install', () => {
   it('starts from a fifty-card install missing most of the official set', () => {
     expect(before.cards).toBe(54); // 50 old + 4 custom
     expect(before.official).toBe(40); // 5 categories × 8 official words
-    expect(OFFICIAL_CARD_COUNT).toBe(881);
+    expect(OFFICIAL_CARD_COUNT).toBe(991);
   });
 
   it('ends with the full official set present', async () => {
     const coverage = await starterCoverage();
-    expect(coverage.present).toBe(881);
+    expect(coverage.present).toBe(991);
     expect(coverage.missing).toBe(0);
     expect(coverage.emptyCategories).toEqual([]);
   });
@@ -207,11 +207,18 @@ describe('refreshing starter cards over an existing install', () => {
 
   it('rewrites those words in place with the forms the language makes', async () => {
     const card = await db.cards.get(oldIds.get('one')!);
-    expect(card!.hebrew.forms?.feminine.script).toBe('אחת');
-    expect(card!.hebrew.forms?.masculine.script).toBe('אחד');
-    // Arabic counts with one word, so the top-up leaves the card one word —
-    // waḥde is taught where it belongs, in "Numbers with nouns".
+    // Counting aloud takes one word in both languages, so the top-up leaves
+    // the card one word in both. Hebrew counts with its feminine column —
+    // akhat, shtayim, shalosh — and Arabic with its single form; אחד and وحدة
+    // are taught where they belong, in "Numbers with nouns".
+    expect(card!.hebrew.script).toBe('אחת');
+    expect(card!.hebrew.transliteration).toBe('akhat');
     expect(card!.arabic.transliteration).toBe('wāḥad');
+
+    // Both undefined rather than merely absent from the seed: an install made
+    // before this change is holding a stored pair, and the top-up has to clear
+    // it. A stale `forms` would go on showing אחד beside אחת for ever.
+    expect(card!.hebrew.forms).toBeUndefined();
     expect(card!.arabic.forms).toBeUndefined();
   });
 
@@ -241,8 +248,8 @@ describe('refreshing starter cards over an existing install', () => {
 
     // They sit in starter decks but are not part of the official count.
     const coverage = await starterCoverage();
-    expect(coverage.present).toBe(881);
-    expect(cards.length).toBe(881 + 10 + 4);
+    expect(coverage.present).toBe(991);
+    expect(cards.length).toBe(991 + 10 + 4);
   });
 
   it("does not list the learner's own deck as leftovers", async () => {

@@ -193,11 +193,25 @@ export const AUDIO_CLIPS: Record<string, AudioClipRecord> = {
     "voice": "gemini-2.5-flash-preview-tts/Kore/f1fb7f6a",
     "english": "eight",
     "text": "تمانية",
-    "spoken": "تْمانْيِة",
+    "spoken": "تْمانْيِه",
     "transliteration": "tmānye",
-    "sourceHash": "5fcf22f810a60de2",
-    "bytes": 8972,
-    "generatedAt": "2026-08-08T21:59:04.445Z"
+    "sourceHash": "27e342fdd873c04b",
+    "bytes": 13004,
+    "generatedAt": "2026-08-11T11:22:06.295Z"
+  },
+  "ar/counting-and-numbers__one-to-ten__five_neutral": {
+    "path": "assets/audio/ar/counting-and-numbers__one-to-ten__five_neutral.mp3",
+    "language": "arabic",
+    "form": "neutral",
+    "provider": "gemini",
+    "voice": "gemini-2.5-flash-preview-tts/Kore/f1fb7f6a",
+    "english": "five",
+    "text": "خمسة",
+    "spoken": "خَمْسِه",
+    "transliteration": "khamse",
+    "sourceHash": "76dad3226c98421a",
+    "bytes": 14444,
+    "generatedAt": "2026-08-11T11:25:16.030Z"
   },
   "ar/counting-and-numbers__one-to-ten__four_neutral": {
     "path": "assets/audio/ar/counting-and-numbers__one-to-ten__four_neutral.mp3",
@@ -207,11 +221,25 @@ export const AUDIO_CLIPS: Record<string, AudioClipRecord> = {
     "voice": "gemini-2.5-flash-preview-tts/Kore/f1fb7f6a",
     "english": "four",
     "text": "أربعة",
-    "spoken": "أَرْبَعَة",
+    "spoken": "أَرْبَعَه",
     "transliteration": "arbaʿa",
-    "sourceHash": "586b4637d70b0f62",
-    "bytes": 10988,
-    "generatedAt": "2026-08-08T21:41:03.937Z"
+    "sourceHash": "84a97f7af9b01e28",
+    "bytes": 8108,
+    "generatedAt": "2026-08-11T11:25:13.678Z"
+  },
+  "ar/counting-and-numbers__one-to-ten__nine_neutral": {
+    "path": "assets/audio/ar/counting-and-numbers__one-to-ten__nine_neutral.mp3",
+    "language": "arabic",
+    "form": "neutral",
+    "provider": "gemini",
+    "voice": "gemini-2.5-flash-preview-tts/Kore/f1fb7f6a",
+    "english": "nine",
+    "text": "تسعة",
+    "spoken": "تِسْعَه",
+    "transliteration": "tisʿa",
+    "sourceHash": "88b8e644eb6f44c0",
+    "bytes": 7532,
+    "generatedAt": "2026-08-11T11:22:08.571Z"
   },
   "ar/counting-and-numbers__one-to-ten__one_neutral": {
     "path": "assets/audio/ar/counting-and-numbers__one-to-ten__one_neutral.mp3",
@@ -227,6 +255,34 @@ export const AUDIO_CLIPS: Record<string, AudioClipRecord> = {
     "bytes": 11852,
     "generatedAt": "2026-08-08T21:33:24.743Z"
   },
+  "ar/counting-and-numbers__one-to-ten__seven_neutral": {
+    "path": "assets/audio/ar/counting-and-numbers__one-to-ten__seven_neutral.mp3",
+    "language": "arabic",
+    "form": "neutral",
+    "provider": "gemini",
+    "voice": "gemini-2.5-flash-preview-tts/Kore/f1fb7f6a",
+    "english": "seven",
+    "text": "سبعة",
+    "spoken": "سَبْعَه",
+    "transliteration": "sabʿa",
+    "sourceHash": "fef0d52fc91e915b",
+    "bytes": 8972,
+    "generatedAt": "2026-08-11T11:22:04.101Z"
+  },
+  "ar/counting-and-numbers__one-to-ten__ten_neutral": {
+    "path": "assets/audio/ar/counting-and-numbers__one-to-ten__ten_neutral.mp3",
+    "language": "arabic",
+    "form": "neutral",
+    "provider": "gemini",
+    "voice": "gemini-2.5-flash-preview-tts/Kore/f1fb7f6a",
+    "english": "ten",
+    "text": "عشرة",
+    "spoken": "عَشَرَه",
+    "transliteration": "ʿashara",
+    "sourceHash": "9a0fe7855b17b1aa",
+    "bytes": 8684,
+    "generatedAt": "2026-08-11T11:22:10.612Z"
+  },
   "ar/counting-and-numbers__one-to-ten__three_neutral": {
     "path": "assets/audio/ar/counting-and-numbers__one-to-ten__three_neutral.mp3",
     "language": "arabic",
@@ -235,11 +291,11 @@ export const AUDIO_CLIPS: Record<string, AudioClipRecord> = {
     "voice": "gemini-2.5-flash-preview-tts/Kore/f1fb7f6a",
     "english": "three",
     "text": "تلاتة",
-    "spoken": "تَلاتِة",
+    "spoken": "تَلاتِه",
     "transliteration": "talāte",
-    "sourceHash": "2bdb14837f90adca",
-    "bytes": 12716,
-    "generatedAt": "2026-08-08T21:38:04.685Z"
+    "sourceHash": "bb6d5c5c2b5fa8aa",
+    "bytes": 8684,
+    "generatedAt": "2026-08-11T11:21:01.583Z"
   },
   "ar/counting-and-numbers__one-to-ten__two_neutral": {
     "path": "assets/audio/ar/counting-and-numbers__one-to-ten__two_neutral.mp3",
@@ -249,11 +305,11 @@ export const AUDIO_CLIPS: Record<string, AudioClipRecord> = {
     "voice": "gemini-2.5-flash-preview-tts/Kore/f1fb7f6a",
     "english": "two",
     "text": "تنين",
-    "spoken": "تْنِين",
+    "spoken": "تْنِينْ",
     "transliteration": "tnēn",
-    "sourceHash": "731a7aa7af0caafe",
-    "bytes": 10700,
-    "generatedAt": "2026-08-08T21:33:26.439Z"
+    "sourceHash": "b2c01e5d2cd4e4b8",
+    "bytes": 8972,
+    "generatedAt": "2026-08-11T11:20:58.765Z"
   },
   "ar/medical__at-the-clinic__appointment_neutral": {
     "path": "assets/audio/ar/medical__at-the-clinic__appointment_neutral.mp3",
