@@ -106,14 +106,14 @@ export const AUDIO_CLIPS: Record<string, AudioClipRecord> = {
     "language": "arabic",
     "form": "neutral",
     "provider": "gemini",
-    "voice": "gemini-2.5-flash-preview-tts/Kore/4923dfba",
+    "voice": "gemini-2.5-flash-preview-tts/Kore/f1fb7f6a",
     "english": "shampoo",
     "text": "شامبو",
-    "spoken": "شامبو",
+    "spoken": "شامْبو",
     "transliteration": "shāmbū",
-    "sourceHash": "b4fb3329a58343a3",
-    "bytes": 10700,
-    "generatedAt": "2026-08-09T14:41:26.225Z"
+    "sourceHash": "f7802a762dd189fb",
+    "bytes": 12716,
+    "generatedAt": "2026-08-11T14:00:10.083Z"
   },
   "ar/care-and-hygiene__bathroom-shelf__soap_neutral": {
     "path": "assets/audio/ar/care-and-hygiene__bathroom-shelf__soap_neutral.mp3",
