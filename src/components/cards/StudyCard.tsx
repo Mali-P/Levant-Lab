@@ -207,7 +207,9 @@ export default function StudyCard(props: StudyCardProps) {
               className="btn btn-compact"
               onClick={() => props.onSpeak(plan.audio!)}
             >
-              <Icon name="speaker" /> Play the {plan.audio} word
+              {/* The language is a proper noun, so it keeps its capital where
+                  the rest of the sentence does not: "Play the Arabic word". */}
+              <Icon name="speaker" /> Play the {sentenceCase(plan.audio)} word
             </button>
           ) : (
             <>
@@ -256,19 +258,6 @@ export default function StudyCard(props: StudyCardProps) {
               }
             >
               <span>{field.label}</span>
-              {field.input !== 'english' && (
-                // One button per form, so a gendered word can be heard both
-                // ways rather than only in its headline form.
-                <span className="speaker-row">
-                  {translitForms.map((form) => (
-                    <SpeakerButton
-                      key={form.key}
-                      form={form}
-                      language={field.scores}
-                    />
-                  ))}
-                </span>
-              )}
             </div>
 
             {typed ? (
@@ -331,6 +320,28 @@ export default function StudyCard(props: StudyCardProps) {
                       />
                     </span>
                   ))}
+              </div>
+            )}
+
+            {/*
+              The last line of the block, under the word and its romanisation
+              rather than between the label and the answer. A control sitting
+              above the thing it plays cut the block in two and pushed the
+              script off the middle of the card; at the foot it closes the block
+              instead, and the reading runs label, word, romanisation, play.
+
+              One button per form, so a gendered word can be heard both ways
+              rather than only in its headline form.
+            */}
+            {field.input !== 'english' && (
+              <div className="speaker-row answer-speakers">
+                {translitForms.map((form) => (
+                  <SpeakerButton
+                    key={form.key}
+                    form={form}
+                    language={field.scores}
+                  />
+                ))}
               </div>
             )}
           </div>

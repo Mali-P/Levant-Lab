@@ -56,6 +56,7 @@ export type MemoriseCardProps = {
 const SWIPE_DISTANCE = 70;
 const SWIPE_VELOCITY = 300;
 
+
 /**
  * One card in Memorise mode: English on the front, every Hebrew and Arabic
  * form on the back.
@@ -67,15 +68,38 @@ const SWIPE_VELOCITY = 300;
  * freely in both directions in every mode: reading a deck is browsing, and
  * nothing behind the learner has been written down.
  */
-/** One form and its speaker button. */
+/**
+ * One form's play button.
+ *
+ * One per form, so each variant can be heard as itself rather than only in the
+ * headline wording. The card flips on tap, so the press must not reach it.
+ */
+function FormSpeaker({
+  form,
+  language,
+}: {
+  form: WordForm;
+  language: 'hebrew' | 'arabic';
+}) {
+  return (
+    <span onClick={(event) => event.stopPropagation()}>
+      <SpeakerButton form={form} language={language} />
+    </span>
+  );
+}
+
+/** One form: the word on the card's own axis with its romanisation under it. */
 function FormRow({
   form,
   language,
   showTransliteration,
+  /** Whether this block carries its buttons itself, or above its own head. */
+  speaker,
 }: {
   form: WordForm;
   language: 'hebrew' | 'arabic';
   showTransliteration: boolean;
+  speaker: boolean;
 }) {
   return (
     <div className="memorise-form">
@@ -94,12 +118,7 @@ function FormRow({
         )}
       </div>
 
-      {/* One button per form, so each variant can be heard as itself rather
-          than only in the headline wording. The card flips on tap, so the
-          press must not reach it. */}
-      <span onClick={(event) => event.stopPropagation()}>
-        <SpeakerButton form={form} language={language} />
-      </span>
+      {speaker && <FormSpeaker form={form} language={language} />}
     </div>
   );
 }
@@ -115,22 +134,93 @@ export default function MemoriseCard(props: MemoriseCardProps) {
   }));
 
   /*
+   * The English sits between the two scripts rather than above both of them.
+   * Stacked under one head, the second language read as an afterthought of the
+   * first; with the meaning in the middle, each script has the English directly
+   * against it and neither is the one further away.
+   *
+   * A learner studying one language alone keeps her script on its own side —
+   * Hebrew above, Arabic below — rather than having it move to the top because
+   * the other is switched off. Nothing about the head changes either way.
+   */
+  const above = sides.filter(({ language }) => language === 'hebrew');
+  const below = sides.filter(({ language }) => language !== 'hebrew');
+
+  /*
+   * `place` is spacing, not meaning. A block below the English opens with a
+   * pad under the rule it follows; a block above it needs the same pad on the
+   * other edge, or the Hebrew sits a few pixels closer to the word than the
+   * Arabic does and the English stops reading as the middle of the card.
+   */
+  const renderSide = (
+    { language, label, side }: (typeof sides)[number],
+    place: 'above' | 'below',
+  ) => {
+    /* The forms she actually needs, female-speaker first — or, where the phrase
+       has no speaker/listener variants, the grammatical pair feminine-first. A
+       word with one form for everyone comes back as a single unmarked line. */
+    const forms = wordForms(side, perspectives, lead);
+
+    return (
+    <div className={'answer-block ' + place} key={language}>
+      {/*
+        The buttons sit on the block's outer edge: over the head of the block
+        above the English, at the foot of the block below it. Under both, the
+        Hebrew's button fell into the gap between the Hebrew and the meaning it
+        belongs to and read as the meaning's own control. On the outside the two
+        rows mirror each other around the middle of the card, and each is
+        unmistakably the row for the script it touches.
+      */}
+      {place === 'above' && (
+        <div className="memorise-speakers">
+          {forms.map((form) => (
+            <FormSpeaker key={form.key} form={form} language={language} />
+          ))}
+        </div>
+      )}
+
+      <div
+        className={
+          'lang-label ' +
+          (language === 'hebrew' ? 'hebrew-label' : 'arabic-label')
+        }
+      >
+        <span>{label}</span>
+      </div>
+
+      <div className="memorise-forms">
+        {forms.map((form) => (
+          <FormRow
+            key={form.key}
+            form={form}
+            language={language}
+            showTransliteration={props.showTransliteration}
+            speaker={place === 'below'}
+          />
+        ))}
+      </div>
+    </div>
+    );
+  };
+
+  /*
    * Four forms and two labels turned over always fit one face, because the face
    * sets itself smaller until they do rather than scrolling to them.
    *
-   * Every face also sets itself *up* until it reaches the card's edge. The
-   * sizes in the stylesheet were chosen for the fullest back there is, so any
-   * face carrying less than that — one language rather than two, or the front
-   * with its single English word — was reading at a size chosen for lines it
-   * does not have, marooned in the middle of a tablet with a band of empty card
-   * under it. One measurement settles the whole face either way: `--fit` is the
-   * only size on this card, and setting it up is the same act as setting it
-   * down.
+   * Shrink only. The face used to set itself *up* as well, to fill a card that
+   * had room to spare — and that made turning the card over an event: the front
+   * grew its one English word until it reached the card's edge, the back had
+   * four forms to hold and could not, so the word and the rule under it changed
+   * size and place under the learner's thumb at the exact moment she was
+   * looking for the answer. The head of this card is the same head on both
+   * sides now, and flipping it adds the scripts and nothing else.
    */
-  const face = useFitToBox<HTMLElement>(
-    [card.id, flipped, perspectives, sides.length],
-    true,
-  );
+  const face = useFitToBox<HTMLElement>([
+    card.id,
+    flipped,
+    perspectives,
+    sides.length,
+  ]);
 
   /**
    * Whether the gesture in progress has turned into a drag.
@@ -224,6 +314,13 @@ export default function MemoriseCard(props: MemoriseCardProps) {
             not the card, so it stays put when the card is turned over. */}
         <div className="eyebrow memorise-eyebrow">Review</div>
 
+        {flipped && above.length > 0 && (
+          <>
+            {above.map((side) => renderSide(side, 'above'))}
+            <EngravedDivider tone="card" />
+          </>
+        )}
+
         <div className="card-prompt">
           {card.icon && (
             <span className="glyph" aria-hidden="true">
@@ -233,41 +330,15 @@ export default function MemoriseCard(props: MemoriseCardProps) {
           <h2 className="word english">{sentenceCase(card.english)}</h2>
         </div>
 
-        <EngravedDivider tone="card" tight={flipped} />
+        {/* The same rule on both sides of the English, and never tight: the two
+            bands are what make the meaning the middle of the card rather than
+            its heading. A rule that closed up on the flip would be the head
+            moving when only the scripts should have. Below it is drawn only
+            when something follows it — a run with Arabic switched off ends at
+            the English rather than on a hanging line. */}
+        {(!flipped || below.length > 0) && <EngravedDivider tone="card" />}
 
-        {flipped ? (
-          sides.map(({ language, label, side }, i) => (
-            <div className="answer-block" key={language}>
-              {/* A band between the two languages, never above the first —
-                  the divider under the prompt already opens the block. */}
-              {i > 0 && <EngravedDivider tone="card" tight />}
-              <div
-                className={
-                  'lang-label ' +
-                  (language === 'hebrew' ? 'hebrew-label' : 'arabic-label')
-                }
-              >
-                <span>{label}</span>
-              </div>
-
-              <div className="memorise-forms">
-                {/* The forms she actually needs, female-speaker first — or,
-                    where the phrase has no speaker/listener variants, the
-                    grammatical pair feminine-first. A word with one form for
-                    everyone comes back as a single unmarked line. */}
-                {wordForms(side, perspectives, lead).map((form) => (
-                  <FormRow
-                    key={form.key}
-                    form={form}
-                    language={language}
-                    showTransliteration={props.showTransliteration}
-                  />
-                ))}
-
-              </div>
-            </div>
-          ))
-        ) : (
+        {flipped ? below.map((side) => renderSide(side, 'below')) : (
           <p className="memorise-hint small muted">Tap to flip</p>
         )}
       </motion.article>

@@ -53,10 +53,17 @@ const CEILING = 2.8;
  *   ones the sizes in the stylesheet were chosen for and growing those would
  *   only undo that choice. A face carrying half of them — one script rather
  *   than two — has the room and is the case this exists for.
+ * @param ceiling How far a growing face may be set up, where the shared ceiling
+ *   is too far. A face holding a single short word has nothing to stop it but
+ *   the card's own edge, and a tablet filled edge to edge with the word "Towel"
+ *   is a poster rather than a card. A face like that carries a lower ceiling of
+ *   its own instead of the shared one being lowered for the full backs it was
+ *   chosen for.
  */
 export function useFitToBox<T extends HTMLElement>(
   deps: readonly unknown[],
   grow = false,
+  ceiling = CEILING,
 ) {
   const ref = useRef<T>(null);
 
@@ -92,8 +99,8 @@ export function useFitToBox<T extends HTMLElement>(
        * above it, so growing the type cannot grow the thing being measured and
        * this ends where the card's edge is.
        */
-      while (scale < CEILING) {
-        const next = Math.min(CEILING, scale + STEP);
+      while (scale < ceiling) {
+        const next = Math.min(ceiling, scale + STEP);
         el.style.setProperty('--fit', next.toFixed(3));
         if (overflows()) {
           el.style.setProperty('--fit', scale.toFixed(3));
@@ -108,7 +115,7 @@ export function useFitToBox<T extends HTMLElement>(
       scale = Math.max(FLOOR, scale - STEP);
       el.style.setProperty('--fit', scale.toFixed(3));
     }
-  }, [grow]);
+  }, [grow, ceiling]);
 
   useEffect(() => {
     const el = ref.current;

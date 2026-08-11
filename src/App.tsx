@@ -11,6 +11,7 @@ import DeckScreen from './app/DeckScreen';
 import MemoriseScreen from './app/MemoriseScreen';
 import ReviewHomeScreen from './app/ReviewHomeScreen';
 import ReviewCategoryScreen from './app/ReviewCategoryScreen';
+import AlphabetReviewScreen from './app/AlphabetReviewScreen';
 import StudyScreen from './app/StudyScreen';
 import ManageScreen from './app/ManageScreen';
 import CardEditorScreen from './app/CardEditorScreen';
@@ -151,6 +152,10 @@ export default function App() {
           element={<ReviewCategoryScreen />}
         />
         <Route path="/memorise/selection" element={<MemoriseScreen pile />} />
+        {/* The letters, read the same way the words are. Static like the two
+            above it, so it is matched before `:deckId` rather than looked up
+            as a deck that does not exist. */}
+        <Route path="/memorise/alphabet" element={<AlphabetReviewScreen />} />
         <Route path="/memorise/:deckId" element={<MemoriseScreen />} />
         <Route path="/study/:deckId" element={<StudyScreen />} />
         {/* Putting a deck back in order. Its own route rather than a study

@@ -459,11 +459,20 @@ input, select, textarea {
   flex: 1;
 }
 
+/*
+ * Sentence case, not caps.
+ *
+ * Every eyebrow in the app is written as a sentence in the markup — "Review",
+ * "Bathroom shelf" — and was being shouted back by the stylesheet. The tracking
+ * is what marks a line as a label; the capitals only made it louder than the
+ * thing it labelled. Kept a little tighter than it was, because letters spaced
+ * for small caps are spaced too far apart for lower case.
+ */
 .eyebrow {
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
   color: var(--ink-dim);
 }
 
@@ -799,8 +808,14 @@ textarea.input {
    * for it and sitting on top of the romanisation beside it. Floored at the 24px
    * WCAG 2.5.8 target and capped at the 44px one, which is as large as a
    * secondary control on this card ever needs to be.
+   *
+   * A play button is the quietest thing on the face — pressed once and then
+   * read past — but it is drawn on the same face as the words and moves with
+   * them, so it took the same step up they did. Floored well above the 24px
+   * WCAG 2.5.8 minimum: it sits alone at the foot of the block with nothing
+   * beside it to borrow a target from.
    */
-  --speaker: clamp(24px, calc(26px * var(--fit)), 44px);
+  --speaker: clamp(30px, calc(30px * var(--fit)), 48px);
 }
 
 .card-prompt {
@@ -843,12 +858,19 @@ textarea.input {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  /* Small caps at 0.64rem are already at the edge of legible; the label is
+  /* Lower case reads smaller than the small caps this used to be set in, so it
+     is set a little larger to stand in the same place. Floored: the label is
      allowed to tighten with the card but not to become a texture. */
-  font-size: max(0.58rem, calc(0.64rem * var(--fit)));
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: max(0.71rem, calc(0.78rem * var(--fit)));
+  font-weight: 700;
+  /*
+   * Sentence case, not caps. "ARABIC" over an Arabic word is the label shouting
+   * over the thing it names, and every other piece of English on these cards is
+   * set as a sentence. What the capitals were doing — marking this as a label
+   * rather than content — the tracking does on its own.
+   */
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .lang-label.hebrew-label { color: #1f5fd0; }
@@ -902,9 +924,9 @@ textarea.input {
   padding: 4px 10px;
   border-radius: 999px;
   font-weight: 800;
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: none;
   pointer-events: none;
 }
 
@@ -1314,11 +1336,17 @@ a.btn-primary:visited {
 }
 
 .screen.study .card-prompt .glyph {
-  font-size: calc(clamp(1.2rem, 2.6vh, 1.6rem) * var(--fit));
+  font-size: calc(clamp(1.38rem, 3vh, 1.84rem) * var(--fit));
 }
 
+/*
+ * The prompt is a heading on a card, not a headline. Set down a step from the
+ * sizes it had: what the learner is reading is the answer under it, and a word
+ * set nearly twice the height of the script it is asking for made the face
+ * top-heavy — the English shouted and the Arabic answered quietly.
+ */
 .screen.study .card-prompt .word {
-  font-size: calc(clamp(1.2rem, 2.9vh, 1.8rem) * var(--fit));
+  font-size: calc(clamp(1.38rem, 3.15vh, 1.95rem) * var(--fit));
 }
 
 /* A phrase, and then a whole sentence. Set down in two steps rather than one
@@ -1326,11 +1354,11 @@ a.btn-primary:visited {
    above the size the answers are set at, because a prompt smaller than its own
    answer reads as a caption. */
 .screen.study .card-prompt .word.word-long {
-  font-size: calc(clamp(1.05rem, 2.4vh, 1.45rem) * var(--fit));
+  font-size: calc(clamp(1.2rem, 2.65vh, 1.6rem) * var(--fit));
 }
 
 .screen.study .card-prompt .word.word-longer {
-  font-size: calc(clamp(0.95rem, 2vh, 1.2rem) * var(--fit));
+  font-size: calc(clamp(1.1rem, 2.25vh, 1.36rem) * var(--fit));
   letter-spacing: -0.01em;
 }
 
@@ -1347,8 +1375,55 @@ a.btn-primary:visited {
    shrinking past this point, which is the whole reason the scripts can stand
    still. */
 .screen.study .answer-reveal {
-  font-size: max(0.95rem, calc(clamp(1.1rem, 2.7vh, 1.45rem) * var(--fit)));
+  font-size: max(1.27rem, calc(clamp(1.47rem, 3.45vh, 1.86rem) * var(--fit)));
   min-height: 1.2em;
+}
+
+/*
+ * One axis down the middle of the practice card.
+ *
+ * The prompt has always been centred and everything under it was not: the label
+ * pushed to the left edge, the answer starting from the right because the script
+ * is right-to-left, the romanisation starting from the left because it is not.
+ * Three different edges under one centred word reads as three things that
+ * happen to be on the same card rather than one card, and the reveal moved the
+ * answer sideways as it arrived.
+ *
+ * The label carries nothing but its own word now — the play buttons moved to the
+ * foot of the block, where they close it rather than standing between the label
+ * and the answer — so it sits on the same axis as everything under it.
+ */
+.screen.study .card:not(.memorise-card) .answer-block .lang-label {
+  justify-content: center;
+  text-align: center;
+}
+
+/*
+ * The play buttons, on the card's axis at the foot of the block.
+ *
+ * They are the one thing here that is pressed rather than read, so they keep a
+ * little air above them: close enough to belong to the word they play, far
+ * enough not to be read as another line of it.
+ */
+/* Both classes named, because `.speaker-row` sets itself inline-flex further
+   down the sheet and an inline row cannot be centred in the block it sits in. */
+.speaker-row.answer-speakers {
+  display: flex;
+  justify-content: center;
+  margin-top: calc(10px * var(--fit));
+}
+
+/* The answer, the row of dots standing in for it before the reveal, and the
+   romanisation under it. `justify-content` is for the short-screen rule below,
+   where these become flex rows; it does nothing until they do. */
+.screen.study .card:not(.memorise-card) .answer-reveal,
+.screen.study .card:not(.memorise-card) .translit-lines {
+  text-align: center;
+  justify-content: center;
+}
+
+.screen.study .card:not(.memorise-card) .answer-reveal .form-line {
+  justify-content: center;
 }
 
 /*
@@ -1416,7 +1491,7 @@ a.btn-primary:visited {
 }
 
 .screen.study .translit {
-  font-size: calc(0.72rem * var(--fit));
+  font-size: calc(0.92rem * var(--fit));
 }
 
 /*
@@ -1429,7 +1504,7 @@ a.btn-primary:visited {
  * over the card's edge.
  */
 .card .translit-line {
-  font-size: calc(0.72rem * var(--fit));
+  font-size: calc(0.92rem * var(--fit));
 }
 
 /*
@@ -1586,8 +1661,18 @@ a.btn-primary:visited {
 /* The front holds the two letterforms. Centring them turns the room the card
    must reserve for its back into a frame rather than a gap under the prompt —
    the same rule the Memorise card follows. */
-.pair-card:not(.revealed) .card-prompt {
-  margin: auto 0;
+/* The same anchoring the memorise tablet uses: the eyebrow at the head of the
+   card, everything under it centred in what is left, on both faces. */
+.screen.study .pair-card {
+  justify-content: flex-start;
+}
+
+.screen.study .pair-card .card-prompt {
+  margin-top: auto;
+}
+
+.screen.study .pair-card > :last-child {
+  margin-bottom: auto;
 }
 
 /* Small against the letterforms, but a line to be read rather than a caption:
@@ -1598,7 +1683,7 @@ a.btn-primary:visited {
   text-transform: none;
   letter-spacing: 0.01em;
   font-weight: 600;
-  font-size: calc(clamp(1.15rem, 5.2vw, 1.5rem) * var(--fit));
+  font-size: calc(clamp(1.32rem, 6vw, 1.72rem) * var(--fit));
   color: var(--ink-dim);
   padding-bottom: calc(8px * var(--fit));
 }
@@ -2231,6 +2316,8 @@ a.btn-primary:visited {
     flex-flow: row wrap;
     align-items: baseline;
     column-gap: 10px;
+    /* The pair sits on the card's axis, the same as it does stacked. */
+    justify-content: center;
   }
 
   /* The label keeps its own line — it carries the speaker buttons, which have a
@@ -2257,16 +2344,19 @@ a.btn-primary:visited {
   margin-top: 8px;
 }
 
-/* The front of the card holds one word. Centring it turns the space the card
-   has to reserve for its back into a frame rather than a gap under the word. */
-.memorise-card:not(.flipped) .card-prompt {
-  margin: auto 0;
-}
+/* The front holds one word where the back holds five lines, and the word stays
+   exactly where the back would have put it — at the head of the card, over the
+   rule. Centring it in the space the back needs was what made the English jump
+   up the card as it was turned over. The room the answers will take is left
+   open under it, which is the shape of the question. */
 
+/* A form is two lines now — the word, then its play button — so the space
+   between two forms has to be clearly more than the space inside one, or four
+   forms read as eight loose rows. */
 .memorise-forms {
   display: flex;
   flex-direction: column;
-  gap: calc(4px * var(--fit));
+  gap: calc(9px * var(--fit));
 }
 
 /*
@@ -2281,74 +2371,174 @@ a.btn-primary:visited {
  * the tab is the one that clips under the banner.
  */
 
-/* The card's own "Memorise" label, which the screen header above it already
-   says. Worth its line while the front is showing and there is room to spare;
-   the first thing to go once the back needs the height. */
-.screen.study .memorise-card.flipped .memorise-eyebrow {
-  display: none;
+/*
+ * The head of the card — the label, the English and the rule under it — is the
+ * same head on both sides.
+ *
+ * It used to be three different things: the eyebrow dropped on the flip, the
+ * English was set at a third of its front size, and the rule closed up tight
+ * behind it. Turning the card over therefore rearranged everything the learner
+ * was already looking at, at the exact moment she was looking past it for the
+ * answer. Now the only difference between the two faces is the scripts
+ * themselves arriving underneath, which is the one thing the flip is for. So
+ * there are no `.flipped` overrides here at all.
+ *
+ * Where the head sits is a separate question from what it looks like, and the
+ * answer is: the "Review" label at the top of the card, everything under it in
+ * the middle. Not the flex `justify-content` the other cards use, because that
+ * would take the label down into the middle with everything else — a pair of
+ * auto margins instead, one above the English and one under the last thing on
+ * the face, which split the leftover height evenly between them and leave the
+ * label where it was. "Tap to flip" keeps its own auto margin and its place at
+ * the foot of the front.
+ */
+.screen.study .memorise-card {
+  justify-content: flex-start;
 }
 
-.screen.study .memorise-card.flipped .card-prompt {
-  padding: 0;
+/*
+ * The first thing under the label, whatever that is: the English on the front,
+ * the Hebrew block on the back. It used to be pinned to the English by name,
+ * which was the same element until the scripts moved either side of it — after
+ * that the leftover height opened up *between* the Hebrew and the word it
+ * belongs to, and the two languages sat at quite different distances from the
+ * meaning in the middle. Anchoring the margin to the head of the face instead
+ * drops the whole stack under the label in one piece and leaves the spacing
+ * inside it to the rules and paddings, which are symmetrical.
+ */
+.screen.study .memorise-card .memorise-eyebrow + * {
+  margin-top: auto;
 }
 
-.screen.study .memorise-card.flipped .card-prompt .word {
-  font-size: calc(clamp(1rem, 4vw, 1.35rem) * var(--fit));
+/* The other half of the pair, under the last thing on the back — the Arabic
+   block, or the English itself where Arabic is switched off. The front's "Tap
+   to flip" carries its own, so this names the back rather than every last
+   child, and the label stays put between two equal margins rather than being
+   pushed by three. */
+.screen.study .memorise-card.flipped > :last-child {
+  margin-bottom: auto;
 }
 
-.screen.study .memorise-card.flipped .card-prompt .glyph {
-  font-size: calc(clamp(1.05rem, 2.4vh, 1.4rem) * var(--fit));
+/*
+ * The English is the middle of the card, and a middle needs room on both sides
+ * of it to read as one. Set at the base prompt's padding it sat almost against
+ * the two rules, so the word looked wedged between them rather than held by
+ * them. The same on both faces, because the head of this card does not move
+ * when it is turned over.
+ */
+.screen.study .memorise-card .card-prompt {
+  padding-top: calc(clamp(11px, 2.6vh, 20px) * var(--fit));
+  padding-bottom: calc(clamp(11px, 2.6vh, 20px) * var(--fit));
 }
 
 .screen.study .memorise-card.flipped .answer-block {
   padding-top: calc(clamp(3px, 0.9vh, 6px) * var(--fit));
   gap: calc(2px * var(--fit));
+  /* The engraved rules either side of the English are the separation now. The
+     block's own hairline on top of them drew a second line above the Hebrew,
+     and below the Arabic's rule it drew one line directly under another. */
+  border-top: none;
+}
+
+/* The block above the English pads its lower edge instead of its upper one, so
+   the two languages stand off the word by the same distance. */
+.screen.study .memorise-card.flipped .answer-block.above {
+  padding-top: 0;
+  padding-bottom: calc(clamp(3px, 0.9vh, 6px) * var(--fit));
 }
 
 .screen.study .memorise-card.flipped .memorise-forms {
-  gap: calc(2px * var(--fit));
+  gap: calc(6px * var(--fit));
 }
 
-/*
- * One form per row: the word on the card's own axis, its speaker at the right
- * edge. The row is LTR so the ♀ / ♂ marker and the play button keep their places
- * regardless of the script between them, which isolates back into RTL on its
- * own.
- *
- * Three columns rather than a word and a button, because with only those two the
- * word sat left of centre by the whole width of the button — the English above
- * it is centred, and a back hanging off the left edge under a centred front
- * reads as two different cards. The outer columns are equal, so whatever the
- * middle one holds is centred on the card; both are floored at the button's own
- * side — the same `--speaker` the button is drawn at, rather than a guess at it,
- * because a floor narrower than the button is a button drawn over the word next
- * to it.
- *
- * The middle column is `minmax(0, auto)`: it takes what the form needs when the
- * form fits and gives way when it does not, so a long one wraps inside its
- * column instead of running out over the speaker.
- */
-.memorise-form {
-  display: grid;
-  grid-template-columns:
-    minmax(var(--speaker), 1fr)
-    minmax(0, auto)
-    minmax(var(--speaker), 1fr);
-  align-items: center;
-  gap: 8px;
+/* The play buttons of the block above the English, sitting over its head rather
+   than under its words. A row, because a gendered word has one button per form
+   and they belong side by side; a single button simply centres itself. */
+.memorise-speakers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(10px * var(--fit));
+  /* The same clear line of air the button below a word takes, so the two edges
+     of the card are spaced alike. */
+  padding-bottom: calc(10px * var(--fit));
   direction: ltr;
 }
 
-/* The word takes the middle column; the speaker keeps to the card's right edge
-   rather than trailing the form it belongs to. */
-.memorise-form > .grow {
-  grid-column: 2;
-  min-width: 0;
+/* ---- memorise: the letter tablet -------------------------------------- */
+
+/*
+ * The letter card is the word card with the languages the other way up: the
+ * scripts are the question and the meaning is the answer, so both letterforms
+ * are on the face from the start and only the sound between them arrives on
+ * the flip. Everything the word card scopes to `.flipped` therefore applies
+ * here on both faces — the blocks, their padding, and the auto margin that
+ * centres the stack under the eyebrow.
+ */
+.screen.study .letter-review-card > :last-child {
+  margin-bottom: auto;
 }
 
-.memorise-form > :last-child {
-  grid-column: 3;
-  justify-self: end;
+.screen.study .letter-review-card .answer-block {
+  padding-top: calc(clamp(3px, 0.9vh, 6px) * var(--fit));
+  gap: calc(2px * var(--fit));
+  align-items: center;
+  text-align: center;
+  /* The engraved rules either side of the sound are the separation; the block's
+     own hairline drew a second line against each of them. */
+  border-top: none;
+}
+
+.screen.study .letter-review-card .answer-block.above {
+  padding-top: 0;
+  padding-bottom: calc(clamp(3px, 0.9vh, 6px) * var(--fit));
+}
+
+/* The letterform, then — once turned over — its name, its reading and the
+   button that says it. One centred column, the way the word card's forms are. */
+.letter-review-half {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(4px * var(--fit));
+}
+
+/* Large enough that the shape is remembered rather than merely identified, and
+   measured against the viewport's height because height is what the card is
+   short of. `--fit` takes it down when the back needs the room. */
+.screen.study .letter-review-card .glyph-lg {
+  font-size: calc(clamp(2.5rem, 8.5vh, 4rem) * var(--fit));
+}
+
+.screen.study .letter-review-card .letter-review-name {
+  font-size: calc(clamp(0.98rem, 2.2vh, 1.18rem) * var(--fit));
+}
+
+/*
+ * One form per block: the word on the card's own axis, its play button on a line
+ * of its own underneath. The block is LTR so the ♀ / ♂ marker and the button keep
+ * their places regardless of the script between them, which isolates back into
+ * RTL on its own.
+ *
+ * The button used to sit at the card's right edge on the same line as the word,
+ * which put a control inside the line being read and left the word measuring
+ * itself against whatever room the button had not taken. Below it the word has
+ * the full width of the card to centre itself in, and the button reads as what
+ * it is: the thing you press once the line has been read.
+ */
+.memorise-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* A clear line of air, not a hairline gap: the button is a separate object
+     from the word above it, and set close it read as a third line of the form. */
+  gap: calc(10px * var(--fit));
+  direction: ltr;
+}
+
+.memorise-form > .grow {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .memorise-form .form-line {
@@ -2363,15 +2553,22 @@ a.btn-primary:visited {
   font-size: max(0.9rem, calc(clamp(0.98rem, 2.25vh, 1.16rem) * var(--fit)));
 }
 
+/*
+ * The back of the tablet is the side that is actually read, and both lines on
+ * it were set as captions: pointed Hebrew and Arabic at the size of a footnote,
+ * with a romanisation smaller again under them. A step up on each. The face
+ * fits itself to the card either way, so what this buys is script large enough
+ * to see the pointing on rather than a card that overflows.
+ */
 .screen.study .memorise-card.flipped .memorise-form .form-line {
-  font-size: clamp(0.86rem, 2vh, 1.05rem);
+  font-size: clamp(1.5rem, 3.5vh, 1.9rem);
   justify-content: center;
   text-align: center;
 }
 
 .screen.study .memorise-card.flipped .memorise-form .translit,
 .screen.study .memorise-card.flipped .memorise-form .translit-line {
-  font-size: clamp(0.62rem, 1.45vh, 0.74rem);
+  font-size: clamp(1.08rem, 2.6vh, 1.31rem);
 }
 
 .screen.study .memorise-card.flipped .memorise-form > .grow,
@@ -2932,24 +3129,28 @@ a.btn-primary:active {
 .memorise-eyebrow {
   text-align: center;
   color: var(--card-muted-ink);
-  letter-spacing: 0.22em;
+  /* Wider than the eyebrow's own tracking but nothing like the spacing small
+     caps took, which set lower-case letters adrift from each other. */
+  letter-spacing: 0.12em;
 }
 
-.memorise-card:not(.flipped) .card-prompt .word {
-  font-family: var(--serif);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  text-align: center;
-  text-transform: none;
-  font-size: calc(clamp(2.15rem, 9vw, 3.35rem) * var(--fit));
-}
-
+/*
+ * The English, at one size on both sides of the card.
+ *
+ * Large — it is the head of the face — but a heading rather than a poster: the
+ * front used to be set up until the word reached the card's own edge, so a short
+ * one came out at the size of a shop sign and then shrank by two thirds on the
+ * flip. It is measured against the viewport's height rather than its width,
+ * because height is what the card is short of and what the rest of the face is
+ * sized against. `--fit` only ever takes it down from here, never up.
+ */
 .memorise-card .card-prompt .word {
   font-family: var(--serif);
   font-weight: 600;
   letter-spacing: 0.01em;
   text-align: center;
   text-transform: none;
+  font-size: calc(clamp(1.67rem, 4.15vh, 2.24rem) * var(--fit));
 }
 
 .memorise-card .lang-label {
@@ -2965,7 +3166,7 @@ a.btn-primary:active {
    * spaced this wide read as a label at any weight.
    */
   font-weight: 600;
-  font-size: max(0.55rem, calc(0.52rem * var(--fit)));
+  font-size: max(0.63rem, calc(0.6rem * var(--fit)));
 }
 
 .memorise-card .lang-label.hebrew-label { color: var(--lapis); }
@@ -2974,6 +3175,14 @@ a.btn-primary:active {
 .memorise-hint {
   color: var(--card-muted-ink);
   letter-spacing: 0.02em;
+  font-size: calc(0.88rem * var(--fit));
+}
+
+/* The catalogue label at the head of the face. Scoped to the card, because the
+   eyebrow elsewhere in the app heads a panel rather than a card and did not
+   take this step up with the rest of the card's writing. */
+.card .eyebrow {
+  font-size: calc(0.83rem * var(--fit));
 }
 
 /* ---- feedback and dialog surfaces -------------------------------------- */
@@ -3439,14 +3648,22 @@ a.btn-primary:active {
    the shape is called. */
 .screen.study .letter-card .card-prompt .letter-card-name {
   margin: 0;
-  font-size: calc(clamp(1.15rem, 5.4vw, 1.55rem) * var(--fit));
+  font-size: calc(clamp(1.32rem, 6.2vw, 1.78rem) * var(--fit));
   letter-spacing: 0.06em;
 }
 
-/* The front holds a letter and its name; centring them frames the room kept
-   for the back rather than leaving it hanging under the prompt. */
-.letter-card:not(.flipped) .card-prompt {
-  margin: auto 0;
+/* The same anchoring every other card on this screen uses: the eyebrow at the
+   head, the letter and its name centred in what is left, on both faces. */
+.screen.study .letter-card {
+  justify-content: flex-start;
+}
+
+.screen.study .letter-card .card-prompt {
+  margin-top: auto;
+}
+
+.screen.study .letter-card > :last-child {
+  margin-bottom: auto;
 }
 
 /* The example word on the back of a letter card. */
@@ -3458,7 +3675,9 @@ a.btn-primary:active {
   margin-top: 6px;
 }
 
+/* Fit-scaled like the script on every other card, rather than a fixed size that
+   stayed put while the face around it moved. */
 .letter-card-example > .hebrew,
 .letter-card-example > .arabic {
-  font-size: 1.3rem;
+  font-size: calc(1.5rem * var(--fit));
 }

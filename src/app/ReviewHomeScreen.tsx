@@ -6,6 +6,7 @@ import {
   memorisePool,
   resumeDeck,
 } from '../features/memorise/selection';
+import { letterReviewPool } from '../features/memorise/letters';
 import { gateDecks } from '../features/review/unlock';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon from '../components/ornament/Icon';
@@ -28,6 +29,7 @@ import { categoryIcon } from '../components/ornament/Ornament';
  */
 export default function ReviewHomeScreen() {
   const settings = useSettings((s) => s.settings);
+  const languages = useSettings((s) => s.languages);
   const categories = useData((s) => s.categories);
   const decks = useData((s) => s.decks);
   const cards = useData((s) => s.cards);
@@ -51,6 +53,10 @@ export default function ReviewHomeScreen() {
   });
   const picked = (settings.memoriseDeckIds ?? []).length > 0;
   const pileCards = memorisePool(pile, cards).length;
+
+  // How many letters her languages actually put in front of her: 28 paired
+  // cards for both, 22 or 28 for one alone.
+  const letterCount = letterReviewPool(languages).length;
 
   // `replace` so the tab keeps no history of resuming: back from the deck
   // should leave Review, not walk through every time she reopened it.
@@ -78,6 +84,44 @@ export default function ReviewHomeScreen() {
             another.
           </p>
         </Link>
+      )}
+
+      {/* The letters sit above the categories rather than inside them: they are
+          not a deck of words and they are not gated by one, so a learner can
+          come back to ב and ب at any point without a category having opened
+          first. Read like every other card here — the letterform on the front,
+          the sound it makes on the back — and scored like every other card
+          here, which is to say not at all. */}
+      {letterCount > 0 && (
+        <div className="list">
+          <Link className="list-item" to="/memorise/alphabet">
+            {/* The mark says which scripts are inside. `both` overlaps the two
+                into one idea; one language alone is simply its own letter, at
+                the size every other icon here is drawn. */}
+            <span
+              className={
+                'icon script-icon' + (languages.length > 1 ? ' both' : '')
+              }
+              aria-hidden="true"
+            >
+              {languages.includes('hebrew') && 'א'}
+              {languages.includes('arabic') &&
+                (languages.length > 1 ? (
+                  <span className="script-icon-join">ع</span>
+                ) : (
+                  'ع'
+                ))}
+            </span>
+            <span className="grow">
+              <strong>The alphabet</strong>
+              <div className="small muted">
+                {letterCount} letters · the shape on the front, the sound on the
+                back
+              </div>
+            </span>
+            <Icon name="forward" className="chevron" />
+          </Link>
+        </div>
       )}
 
       <h2 className="section-title">Choose a category</h2>
