@@ -20,15 +20,16 @@ const FLOOR = 0.56;
 const STEP = 0.04;
 
 /**
- * The largest a face is allowed to set itself when it is asked to grow.
+ * The largest a face is allowed to set itself when it is asked to grow and
+ * names no ceiling of its own.
  *
- * A card carrying one script instead of two has half the lines and the same box,
- * and left at `--fit: 1` it set a word the size of a caption in the middle of a
- * tablet. At 1.85 that face still stopped short of the card's edge with a band
- * of empty tablet under it, so the ceiling is no longer what decides the size —
- * the edge of the box is. What is left of it stops the other extreme: a single
- * short word blown up until the card reads as a poster rather than as one of a
- * deck.
+ * Deliberately high, and a backstop rather than the thing that decides a size: a
+ * face left to this one stops at the edge of its box long before it stops here.
+ * That is the wrong way round for a card the box has room to spare for — the box
+ * is the height the screen had left over, not a size worth filling, and a word
+ * grown until it reaches the card's edge is a poster rather than one card of a
+ * deck. So a growing caller carries the ceiling its own face wants, and this is
+ * only what stops a runaway.
  */
 const CEILING = 2.8;
 

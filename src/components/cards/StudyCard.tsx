@@ -52,6 +52,25 @@ export type StudyCardProps = {
 const SWIPE_DISTANCE = 110;
 const SWIPE_VELOCITY = 480;
 
+/**
+ * How far a one-language face may be set up.
+ *
+ * A card asking after one script has half the lines of a full one and the same
+ * box, so it is allowed to grow into the room it has — but nothing was stopping
+ * it except the shared ceiling, and the shared ceiling is high enough that only
+ * the card's own edge ever reached it. What that produced was a face at roughly
+ * twice the size of every other card in the app: a prompt at 45px over a script
+ * at 48px, where the same word on the same deck's review card is set at 22 over
+ * 24. The learner walks straight out of those cards into these, and the two
+ * stopped reading as the same object.
+ *
+ * A quarter up rather than double. The answer is still a step larger than it
+ * would be beside a second script, which is the whole reason for growing at
+ * all, and the tablet left open under it is a frame rather than a size that has
+ * to be filled.
+ */
+const SINGLE_LANGUAGE_CEILING = 1.3;
+
 export default function StudyCard(props: StudyCardProps) {
   const { card, plan, revealed, typed, values, reducedMotion } = props;
   const firstField = useRef<HTMLInputElement>(null);
@@ -89,13 +108,20 @@ export default function StudyCard(props: StudyCardProps) {
    * And the other way for a card asking after one language rather than two. It
    * has one answer block where the full card has two, so the sizes chosen for
    * the full card leave the script standing in the middle of a half-empty face.
-   * Only once revealed: before that the block is a row of dots, and fitting the
-   * face to those would set the prompt like a poster and then drop it the moment
-   * the answer arrived.
+   *
+   * Both sides of it, question as well as answer. This used to wait for the
+   * reveal, because a face fitted to a row of dots would have set the prompt
+   * like a poster and then dropped it the moment the answer arrived — but that
+   * was the growth being stopped by the card's edge, and each side of the card
+   * has a different amount of room to run into. Against a ceiling both sides
+   * reach, the question is set at the size the answer will be set at, and the
+   * word the learner is reading stays exactly where it was while the card is
+   * answered.
    */
   const face = useFitToBox<HTMLElement>(
     [card.id, revealed, typed, plan.promptText, plan.fields.length],
-    revealed && !typed && plan.fields.length === 1,
+    !typed && plan.fields.length === 1,
+    SINGLE_LANGUAGE_CEILING,
   );
 
   const tilt = reducedMotion ? 0 : 9 * props.animationIntensity;
