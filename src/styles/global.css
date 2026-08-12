@@ -785,13 +785,6 @@ textarea.input {
   margin: 0;
 }
 
-/* One row of pips per clean pass the rung asks for, close enough together to
-   read as one strip. On the short screens where `.stage-detail` is dropped,
-   these rows are the only thing left saying the set is asked for twice. */
-.stage-passes {
-  gap: 4px;
-}
-
 .card-stage {
   position: relative;
   flex: 1;

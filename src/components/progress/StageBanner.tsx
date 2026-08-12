@@ -1,5 +1,5 @@
 import type { StudySession } from '../../types';
-import { describeStage, rungProgress } from '../../features/study/engine';
+import { describeStage, stageProgress } from '../../features/study/engine';
 import PerfectRuns from './PerfectRuns';
 
 type Props = { session: StudySession };
@@ -10,9 +10,13 @@ type Props = { session: StudySession };
  * The whole point of this strip is to say that the small set is deliberate.
  * "Testing", with two or three pips under it, reads as a stage she is in the
  * middle of; "3 / 10" would read as a ten-card test she is failing — the same
- * information and the opposite message. The detail line adds which of the two
- * clean passes she is on, because a set cleared without growing is otherwise a
- * rule she has to infer.
+ * information and the opposite message.
+ *
+ * One line each, and each fact once. The count is the header's own line and the
+ * pips beneath it; the pass she is on is the detail line, which is the only
+ * thing here that says the set has to be cleared twice. A second row of pips
+ * for the banked pass, and the count repeated in the detail line, said the same
+ * two things twice over on the one strip that has to stay glanceable.
  *
  * Once the deck itself is the active set, the pips give way to the banked
  * perfect rounds, because at that point the thing being counted has changed
@@ -20,14 +24,7 @@ type Props = { session: StudySession };
  */
 export default function StageBanner({ session }: Props) {
   const { label, detail, phase } = describeStage(session);
-  const { recalled, total, banked, passes } = rungProgress(session);
-
-  // One row per pass the rung asks for: a banked pass stays filled, the pass in
-  // hand fills as she recalls, and the rows below it wait. Nothing empties
-  // behind her except on a miss, which is the one time it should.
-  const rows = Array.from({ length: passes }, (_unused, pass) =>
-    pass < banked ? total : pass === banked ? recalled : 0,
-  );
+  const { recalled, total } = stageProgress(session);
 
   return (
     <section className="stage-banner">
@@ -44,30 +41,15 @@ export default function StageBanner({ session }: Props) {
 
       {phase === 'testing' && !session.drill && (
         <div
-          className="stack stage-passes"
+          className="runs"
           role="img"
-          aria-label={
-            passes > 1
-              ? banked +
-                ' of ' +
-                passes +
-                ' clean passes banked, ' +
-                recalled +
-                ' of ' +
-                total +
-                ' recalled in the pass in hand'
-              : recalled + ' of ' + total + ' recalled in this set'
-          }
+          aria-label={recalled + ' of ' + total + ' recalled in this set'}
         >
-          {rows.map((filled, pass) => (
-            <div className="runs" key={pass} aria-hidden="true">
-              {session.activeCardIds.map((id, index) => (
-                <span
-                  key={id}
-                  className={'seg' + (index < filled ? ' filled' : '')}
-                />
-              ))}
-            </div>
+          {session.activeCardIds.map((id, index) => (
+            <span
+              key={id}
+              className={'seg' + (index < recalled ? ' filled' : '')}
+            />
           ))}
         </div>
       )}

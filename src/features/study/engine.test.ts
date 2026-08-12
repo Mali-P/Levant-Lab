@@ -13,7 +13,6 @@ import {
   nextIntroCard,
   ORDER_INTERLUDE_AFTER,
   previousIntroCard,
-  rungProgress,
   stageProgress,
   type AnswerOutcome,
 } from './engine';
@@ -429,86 +428,31 @@ describe('testing a stage', () => {
 describe('the progress strip', () => {
   const rng = () => mulberry32(21);
 
-  /** What the strip draws: one filled count per pass the rung asks for. */
-  function rows(s: StudySession): number[] {
-    const { recalled, total, banked, passes } = rungProgress(s);
-    return Array.from({ length: passes }, (_unused, pass) =>
-      pass < banked ? total : pass === banked ? recalled : 0,
-    );
-  }
-
-  it('asks for two rows of the set while a word is still waiting', () => {
-    const s = readIntroduction(start(), rng());
-    expect(rungProgress(s)).toEqual({
-      recalled: 0,
-      total: 2,
-      banked: 0,
-      passes: 2,
-    });
-  });
-
-  it('keeps the banked pass filled instead of emptying the strip', () => {
+  it('draws one row: a pip per card in the set, filled as she recalls them', () => {
     const r = rng();
-    const s = clearPass(readIntroduction(start(), r), r).session;
-    // The pass she has just finished stays full; the new one starts at nothing.
-    expect(rows(s)).toEqual([2, 0]);
+    const s = readIntroduction(start(), r);
+    expect(stageProgress(s)).toEqual({ recalled: 0, total: 2 });
+    expect(stageProgress(answer(s, BOTH, r).session).recalled).toBe(1);
   });
 
-  it('never goes backwards across a rung except on a miss', () => {
-    const r = rng();
-    let s = readIntroduction(start({ cards: ['c1', 'c2', 'c3'] }), r);
-    s = readIntroduction(clearStage(s, r).session, r); // the three-card rung
-    let last = 0;
-
-    for (let i = 0; i < 40 && s.phase === 'testing'; i++) {
-      const out = answerCurrentCard(s, BOTH, { now: T, rng: r });
-      s = out.session;
-      if (s.phase !== 'testing') break;
-      const filled = rows(s).reduce((sum, n) => sum + n, 0);
-      expect(filled).toBeGreaterThanOrEqual(last);
-      last = filled;
-    }
-  });
-
-  it('drops back to the pass in hand when a card is missed', () => {
-    const r = rng();
-    const banked = clearPass(readIntroduction(start(), r), r).session;
-    expect(rows(banked)).toEqual([2, 0]);
-
-    const missed = answerCurrentCard(banked, NEITHER, { now: T, rng: r });
-    // Honest rather than kind: the two passes have to be consecutive, so the
-    // banked one is gone and the strip says so.
-    expect(rows(missed.session)).toEqual([0, 0]);
-  });
-
-  it('grows a row as the set does, and empties both for the new word', () => {
+  it('grows the row by a pip when the rung is bought', () => {
     const r = rng();
     const grown = readIntroduction(
       clearStage(readIntroduction(start(), r), r).session,
       r,
     );
-    expect(rungProgress(grown).total).toBe(3);
-    expect(rows(grown)).toEqual([0, 0]);
+    expect(stageProgress(grown)).toEqual({ recalled: 0, total: 3 });
   });
 
-  it('asks for one row only at the top of the ladder', () => {
+  it('empties for the second pass, and says why on the line above', () => {
     const r = rng();
-    let s = start();
-    while (s.activeCardCount < 10) s = clearStage(readIntroduction(s, r), r).session;
-    s = readIntroduction(s, r);
+    const s = clearPass(readIntroduction(start(), r), r).session;
 
-    expect(rungProgress(s).passes).toBe(1);
-    expect(rows(s)).toEqual([0]);
-  });
-
-  it('gives a drill a single row of its one card', () => {
-    const s = start({ cards: ['c7'], drill: true });
-    expect(rungProgress(s)).toEqual({
-      recalled: 0,
-      total: 1,
-      banked: 0,
-      passes: 1,
-    });
+    // One row means the pips do empty behind her, which on their own would read
+    // as progress lost. The detail line is what stops it reading that way, so
+    // it has to be saying the pass has been banked at exactly this moment.
+    expect(stageProgress(s).recalled).toBe(0);
+    expect(describeStage(s).detail).toBe('Clean pass 2 of 2');
   });
 });
 
@@ -529,13 +473,8 @@ describe('a run left open before the one-card ladder', () => {
 
   it('reads as nothing banked and a pass in hand that is still clean', () => {
     const s = asStored(readIntroduction(start(), rng()));
-    expect(rungProgress(s)).toEqual({
-      recalled: 0,
-      total: 2,
-      banked: 0,
-      passes: 2,
-    });
-    expect(describeStage(s).detail).toBe('0 of 2 recalled · clean pass 1 of 2');
+    expect(stageProgress(s)).toEqual({ recalled: 0, total: 2 });
+    expect(describeStage(s).detail).toBe('Clean pass 1 of 2');
   });
 
   it('costs her one more pass over a set she has, and nothing that was scored', () => {
@@ -791,15 +730,16 @@ describe('describeStage', () => {
   it('names the testing stage without its size', () => {
     const { label, detail } = describeStage(readIntroduction(start(), rng()));
     expect(label).toBe('Testing');
-    // The count is still kept and still shown under the headline, as progress
-    // through the set rather than as the size of a test.
-    expect(detail).toBe('0 of 2 recalled · clean pass 1 of 2');
+    // The count is still kept and still shown, beside the headline and as pips.
+    // It is not repeated here: this line says the one thing they cannot.
+    expect(detail).toBe('Clean pass 1 of 2');
+    expect(detail).not.toContain('recalled');
   });
 
   it('says which of the two clean passes she is on', () => {
     const r = rng();
     const banked = clearPass(readIntroduction(start(), r), r).session;
-    expect(describeStage(banked).detail).toContain('clean pass 2 of 2');
+    expect(describeStage(banked).detail).toBe('Clean pass 2 of 2');
   });
 
   it('says when the pass in hand has stopped counting', () => {
@@ -817,7 +757,9 @@ describe('describeStage', () => {
     }
     const { label, detail } = describeStage(readIntroduction(s, r));
     expect(label).toBe('Full deck');
-    expect(detail).toBe('0 of 10 recalled');
+    // No second pass to be on, so no line about one — and the count is already
+    // beside the headline, which leaves this rung nothing to add.
+    expect(detail).toBeNull();
   });
 
   it('counts perfect rounds once mastery begins', () => {

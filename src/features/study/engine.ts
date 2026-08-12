@@ -634,44 +634,6 @@ export function stageProgress(s: StudySession): {
   };
 }
 
-export type RungProgress = {
-  /** Cards recalled in the pass in hand. */
-  recalled: number;
-  /** Cards in the active set — the length of one pass. */
-  total: number;
-  /** Clean passes already banked at this rung. */
-  banked: number;
-  /** Clean passes this rung is asking for altogether. */
-  passes: number;
-};
-
-/**
- * Everything the strip needs to draw the whole rung rather than the pass.
- *
- * The pass on its own is a bar that empties every time she finishes one, which
- * says the opposite of what has just happened. Given the rung — both passes,
- * with the banked one filled — the strip only ever goes backwards when she has
- * actually lost something, which is a miss and nothing else.
- *
- * One pass, not two, at the top of the ladder: the set is the deck by then,
- * there is no next word for a second pass to buy, and the mastery rounds keep
- * their own count. A drill is one card and one question, and no rung at all.
- */
-export function rungProgress(s: StudySession): RungProgress {
-  const { recalled, total } = stageProgress(s);
-  const last =
-    nextStageSize(s.deckCardIds.length, s.activeCardCount) === undefined;
-
-  return {
-    recalled,
-    total,
-    // Defensive for the same reason as `answerCurrentCard`: a session left open
-    // before the one-card ladder is read here before it is ever answered.
-    banked: s.stagePerfectRounds ?? 0,
-    passes: s.drill || last ? 1 : STAGE_PERFECT_ROUNDS,
-  };
-}
-
 export type StageDescription = {
   /** The headline: "Testing", "Full deck", "Perfect rounds: 3 / 10". */
   label: string;
@@ -725,21 +687,23 @@ export function describeStage(
     }
 
     case 'testing': {
-      const { recalled } = stageProgress(s);
+      // Not the count. The banner already gives it a line of its own beside the
+      // headline, and the pips under that; saying it a third time here left the
+      // strip repeating itself. This line is kept for the one thing nothing
+      // else on the screen says — whether the pass in hand still buys a word.
+      //
       // `??` for the same reason as in `answerCurrentCard`: a row written
       // before the one-card ladder can be read before it is ever answered.
       const banked = s.stagePerfectRounds ?? 0;
       // The full deck is the one rung with no word waiting behind it, so it is
       // not asked for two clean passes and is not told about them either.
-      const pass = full
-        ? ''
-        : ' · ' +
-          ((s.stagePerfect ?? true)
-            ? 'clean pass ' + (banked + 1) + ' of ' + STAGE_PERFECT_ROUNDS
-            : 'this pass will not count');
       return {
         label: full ? 'Full deck' : 'Testing',
-        detail: recalled + ' of ' + total + ' recalled' + pass,
+        detail: full
+          ? null
+          : (s.stagePerfect ?? true)
+            ? 'Clean pass ' + (banked + 1) + ' of ' + STAGE_PERFECT_ROUNDS
+            : 'This pass will not count',
         phase: s.phase,
       };
     }
