@@ -199,6 +199,8 @@ describe('mergeDuplicateContent', () => {
       introduceFlipped: false,
       stageCorrect: [],
       stageIncorrect: [],
+      stagePerfectRounds: 0,
+      stagePerfect: true,
       roundQueue: [],
       roundIndex: 0,
       roundPerfect: true,

@@ -21,7 +21,7 @@ const CHOICES = [
   {
     href: (deckId: string) => '/study/' + deckId + '?mode=normal',
     name: 'Normal',
-    blurb: 'Three words, then five, then seven, then the deck.',
+    blurb: 'Two words, then one more at a time, up to the deck.',
     icon: 'target' as const,
     lead: true,
   },

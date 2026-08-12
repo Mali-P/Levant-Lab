@@ -13,6 +13,7 @@ import {
   nextIntroCard,
   ORDER_INTERLUDE_AFTER,
   previousIntroCard,
+  rungProgress,
   stageProgress,
   type AnswerOutcome,
 } from './engine';
@@ -68,7 +69,20 @@ function readIntroduction(s: StudySession, rng: RNG): StudySession {
   return cur;
 }
 
-/** Answers correctly until the current stage is cleared. */
+/** Answers correctly until the pass over the active set ends, clean. */
+function clearPass(s: StudySession, rng: RNG): AnswerOutcome {
+  let cur = s;
+  let out: AnswerOutcome;
+  let guard = 0;
+  do {
+    if (guard++ > 200) throw new Error('pass never cleared');
+    out = answerCurrentCard(cur, BOTH, { now: T, rng });
+    cur = out.session;
+  } while (out.event === 'continue');
+  return out;
+}
+
+/** Answers correctly until the current stage is cleared — both passes of it. */
 function clearStage(s: StudySession, rng: RNG): AnswerOutcome {
   let cur = s;
   let out: AnswerOutcome | undefined;
@@ -110,18 +124,28 @@ function playRound(s: StudySession, rng: RNG, wrongAt?: number): AnswerOutcome {
 }
 
 describe('createSession', () => {
-  it('opens on the first three cards, in the deck’s own order, introducing them', () => {
+  it('opens on the first two cards, in the deck’s own order, introducing them', () => {
     const s = start();
     expect(s.phase).toBe('introducing');
-    expect(s.activeCardCount).toBe(3);
-    expect(s.activeCardIds).toEqual(['c1', 'c2', 'c3']);
-    expect(s.introduceCardIds).toEqual(['c1', 'c2', 'c3']);
+    expect(s.activeCardCount).toBe(2);
+    expect(s.activeCardIds).toEqual(['c1', 'c2']);
+    expect(s.introduceCardIds).toEqual(['c1', 'c2']);
     expect(s.currentCardId).toBeUndefined();
+  });
+
+  it('opens on two rather than one, so there is something to tell apart', () => {
+    // A single card is not a question: there is only one word it could be, and
+    // a right answer would say nothing about whether she knows it.
+    expect(start().activeCardIds.length).toBeGreaterThan(1);
+    expect(start({ cards: ['c1', 'c2', 'c3'] }).activeCardIds).toEqual([
+      'c1',
+      'c2',
+    ]);
   });
 
   it('does not expose the rest of the deck', () => {
     const s = start();
-    expect(s.activeCardIds).not.toContain('c4');
+    expect(s.activeCardIds).not.toContain('c3');
     expect(s.deckCardIds).toHaveLength(10);
   });
 
@@ -173,8 +197,8 @@ describe('introducing', () => {
   it('switches into testing once the last new word has been passed', () => {
     const s = readIntroduction(start(), mulberry32(2));
     expect(s.phase).toBe('testing');
-    expect(s.activeCardIds).toEqual(['c1', 'c2', 'c3']);
-    expect(['c1', 'c2', 'c3']).toContain(s.currentCardId);
+    expect(s.activeCardIds).toEqual(['c1', 'c2']);
+    expect(['c1', 'c2']).toContain(s.currentCardId);
     expect(introRemaining(s)).toBe(0);
   });
 
@@ -190,7 +214,7 @@ describe('testing a stage', () => {
     const s = readIntroduction(start(), rng());
     const out = answerCurrentCard(s, BOTH, { now: T, rng: rng() });
     expect(out.session.phase).toBe('testing');
-    expect(stageProgress(out.session)).toEqual({ recalled: 1, total: 3 });
+    expect(stageProgress(out.session)).toEqual({ recalled: 1, total: 2 });
   });
 
   it('keeps recalled progress as a chronological count separate from card order', () => {
@@ -200,13 +224,76 @@ describe('testing a stage', () => {
     expect(stageProgress(out.session).recalled).toBe(1);
   });
 
-  it('clears at 3/3 and introduces the next two words', () => {
+  it('banks a clean 2/2 without growing the set', () => {
+    const out = clearPass(readIntroduction(start(), rng()), rng());
+    expect(out.event).toBe('stage-pass-complete');
+    expect(out.session.phase).toBe('testing');
+    expect(out.session.activeCardIds).toEqual(['c1', 'c2']);
+    expect(out.session.stagePerfectRounds).toBe(1);
+    // The pass starts again on the same two words, with nothing recalled yet.
+    expect(out.session.stageCorrect).toEqual([]);
+    expect(out.session.currentCardId).toBeDefined();
+  });
+
+  it('introduces one more word on the second clean pass in a row', () => {
     const out = clearStage(readIntroduction(start(), rng()), rng());
     expect(out.event).toBe('stage-complete');
     expect(out.session.phase).toBe('introducing');
-    expect(out.session.activeCardCount).toBe(5);
-    expect(out.session.activeCardIds).toEqual(['c1', 'c2', 'c3', 'c4', 'c5']);
-    expect(out.session.introduceCardIds).toEqual(['c4', 'c5']);
+    expect(out.session.activeCardCount).toBe(3);
+    expect(out.session.activeCardIds).toEqual(['c1', 'c2', 'c3']);
+    expect(out.session.introduceCardIds).toEqual(['c3']);
+  });
+
+  it('starts the new rung owing two clean passes of its own', () => {
+    const grown = clearStage(readIntroduction(start(), rng()), rng()).session;
+    expect(grown.stagePerfectRounds).toBe(0);
+    expect(grown.stagePerfect).toBe(true);
+  });
+
+  it('puts the banked passes back to none when a card is missed', () => {
+    const r = rng();
+    const banked = clearPass(readIntroduction(start(), r), r).session;
+    expect(banked.stagePerfectRounds).toBe(1);
+
+    const missed = answerCurrentCard(banked, NEITHER, { now: T, rng: r });
+    expect(missed.session.stagePerfectRounds).toBe(0);
+    expect(missed.session.stagePerfect).toBe(false);
+
+    // The spoiled pass still has to be finished — the missed word comes back
+    // before anything else does — but finishing it banks nothing.
+    const finished = clearPass(missed.session, r);
+    expect(finished.event).toBe('stage-pass-complete');
+    expect(finished.session.stagePerfectRounds).toBe(0);
+    expect(finished.session.activeCardIds).toEqual(['c1', 'c2']);
+  });
+
+  it('keeps what she has already recalled in the pass she spoils', () => {
+    const r = rng();
+    let s = readIntroduction(start({ cards: ['c1', 'c2', 'c3'] }), r);
+    s = clearStage(s, r).session; // 2 → 3
+    s = readIntroduction(s, r);
+
+    const first = answerCurrentCard(s, BOTH, { now: T, rng: r });
+    const missed = answerCurrentCard(first.session, NEITHER, { now: T, rng: r });
+
+    // The count of clean passes is what a miss costs. A word she has already
+    // recalled in this pass is not taken away from her as well.
+    expect(missed.session.stageCorrect).toEqual(first.session.stageCorrect);
+    expect(stageProgress(missed.session).recalled).toBe(1);
+  });
+
+  it('needs two clean passes in a row, not two clean passes', () => {
+    const r = rng();
+    let s = readIntroduction(start(), r);
+
+    s = clearPass(s, r).session;
+    s = answerCurrentCard(s, NEITHER, { now: T, rng: r }).session;
+    s = clearPass(s, r).session; // the spoiled one, finished
+    s = clearPass(s, r).session; // the first that counts again
+
+    expect(s.stagePerfectRounds).toBe(1);
+    expect(s.activeCardCount).toBe(2);
+    expect(clearPass(s, r).event).toBe('stage-complete');
   });
 
   it('takes a card back out of the cleared set when it is missed', () => {
@@ -217,8 +304,8 @@ describe('testing a stage', () => {
     const cardId = first.session.stageCorrect[0];
     s = first.session;
 
-    // Wrongly, so the other two cards cannot clear the stage out from under
-    // the card being watched before it comes round again.
+    // Wrongly, so the other card cannot clear the stage out from under the one
+    // being watched before it comes round again.
     let guard = 0;
     while (s.currentCardId !== cardId) {
       if (guard++ > 100) throw new Error('card never came back');
@@ -244,7 +331,7 @@ describe('testing a stage', () => {
     const s = readIntroduction(start(), rng());
     const out = answer(s, selfGradeResult('correct', 'hebrew'));
     expect(out.fullyCorrect).toBe(true);
-    expect(stageProgress(out.session)).toEqual({ recalled: 1, total: 3 });
+    expect(stageProgress(out.session)).toEqual({ recalled: 1, total: 2 });
   });
 
   it('does not ask the same card twice running', () => {
@@ -259,13 +346,12 @@ describe('testing a stage', () => {
     }
   });
 
-  it('mixes the older words back in once the newer ones arrive', () => {
+  it('mixes the older words back in once a newer one arrives', () => {
     const r = rng();
-    let s = readIntroduction(
-      clearStage(readIntroduction(start(), r), r).session,
-      r,
-    );
-    expect(s.activeCardIds).toHaveLength(5);
+    let s = readIntroduction(start(), r);
+    s = readIntroduction(clearStage(s, r).session, r); // 2 → 3
+    s = readIntroduction(clearStage(s, r).session, r); // 3 → 4
+    expect(s.activeCardIds).toHaveLength(4);
 
     const asked = new Set<string>();
     for (let i = 0; i < 40 && s.phase === 'testing'; i++) {
@@ -273,12 +359,12 @@ describe('testing a stage', () => {
       s = answerCurrentCard(s, NEITHER, { now: T, rng: r }).session;
     }
 
-    // The first three are not parked while she learns four and five.
-    expect(asked.has('c1') || asked.has('c2') || asked.has('c3')).toBe(true);
-    expect(asked.size).toBeGreaterThan(3);
+    // The first two are not parked while she learns the third and fourth.
+    expect(asked.has('c1') || asked.has('c2')).toBe(true);
+    expect(asked.size).toBeGreaterThan(2);
   });
 
-  it('climbs 3 → 5 → 7 → 10 and then begins mastery', () => {
+  it('climbs 2 → 3 → 4 → … → 10 and then begins mastery', () => {
     const r = rng();
     const sizes: number[] = [];
     let s = start();
@@ -289,12 +375,26 @@ describe('testing a stage', () => {
       s = clearStage(s, r).session;
     }
 
-    expect(sizes).toEqual([3, 5, 7, 10]);
+    expect(sizes).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10]);
     expect(s.currentRound).toBe(1);
     expect(s.roundQueue).toHaveLength(10);
   });
 
-  it('runs a six-card deck as 3 → 5 → 6', () => {
+  it('adds exactly one word at each rung above the first', () => {
+    const r = rng();
+    let s = readIntroduction(start(), r);
+    const added: number[] = [];
+
+    while (s.phase !== 'fullDeckMastery') {
+      s = clearStage(s, r).session;
+      if (s.phase === 'introducing') added.push(s.introduceCardIds.length);
+      s = readIntroduction(s, r);
+    }
+
+    expect(added).toEqual([1, 1, 1, 1, 1, 1, 1, 1]);
+  });
+
+  it('runs a six-card deck as 2 → 3 → 4 → 5 → 6', () => {
     const r = rng();
     const sizes: number[] = [];
     let s = start({ cards: ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'] });
@@ -305,11 +405,158 @@ describe('testing a stage', () => {
       s = clearStage(s, r).session;
     }
 
-    expect(sizes).toEqual([3, 5, 6]);
+    expect(sizes).toEqual([2, 3, 4, 5, 6]);
+  });
+
+  it('hands the full deck over to mastery on one clean pass, not two', () => {
+    // The last rung has no word waiting behind it, so the rule that buys the
+    // next one has nothing to buy. Mastery does its own counting from here.
+    const r = rng();
+    let s = start();
+    while (s.activeCardCount < 10) s = clearStage(readIntroduction(s, r), r).session;
+
+    const out = clearPass(readIntroduction(s, r), r);
+    expect(out.event).toBe('full-deck-reached');
+    expect(out.session.phase).toBe('fullDeckMastery');
+    expect(out.session.perfectRounds).toBe(0);
   });
 
   it('banks no perfect rounds for merely clearing the stages', () => {
     expect(climbToMastery(start(), rng()).perfectRounds).toBe(0);
+  });
+});
+
+describe('the progress strip', () => {
+  const rng = () => mulberry32(21);
+
+  /** What the strip draws: one filled count per pass the rung asks for. */
+  function rows(s: StudySession): number[] {
+    const { recalled, total, banked, passes } = rungProgress(s);
+    return Array.from({ length: passes }, (_unused, pass) =>
+      pass < banked ? total : pass === banked ? recalled : 0,
+    );
+  }
+
+  it('asks for two rows of the set while a word is still waiting', () => {
+    const s = readIntroduction(start(), rng());
+    expect(rungProgress(s)).toEqual({
+      recalled: 0,
+      total: 2,
+      banked: 0,
+      passes: 2,
+    });
+  });
+
+  it('keeps the banked pass filled instead of emptying the strip', () => {
+    const r = rng();
+    const s = clearPass(readIntroduction(start(), r), r).session;
+    // The pass she has just finished stays full; the new one starts at nothing.
+    expect(rows(s)).toEqual([2, 0]);
+  });
+
+  it('never goes backwards across a rung except on a miss', () => {
+    const r = rng();
+    let s = readIntroduction(start({ cards: ['c1', 'c2', 'c3'] }), r);
+    s = readIntroduction(clearStage(s, r).session, r); // the three-card rung
+    let last = 0;
+
+    for (let i = 0; i < 40 && s.phase === 'testing'; i++) {
+      const out = answerCurrentCard(s, BOTH, { now: T, rng: r });
+      s = out.session;
+      if (s.phase !== 'testing') break;
+      const filled = rows(s).reduce((sum, n) => sum + n, 0);
+      expect(filled).toBeGreaterThanOrEqual(last);
+      last = filled;
+    }
+  });
+
+  it('drops back to the pass in hand when a card is missed', () => {
+    const r = rng();
+    const banked = clearPass(readIntroduction(start(), r), r).session;
+    expect(rows(banked)).toEqual([2, 0]);
+
+    const missed = answerCurrentCard(banked, NEITHER, { now: T, rng: r });
+    // Honest rather than kind: the two passes have to be consecutive, so the
+    // banked one is gone and the strip says so.
+    expect(rows(missed.session)).toEqual([0, 0]);
+  });
+
+  it('grows a row as the set does, and empties both for the new word', () => {
+    const r = rng();
+    const grown = readIntroduction(
+      clearStage(readIntroduction(start(), r), r).session,
+      r,
+    );
+    expect(rungProgress(grown).total).toBe(3);
+    expect(rows(grown)).toEqual([0, 0]);
+  });
+
+  it('asks for one row only at the top of the ladder', () => {
+    const r = rng();
+    let s = start();
+    while (s.activeCardCount < 10) s = clearStage(readIntroduction(s, r), r).session;
+    s = readIntroduction(s, r);
+
+    expect(rungProgress(s).passes).toBe(1);
+    expect(rows(s)).toEqual([0]);
+  });
+
+  it('gives a drill a single row of its one card', () => {
+    const s = start({ cards: ['c7'], drill: true });
+    expect(rungProgress(s)).toEqual({
+      recalled: 0,
+      total: 1,
+      banked: 0,
+      passes: 1,
+    });
+  });
+});
+
+describe('a run left open before the one-card ladder', () => {
+  const rng = () => mulberry32(21);
+
+  /**
+   * The same run as it sits in the database, written before the two counters
+   * existed. The v4 migration drops only the sessions from before the ladder
+   * itself, so a row like this one is resumed rather than thrown away.
+   */
+  function asStored(s: StudySession): StudySession {
+    const row: Record<string, unknown> = { ...s };
+    delete row.stagePerfectRounds;
+    delete row.stagePerfect;
+    return row as unknown as StudySession;
+  }
+
+  it('reads as nothing banked and a pass in hand that is still clean', () => {
+    const s = asStored(readIntroduction(start(), rng()));
+    expect(rungProgress(s)).toEqual({
+      recalled: 0,
+      total: 2,
+      banked: 0,
+      passes: 2,
+    });
+    expect(describeStage(s).detail).toBe('0 of 2 recalled · clean pass 1 of 2');
+  });
+
+  it('costs her one more pass over a set she has, and nothing that was scored', () => {
+    const r = rng();
+    const out = clearPass(asStored(readIntroduction(start(), r)), r);
+
+    // Missing counters are not read as a rung already bought: the pass banks as
+    // the first of the two, and the second still brings the next word.
+    expect(out.event).toBe('stage-pass-complete');
+    expect(out.session.stagePerfectRounds).toBe(1);
+    expect(out.session.activeCardIds).toEqual(['c1', 'c2']);
+    expect(clearPass(out.session, r).event).toBe('stage-complete');
+  });
+
+  it('leaves her banked perfect rounds alone', () => {
+    const r = rng();
+    const s = asStored(
+      readIntroduction(start({ perfectRoundsCompleted: 4 }), r),
+    );
+    const out = answerCurrentCard(s, BOTH, { now: T, rng: r });
+    expect(out.session.perfectRounds).toBe(4);
   });
 });
 
@@ -546,16 +793,31 @@ describe('describeStage', () => {
     expect(label).toBe('Testing');
     // The count is still kept and still shown under the headline, as progress
     // through the set rather than as the size of a test.
-    expect(detail).toBe('0 of 3 recalled');
+    expect(detail).toBe('0 of 2 recalled · clean pass 1 of 2');
   });
 
-  it('calls the last stage the full deck', () => {
+  it('says which of the two clean passes she is on', () => {
+    const r = rng();
+    const banked = clearPass(readIntroduction(start(), r), r).session;
+    expect(describeStage(banked).detail).toContain('clean pass 2 of 2');
+  });
+
+  it('says when the pass in hand has stopped counting', () => {
+    const r = rng();
+    const s = readIntroduction(start(), r);
+    const out = answerCurrentCard(s, NEITHER, { now: T, rng: r });
+    expect(describeStage(out.session).detail).toContain('will not count');
+  });
+
+  it('calls the last stage the full deck, and says nothing of passes', () => {
     const r = rng();
     let s = start();
     while (s.activeCardCount < 10) {
       s = clearStage(readIntroduction(s, r), r).session;
     }
-    expect(describeStage(readIntroduction(s, r)).label).toBe('Full deck');
+    const { label, detail } = describeStage(readIntroduction(s, r));
+    expect(label).toBe('Full deck');
+    expect(detail).toBe('0 of 10 recalled');
   });
 
   it('counts perfect rounds once mastery begins', () => {

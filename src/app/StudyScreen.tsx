@@ -318,10 +318,11 @@ export default function StudyScreen() {
         fireFeedback('perfect-run', settings);
         setCelebrate(true);
       } else if (
+        outcome.event === 'stage-pass-complete' ||
         outcome.event === 'stage-complete' ||
         outcome.event === 'full-deck-reached'
       ) {
-        // Clearing a stage is worth marking, but it is a rung rather than a
+        // Clearing a set is worth marking, but it is a rung rather than a
         // summit: the accept sound, and no confetti until the deck is hers.
         fireFeedback('accept', settings);
       } else {

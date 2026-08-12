@@ -73,6 +73,10 @@ function Verdict({ label, ok }: { label: string; ok: boolean }) {
 
 function headlineFor(outcome: AnswerOutcome): string {
   switch (outcome.event) {
+    case 'stage-pass-complete':
+      // The set was cleared either way; whether the pass counts is the next
+      // line's business, and a banked one has earned the better word for it.
+      return outcome.session.stagePerfectRounds > 0 ? 'Clean pass' : 'Set cleared';
     case 'stage-complete':
       return 'Stage cleared';
     case 'full-deck-reached':
@@ -108,6 +112,16 @@ function detailFor(
   const banked = s.perfectRounds + ' / ' + s.perfectRunsRequired;
 
   switch (outcome.event) {
+    case 'stage-pass-complete': {
+      const held = 'All ' + s.activeCardIds.length + ' recalled';
+      // A pass with a miss in it is not a pass. Saying so here, rather than
+      // letting the next word simply fail to arrive, is the difference between
+      // a rule she can see and one she has to infer.
+      return s.stagePerfectRounds > 0
+        ? held + ', nothing missed. One more clean pass and a new word arrives.'
+        : held +
+            ', but that pass had a miss in it. Two clean passes in a row bring the next word.';
+    }
     case 'stage-complete':
       return (
         'All ' +

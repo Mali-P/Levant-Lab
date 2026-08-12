@@ -9,15 +9,22 @@ import {
 } from '../../types';
 import { LANGUAGE_LONG_LABEL } from '../../utils/languageSelection';
 import type { RNG } from '../../utils/random';
-import { buildRound, nextStageSize, pickNextCard, stageSizes } from './ladder';
+import {
+  buildRound,
+  nextStageSize,
+  pickNextCard,
+  STAGE_PERFECT_ROUNDS,
+  stageSizes,
+} from './ladder';
 
 /**
  * The study state machine.
  *
- * A deck is climbed, not dealt. The learner meets three words, is asked for
- * those three until she holds all three at once, meets two more, is asked for
- * all five, and so on up to the whole deck — and only then does the deck ask to
- * be run flawlessly, ten rounds over, before it counts as hers.
+ * A deck is climbed, not dealt. The learner meets two words, is asked for those
+ * two until she has held both at once twice running, meets a third, is asked
+ * for all three until she holds those, and so on one word at a time up to the
+ * whole deck — and only then does the deck ask to be run flawlessly, ten rounds
+ * over, before it counts as hers.
  *
  * Everything here is pure. The session passed in is never mutated, so the
  * caller can persist whatever comes back and replay from it after a reload:
@@ -31,7 +38,9 @@ export type StudyEvent =
   | 'continue'
   /** Missed. The card stays owed and will be back, weighted — but not next. */
   | 'retry-queued'
-  /** The whole active set has been recalled; the next words are being introduced. */
+  /** The active set was cleared, but the rung wants another pass before it grows. */
+  | 'stage-pass-complete'
+  /** The rung is bought: the next word is being introduced. */
   | 'stage-complete'
   /** The last stage cleared: the active set is now the deck, and mastery begins. */
   | 'full-deck-reached'
@@ -61,7 +70,7 @@ export type AnswerOutcome = {
 export type CreateSessionParams = {
   id: string;
   deckId: string;
-  /** The deck in its own order. The ladder deals the first three from the top. */
+  /** The deck in its own order. The ladder deals the first two from the top. */
   cardIds: string[];
   mode: StudyMode;
   promptDirection: PromptDirection;
@@ -82,7 +91,7 @@ export type CreateSessionParams = {
    */
   sequenced?: boolean;
   now: string;
-  // No `rng`: a new session opens on the deck's own first three cards, in the
+  // No `rng`: a new session opens on the deck's own first two cards, in the
   // deck's own order, and nothing is drawn until the first stage is read.
 };
 
@@ -123,6 +132,8 @@ export function createSession(params: CreateSessionParams): StudySession {
 
     stageCorrect: [],
     stageIncorrect: [],
+    stagePerfectRounds: 0,
+    stagePerfect: true,
 
     roundQueue: [],
     roundIndex: 0,
@@ -175,6 +186,8 @@ function openStage(s: StudySession, size: number): void {
   s.currentCardId = undefined;
   s.stageCorrect = [];
   s.stageIncorrect = [];
+  s.stagePerfectRounds = 0;
+  s.stagePerfect = true;
 }
 
 /** Opens the recall phase for whatever the active set has grown to. */
@@ -185,6 +198,8 @@ function openTesting(s: StudySession, rng: RNG): void {
   s.introduceFlipped = false;
   s.stageCorrect = [];
   s.stageIncorrect = [];
+  s.stagePerfectRounds = 0;
+  s.stagePerfect = true;
   // Nothing has been asked yet, so nothing is held back: the last card read is
   // as good a first question as any, and excluding it would be a pattern.
   s.currentCardId = pickNextCard({
@@ -194,6 +209,26 @@ function openTesting(s: StudySession, rng: RNG): void {
     rng,
   });
   s.lastAskedCardId = undefined;
+}
+
+/**
+ * Sends her round the same set again, for the second of the two clean passes.
+ *
+ * Only what the pass itself owns is wiped. `stageIncorrect` is deliberately
+ * carried over: a word she fumbled at the start of this rung is still the shaky
+ * one on the pass that follows, and it should keep coming round sooner than the
+ * words that never gave her trouble.
+ */
+function openPass(s: StudySession, rng: RNG): void {
+  s.stageCorrect = [];
+  s.stagePerfect = true;
+  s.currentCardId = pickNextCard({
+    activeCardIds: s.activeCardIds,
+    stageCorrect: s.stageCorrect,
+    stageIncorrect: s.stageIncorrect,
+    lastAskedCardId: s.lastAskedCardId,
+    rng,
+  });
 }
 
 /**
@@ -395,6 +430,12 @@ export function answerCurrentCard(
     introduceCardIds: [...session.introduceCardIds],
     stageCorrect: [...session.stageCorrect],
     stageIncorrect: [...session.stageIncorrect],
+    // A run left open before the one-card ladder existed has neither of these
+    // counters. They are read as "nothing banked, and the pass in hand is still
+    // clean", which costs her one more pass over a set she is already holding
+    // and nothing at all that was scored.
+    stagePerfectRounds: session.stagePerfectRounds ?? 0,
+    stagePerfect: session.stagePerfect ?? true,
     roundQueue: [...session.roundQueue],
     answers: [
       ...session.answers,
@@ -439,12 +480,19 @@ function applyDrill(
 }
 
 /**
- * A stage is cleared by recalling every card in the active set — 3/3, then 5/5,
- * then 7/7, then 10/10 — with nothing outstanding.
+ * A pass is cleared by recalling every card in the active set — 2/2, then 3/3,
+ * then 4/4 — with nothing outstanding, and a rung is bought with two clean
+ * passes in a row.
  *
- * A miss ends nothing and costs no banked progress. It takes the card back out
- * of `stageCorrect`, which is what makes the requirement mean "all of them,
- * now" rather than "each of them, once, at some point".
+ * A miss costs no banked round and takes nothing away that she has already
+ * recalled in this pass. What it does is take the card back out of
+ * `stageCorrect` — which is what makes clearing mean "all of them, now" rather
+ * than "each of them, once, at some point" — and spoil the pass, so that the
+ * two that buy the next word have to be two she got right end to end.
+ *
+ * The last rung is the exception, and deliberately: once the active set is the
+ * deck there is no next word to buy, so one clean sweep hands over to the
+ * mastery rounds exactly as it always did, and they do their own counting.
  */
 function applyTesting(
   s: StudySession,
@@ -457,6 +505,8 @@ function applyTesting(
   } else {
     s.stageCorrect = s.stageCorrect.filter((id) => id !== cardId);
     if (!s.stageIncorrect.includes(cardId)) s.stageIncorrect.push(cardId);
+    s.stagePerfect = false;
+    s.stagePerfectRounds = 0;
   }
 
   const cleared = s.activeCardIds.every((id) => s.stageCorrect.includes(id));
@@ -473,14 +523,22 @@ function applyTesting(
   }
 
   const grown = nextStageSize(s.deckCardIds.length, s.activeCardCount);
-  if (grown !== undefined) {
-    openStage(s, grown);
-    return 'stage-complete';
+
+  if (grown === undefined) {
+    openRound(s, rng);
+    s.phase = 'fullDeckMastery';
+    return 'full-deck-reached';
   }
 
-  openRound(s, rng);
-  s.phase = 'fullDeckMastery';
-  return 'full-deck-reached';
+  if (s.stagePerfect) s.stagePerfectRounds += 1;
+
+  if (s.stagePerfectRounds < STAGE_PERFECT_ROUNDS) {
+    openPass(s, rng);
+    return 'stage-pass-complete';
+  }
+
+  openStage(s, grown);
+  return 'stage-complete';
 }
 
 /**
@@ -576,6 +634,44 @@ export function stageProgress(s: StudySession): {
   };
 }
 
+export type RungProgress = {
+  /** Cards recalled in the pass in hand. */
+  recalled: number;
+  /** Cards in the active set — the length of one pass. */
+  total: number;
+  /** Clean passes already banked at this rung. */
+  banked: number;
+  /** Clean passes this rung is asking for altogether. */
+  passes: number;
+};
+
+/**
+ * Everything the strip needs to draw the whole rung rather than the pass.
+ *
+ * The pass on its own is a bar that empties every time she finishes one, which
+ * says the opposite of what has just happened. Given the rung — both passes,
+ * with the banked one filled — the strip only ever goes backwards when she has
+ * actually lost something, which is a miss and nothing else.
+ *
+ * One pass, not two, at the top of the ladder: the set is the deck by then,
+ * there is no next word for a second pass to buy, and the mastery rounds keep
+ * their own count. A drill is one card and one question, and no rung at all.
+ */
+export function rungProgress(s: StudySession): RungProgress {
+  const { recalled, total } = stageProgress(s);
+  const last =
+    nextStageSize(s.deckCardIds.length, s.activeCardCount) === undefined;
+
+  return {
+    recalled,
+    total,
+    // Defensive for the same reason as `answerCurrentCard`: a session left open
+    // before the one-card ladder is read here before it is ever answered.
+    banked: s.stagePerfectRounds ?? 0,
+    passes: s.drill || last ? 1 : STAGE_PERFECT_ROUNDS,
+  };
+}
+
 export type StageDescription = {
   /** The headline: "Testing", "Full deck", "Perfect rounds: 3 / 10". */
   label: string;
@@ -630,9 +726,20 @@ export function describeStage(
 
     case 'testing': {
       const { recalled } = stageProgress(s);
+      // `??` for the same reason as in `answerCurrentCard`: a row written
+      // before the one-card ladder can be read before it is ever answered.
+      const banked = s.stagePerfectRounds ?? 0;
+      // The full deck is the one rung with no word waiting behind it, so it is
+      // not asked for two clean passes and is not told about them either.
+      const pass = full
+        ? ''
+        : ' · ' +
+          ((s.stagePerfect ?? true)
+            ? 'clean pass ' + (banked + 1) + ' of ' + STAGE_PERFECT_ROUNDS
+            : 'this pass will not count');
       return {
         label: full ? 'Full deck' : 'Testing',
-        detail: recalled + ' of ' + total + ' recalled',
+        detail: recalled + ' of ' + total + ' recalled' + pass,
         phase: s.phase,
       };
     }

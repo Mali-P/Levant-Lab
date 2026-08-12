@@ -9,26 +9,41 @@ import { shuffle, type RNG } from '../../utils/random';
  */
 
 /**
- * The rungs, for a deck of the usual ten.
+ * Where the climb starts.
  *
- * Three to start because three is what a person can actually hold after one
- * reading; then two more at a time, so every stage adds a small debt to an
- * already-secure set rather than a second pile beside it.
+ * Two, and not one. One card is not a question — there is only one word it
+ * could be, so a right answer proves nothing about whether she knows it. Two is
+ * the smallest set that asks her to tell one word from another, which is the
+ * thing actually being learned.
  */
-export const LADDER_STEPS: readonly number[] = [3, 5, 7, 10];
+export const LADDER_START = 2;
+
+/**
+ * How many clean passes over the active set buy the next word.
+ *
+ * One pass can be luck, or the last two minutes rather than memory. Two in a
+ * row with nothing missed between them is the smallest evidence that the set is
+ * actually held — and it is cheap to ask for when the set is two or three
+ * cards, which is where most of these passes happen.
+ */
+export const STAGE_PERFECT_ROUNDS = 2;
 
 /**
  * The rungs for a deck of this size, always ending on the whole deck.
  *
- * The literal 3 / 5 / 7 / 10 is kept wherever it fits, since that is the
- * progression the decks were written for. A shorter deck simply loses the rungs
- * it has outgrown — six cards climb 3 → 5 → 6 — and a longer one keeps the
- * standard climb and then finishes on everything: fourteen cards go
- * 3 → 5 → 7 → 10 → 14. A deck of three or fewer is a single stage.
+ * Two to open, then one card at a time: 2 → 3 → 4 → … → 10 for the usual deck.
+ * It is juggling rather than dealing. Each new word joins a set she already has
+ * control of, so working memory is asked to hold one more thing than it was
+ * holding a moment ago rather than a second pile beside the first. A deck of
+ * two or fewer is a single stage.
  */
 export function stageSizes(deckSize: number): number[] {
   if (deckSize <= 0) return [];
-  return [...LADDER_STEPS.filter((n) => n < deckSize), deckSize];
+  if (deckSize <= LADDER_START) return [deckSize];
+
+  const sizes: number[] = [];
+  for (let size = LADDER_START; size <= deckSize; size++) sizes.push(size);
+  return sizes;
 }
 
 /** The next rung above `current`, or undefined once the deck is the stage. */
@@ -46,8 +61,8 @@ export function nextStageSize(
  * come round often or the stage never ends; a word already missed once in this
  * stage has to come round sooner still, because that is the one that has not
  * stuck. But a word already recalled keeps a real share of the turns — cut it
- * to nothing and the last two cards of a stage crowd out the first three, which
- * is precisely the short-term-memory trap the ladder exists to avoid.
+ * to nothing and the newest card of a stage crowds out the ones it was added
+ * to, which is precisely the short-term-memory trap the ladder exists to avoid.
  */
 export const WEIGHT_MISSED = 6;
 export const WEIGHT_OWED = 3;

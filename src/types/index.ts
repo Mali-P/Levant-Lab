@@ -470,13 +470,13 @@ export type StudySession = {
 
   /**
    * The whole deck in the order it is meant to be met, which is the order the
-   * ladder deals from — cards 1-3 first, then 4-5, and so on. Fixed for the
-   * life of the session, so a card added to the deck mid-run cannot quietly
-   * change which words the stage in progress is about.
+   * ladder deals from — cards 1-2 first, then card 3, then card 4, and so on.
+   * Fixed for the life of the session, so a card added to the deck mid-run
+   * cannot quietly change which words the stage in progress is about.
    */
   deckCardIds: string[];
 
-  /** How many of `deckCardIds` are in play: 3, then 5, then 7, then the deck. */
+  /** How many of `deckCardIds` are in play: 2, then 3, then 4, up to the deck. */
   activeCardCount: number;
 
   /** `deckCardIds.slice(0, activeCardCount)` — the set being recalled. */
@@ -512,6 +512,19 @@ export type StudySession = {
    * weighted to come back sooner than one that never did.
    */
   stageIncorrect: string[];
+
+  /**
+   * Clean passes over the active set banked at this rung, out of the two that
+   * buy the next word. Any miss puts it back to none, and every change of stage
+   * starts it again. Unused once the deck itself is the active set: the last
+   * rung hands over to the mastery rounds, which do their own counting.
+   *
+   * Absent on rows written before the one-card ladder, which is read as none.
+   */
+  stagePerfectRounds: number;
+
+  /** False the moment a card is missed in the pass being worked. */
+  stagePerfect: boolean;
 
   /** The shuffled full-deck pass being worked through. `fullDeckMastery` only. */
   roundQueue: string[];

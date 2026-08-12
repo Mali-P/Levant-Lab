@@ -14,23 +14,29 @@ import {
 const TEN = Array.from({ length: 10 }, (_unused, i) => 'c' + (i + 1));
 
 describe('stageSizes', () => {
-  it('climbs 3, 5, 7, 10 for the standard deck', () => {
-    expect(stageSizes(10)).toEqual([3, 5, 7, 10]);
+  it('opens on two and adds one at a time up to the standard deck', () => {
+    expect(stageSizes(10)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });
 
-  it('drops the rungs a short deck has outgrown and finishes on the deck', () => {
-    expect(stageSizes(6)).toEqual([3, 5, 6]);
-    expect(stageSizes(4)).toEqual([3, 4]);
+  it('never opens on a single card, which would be no question at all', () => {
+    expect(stageSizes(10)[0]).toBe(2);
+    expect(stageSizes(10)).not.toContain(1);
   });
 
-  it('makes a deck of three or fewer a single stage', () => {
-    expect(stageSizes(3)).toEqual([3]);
+  it('runs a short deck the same way, finishing on the deck', () => {
+    expect(stageSizes(6)).toEqual([2, 3, 4, 5, 6]);
+    expect(stageSizes(4)).toEqual([2, 3, 4]);
+  });
+
+  it('makes a deck of two or fewer a single stage', () => {
     expect(stageSizes(2)).toEqual([2]);
     expect(stageSizes(1)).toEqual([1]);
   });
 
-  it('keeps the standard climb on a longer deck, then takes everything', () => {
-    expect(stageSizes(14)).toEqual([3, 5, 7, 10, 14]);
+  it('keeps climbing by ones on a longer deck', () => {
+    expect(stageSizes(14)).toEqual([
+      2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+    ]);
   });
 
   it('has no stages at all for an empty deck', () => {
@@ -39,10 +45,10 @@ describe('stageSizes', () => {
 });
 
 describe('nextStageSize', () => {
-  it('names the rung above the current one', () => {
-    expect(nextStageSize(10, 3)).toBe(5);
-    expect(nextStageSize(10, 5)).toBe(7);
-    expect(nextStageSize(10, 7)).toBe(10);
+  it('names the rung above the current one, always one card up', () => {
+    expect(nextStageSize(10, 2)).toBe(3);
+    expect(nextStageSize(10, 3)).toBe(4);
+    expect(nextStageSize(10, 9)).toBe(10);
   });
 
   it('returns nothing once the deck is the stage', () => {

@@ -1,5 +1,5 @@
 import type { StudySession } from '../../types';
-import { describeStage, stageProgress } from '../../features/study/engine';
+import { describeStage, rungProgress } from '../../features/study/engine';
 import PerfectRuns from './PerfectRuns';
 
 type Props = { session: StudySession };
@@ -8,9 +8,11 @@ type Props = { session: StudySession };
  * What the learner is being asked for, and how far into it she is.
  *
  * The whole point of this strip is to say that the small set is deliberate.
- * "Testing 3 words", with three pips under it, reads as a stage she is in the
+ * "Testing", with two or three pips under it, reads as a stage she is in the
  * middle of; "3 / 10" would read as a ten-card test she is failing — the same
- * information and the opposite message.
+ * information and the opposite message. The detail line adds which of the two
+ * clean passes she is on, because a set cleared without growing is otherwise a
+ * rule she has to infer.
  *
  * Once the deck itself is the active set, the pips give way to the banked
  * perfect rounds, because at that point the thing being counted has changed
@@ -18,7 +20,14 @@ type Props = { session: StudySession };
  */
 export default function StageBanner({ session }: Props) {
   const { label, detail, phase } = describeStage(session);
-  const { recalled, total } = stageProgress(session);
+  const { recalled, total, banked, passes } = rungProgress(session);
+
+  // One row per pass the rung asks for: a banked pass stays filled, the pass in
+  // hand fills as she recalls, and the rows below it wait. Nothing empties
+  // behind her except on a miss, which is the one time it should.
+  const rows = Array.from({ length: passes }, (_unused, pass) =>
+    pass < banked ? total : pass === banked ? recalled : 0,
+  );
 
   return (
     <section className="stage-banner">
@@ -35,15 +44,30 @@ export default function StageBanner({ session }: Props) {
 
       {phase === 'testing' && !session.drill && (
         <div
-          className="runs"
+          className="stack stage-passes"
           role="img"
-          aria-label={recalled + ' of ' + total + ' recalled in this set'}
+          aria-label={
+            passes > 1
+              ? banked +
+                ' of ' +
+                passes +
+                ' clean passes banked, ' +
+                recalled +
+                ' of ' +
+                total +
+                ' recalled in the pass in hand'
+              : recalled + ' of ' + total + ' recalled in this set'
+          }
         >
-          {session.activeCardIds.map((id, index) => (
-            <span
-              key={id}
-              className={'seg' + (index < recalled ? ' filled' : '')}
-            />
+          {rows.map((filled, pass) => (
+            <div className="runs" key={pass} aria-hidden="true">
+              {session.activeCardIds.map((id, index) => (
+                <span
+                  key={id}
+                  className={'seg' + (index < filled ? ' filled' : '')}
+                />
+              ))}
+            </div>
           ))}
         </div>
       )}
