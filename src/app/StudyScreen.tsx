@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import type { AnswerMode, Flashcard, PromptDirection, StudyMode } from '../types';
+import type {
+  AnswerMode,
+  Flashcard,
+  Language,
+  PromptDirection,
+  StudyMode,
+} from '../types';
 import { useData } from '../stores/dataStore';
 import { useSession } from '../stores/sessionStore';
 import { useSettings } from '../stores/settingsStore';
@@ -47,6 +53,13 @@ const QUIET_EVENTS: readonly StudyEvent[] = [
   'retry-queued',
   'round-missed',
 ];
+
+function sameLanguages(
+  left: readonly Language[] | undefined,
+  right: readonly Language[],
+): boolean {
+  return (left ?? right).join('|') === right.join('|');
+}
 
 export default function StudyScreen() {
   const { deckId = '' } = useParams();
@@ -199,6 +212,7 @@ export default function StudyScreen() {
                 !s.completedAt &&
                 !s.drill &&
                 s.mode === mode &&
+                sameLanguages(s.studyLanguages, studyLanguages) &&
                 // A row from before the ladder has no stage to come back to.
                 // Left in place rather than resumed; the climb starts again.
                 isLadderSession(s),
@@ -462,10 +476,10 @@ export default function StudyScreen() {
     if (!revealed || !currentCard) return;
     // A language switched off is never spoken, whatever its auto-play toggle
     // says: the setting is about when to speak it, not whether it is studied.
-    if (settings.autoPlayHebrew && languages.includes('hebrew')) {
+    if (settings.autoPlayHebrew && studyLanguages.includes('hebrew')) {
       void speak(currentCard, 'hebrew');
     }
-    if (settings.autoPlayArabic && languages.includes('arabic')) {
+    if (settings.autoPlayArabic && studyLanguages.includes('arabic')) {
       void speak(currentCard, 'arabic');
     }
   }, [
@@ -473,7 +487,7 @@ export default function StudyScreen() {
     currentCard,
     settings.autoPlayHebrew,
     settings.autoPlayArabic,
-    languages,
+    studyLanguages,
     speak,
   ]);
 
@@ -482,10 +496,10 @@ export default function StudyScreen() {
   const introFlipped = session?.introduceFlipped ?? false;
   useEffect(() => {
     if (!introFlipped || !introCard) return;
-    if (settings.autoPlayHebrew && languages.includes('hebrew')) {
+    if (settings.autoPlayHebrew && studyLanguages.includes('hebrew')) {
       void speak(introCard, 'hebrew');
     }
-    if (settings.autoPlayArabic && languages.includes('arabic')) {
+    if (settings.autoPlayArabic && studyLanguages.includes('arabic')) {
       void speak(introCard, 'arabic');
     }
   }, [
@@ -493,7 +507,7 @@ export default function StudyScreen() {
     introCard,
     settings.autoPlayHebrew,
     settings.autoPlayArabic,
-    languages,
+    studyLanguages,
     speak,
   ]);
 
@@ -665,13 +679,13 @@ export default function StudyScreen() {
       <div className="screen study">
         <ScreenHeader title={deck.name} eyebrow={eyebrow} back />
 
-        <StageBanner session={session} />
+        <StageBanner session={session} languages={studyLanguages} />
 
         <MemoriseCard
           card={introCard}
           flipped={session.introduceFlipped}
           perspectives={perspectives}
-          languages={languages}
+          languages={studyLanguages}
           lead={lead}
           // Her own setting, even in brutal mode. Brutal strips the crutches
           // from the asking; it has no business taking the pronunciation away
@@ -711,7 +725,7 @@ export default function StudyScreen() {
           <AnswerFeedback
             outcome={lastOutcome}
             card={gradedCard}
-            languages={languages}
+            languages={studyLanguages}
             onContinue={continueNext}
           />
         )}
@@ -739,7 +753,7 @@ export default function StudyScreen() {
       <div className="screen study">
         <ScreenHeader title={deck.name} eyebrow={eyebrow} back />
 
-        <StageBanner session={session} />
+        <StageBanner session={session} languages={studyLanguages} />
 
         <div className="panel order-brief">
           <div className="headline">Reorder the cards</div>
@@ -749,7 +763,7 @@ export default function StudyScreen() {
         <DeckOrderingPair
           cards={ordered}
           perspectives={perspectives}
-          languages={languages}
+          languages={studyLanguages}
           lead={lead}
           showTransliteration={showTransliteration}
           reducedMotion={settings.reducedMotion}
@@ -767,7 +781,7 @@ export default function StudyScreen() {
           <AnswerFeedback
             outcome={lastOutcome}
             card={gradedCard}
-            languages={languages}
+            languages={studyLanguages}
             onContinue={continueNext}
           />
         )}
@@ -788,7 +802,7 @@ export default function StudyScreen() {
     <div className="screen study">
       <ScreenHeader title={deck.name} eyebrow={eyebrow} back />
 
-      <StageBanner session={session} />
+      <StageBanner session={session} languages={studyLanguages} />
 
       <StudyCard
         card={currentCard}
@@ -894,7 +908,7 @@ export default function StudyScreen() {
         <AnswerFeedback
           outcome={lastOutcome}
           card={gradedCard}
-          languages={languages}
+          languages={studyLanguages}
           onContinue={continueNext}
         />
       )}

@@ -1,8 +1,11 @@
-import type { StudySession } from '../../types';
+import { LANGUAGES, type Language, type StudySession } from '../../types';
 import { describeStage, stageProgress } from '../../features/study/engine';
 import PerfectRuns from './PerfectRuns';
 
-type Props = { session: StudySession };
+type Props = {
+  session: StudySession;
+  languages?: readonly Language[];
+};
 
 /**
  * What the learner is being asked for, and how far into it she is.
@@ -22,8 +25,8 @@ type Props = { session: StudySession };
  * perfect rounds, because at that point the thing being counted has changed
  * from words held to rounds survived.
  */
-export default function StageBanner({ session }: Props) {
-  const { label, detail, phase } = describeStage(session);
+export default function StageBanner({ session, languages = LANGUAGES }: Props) {
+  const { label, detail, phase } = describeStage(session, languages);
   const { recalled, total } = stageProgress(session);
 
   return (
