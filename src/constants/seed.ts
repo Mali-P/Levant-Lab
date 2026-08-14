@@ -1102,10 +1102,10 @@ const BASICS_OF_BASICS_DECKS: SeedDeck[] = [
   {
     name: 'Directions',
     cards: [
-      c('up', ['למעלה', 'lema\'la'], ['لفوق', 'la-fōʾ']),
-      c('down', ['למטה', 'lemata'], ['لتحت', 'la-taḥt']),
-      c('left', ['שמאלה', 'smola'], ['عالشمال', 'ʿash-shimāl']),
-      c('right', ['ימינה', 'yamina'], ['عاليمين', 'ʿal-yamīn']),
+      c('up / above', ['למעלה', 'lema\'la'], ['فوق', 'fo\'']),
+      c('down / below', ['למטה', 'lemata'], ['تحت', 'taht']),
+      c('left', ['שמאל', 'smol'], ['شمال', 'shmaal']),
+      c('right', ['ימין', 'yamin'], ['يمين', 'yameen']),
     ],
   },
   {

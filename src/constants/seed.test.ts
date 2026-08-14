@@ -100,6 +100,48 @@ describe('the starter table', () => {
     ]);
   });
 
+  it('teaches bare foundational direction forms in Basics of Basics', () => {
+    const basics = SEED_CATEGORIES.find((category) => category.name === 'Basics of Basics');
+    const directions = basics?.decks.find((deck) => deck.name === 'Directions');
+
+    expect(directions?.cards.map((card) => ({
+      english: card.english,
+      hebrew: card.hebrew.script,
+      hebrewTransliteration: card.hebrew.transliteration,
+      arabic: card.arabic.script,
+      arabicTransliteration: card.arabic.transliteration,
+    }))).toEqual([
+      {
+        english: 'up / above',
+        hebrew: 'למעלה',
+        hebrewTransliteration: 'lema\'la',
+        arabic: 'فوق',
+        arabicTransliteration: 'fo\'',
+      },
+      {
+        english: 'down / below',
+        hebrew: 'למטה',
+        hebrewTransliteration: 'lemata',
+        arabic: 'تحت',
+        arabicTransliteration: 'taht',
+      },
+      {
+        english: 'left',
+        hebrew: 'שמאל',
+        hebrewTransliteration: 'smol',
+        arabic: 'شمال',
+        arabicTransliteration: 'shmaal',
+      },
+      {
+        english: 'right',
+        hebrew: 'ימין',
+        hebrewTransliteration: 'yamin',
+        arabic: 'يمين',
+        arabicTransliteration: 'yameen',
+      },
+    ]);
+  });
+
   it('leads every gendered pair with the feminine form', () => {
     for (const { where, side } of SIDES) {
       if (!side.forms) continue;
