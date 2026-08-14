@@ -56,6 +56,7 @@ export default function MemoriseScreen({ pile }: Props) {
   const navigate = useNavigate();
 
   const settings = useSettings((s) => s.settings);
+  const languages = useSettings((s) => s.languages);
   const updateSettings = useSettings((s) => s.update);
   const decks = useData((s) => s.decks);
   const categories = useData((s) => s.categories);
@@ -87,8 +88,9 @@ export default function MemoriseScreen({ pile }: Props) {
             decks,
             deckProgress,
             selectedIds: settings.memoriseDeckIds,
+            languages,
           }),
-    [pile, deckId, categories, decks, deckProgress, settings.memoriseDeckIds],
+    [pile, deckId, categories, decks, deckProgress, settings.memoriseDeckIds, languages],
   );
 
   // A bookmark can point straight at a deck the learner has not earned yet, so
@@ -98,6 +100,7 @@ export default function MemoriseScreen({ pile }: Props) {
     ? gateDecks(
         decks.filter((d) => d.categoryId === deck.categoryId),
         deckProgress,
+        languages,
       ).find((g) => g.deck.id === deck.id)
     : undefined;
   const locked = Boolean(gate && !gate.unlocked);
@@ -203,7 +206,6 @@ export default function MemoriseScreen({ pile }: Props) {
   // one. Never a form she is not studying.
   const flipped = session?.flipped ?? false;
   const perspectives = useSettings((s) => s.perspectives);
-  const languages = useSettings((s) => s.languages);
   const lead = useSettings((s) => s.lead);
   useEffect(() => {
     if (!flipped || !currentCard) return;

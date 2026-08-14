@@ -65,6 +65,7 @@ export default function DeckScreen() {
   const gate = gateDecks(
     decks.filter((d) => d.categoryId === deck.categoryId),
     deckProgress,
+    languages,
   ).find((g) => g.deck.id === deck.id);
 
   // The same ladder the category screen draws, enforced again here so a

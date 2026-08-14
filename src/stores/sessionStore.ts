@@ -4,6 +4,7 @@ import type {
   CardProgress,
   DeckProgress,
   Flashcard,
+  Language,
   PromptDirection,
   StudyMode,
   StudySession,
@@ -31,8 +32,11 @@ type StartParams = {
   answerMode: AnswerMode;
   promptDirection: PromptDirection;
   perfectRunsRequired: number;
+  studyLanguages?: readonly Language[];
   /** A single weak card being drilled, rather than a run through the deck. */
   drill?: boolean;
+  /** Whether this deck opens directly into full-pool mastery rounds. */
+  masteryOnly?: boolean;
   /** Whether this deck runs in an order, and so gets the ordering interlude. */
   sequenced?: boolean;
 };
@@ -151,6 +155,8 @@ export const useSession = create<SessionState>((set, get) => ({
       answerMode: params.answerMode,
       promptDirection: params.promptDirection,
       perfectRunsRequired: params.perfectRunsRequired,
+      studyLanguages: params.studyLanguages ? [...params.studyLanguages] : undefined,
+      masteryOnly: params.masteryOnly,
       // Banked rounds carry across sessions in every mode now. Ten flawless
       // rounds is a deck-long achievement; closing the tab is not a mistake.
       perfectRoundsCompleted: params.drill
@@ -188,6 +194,7 @@ export const useSession = create<SessionState>((set, get) => ({
     if (!session || get().awaitingAdvance) return null;
 
     const { settings, languages } = useSettings.getState();
+    const studyLanguages = session.studyLanguages ?? languages;
     const data = useData.getState();
 
     // Taken before anything is written, and only where going back is offered:
@@ -219,7 +226,7 @@ export const useSession = create<SessionState>((set, get) => ({
     await data.recordAnswer(
       session.currentCardId!,
       { hebrew: outcome.hebrewCorrect, arabic: outcome.arabicCorrect },
-      languages,
+      studyLanguages,
     );
 
     const now = new Date().toISOString();

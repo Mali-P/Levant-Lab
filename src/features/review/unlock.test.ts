@@ -124,6 +124,31 @@ describe('gateDecks', () => {
   it('handles a category with no decks', () => {
     expect(gateDecks([], {})).toEqual([]);
   });
+
+  it('filters language-stage decks before applying the ladder', () => {
+    const stages = [
+      deck('he-1', 0, { studyLanguages: ['hebrew'] }),
+      deck('ar-1', 1, { studyLanguages: ['arabic'] }),
+      deck('he-2', 2, { studyLanguages: ['hebrew'] }),
+      deck('ar-2', 3, { studyLanguages: ['arabic'] }),
+    ];
+
+    const hebrew = gateDecks(
+      stages,
+      { 'he-1': progress('he-1', { perfectRunsCompleted: 10 }) },
+      ['hebrew'],
+    );
+    expect(hebrew.map((g) => g.deck.id)).toEqual(['he-1', 'he-2']);
+    expect(hebrew.map((g) => g.unlocked)).toEqual([true, true]);
+
+    const arabic = gateDecks(
+      stages,
+      { 'ar-1': progress('ar-1', { perfectRunsCompleted: 10 }) },
+      ['arabic'],
+    );
+    expect(arabic.map((g) => g.deck.id)).toEqual(['ar-1', 'ar-2']);
+    expect(arabic.map((g) => g.unlocked)).toEqual([true, true]);
+  });
 });
 
 describe('nextDeck', () => {

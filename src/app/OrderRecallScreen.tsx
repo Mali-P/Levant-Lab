@@ -130,6 +130,7 @@ export default function OrderRecallScreen() {
   const gate = gateDecks(
     decks.filter((d) => d.categoryId === deck.categoryId),
     deckProgress,
+    languages,
   ).find((g) => g.deck.id === deck.id);
 
   if (gate && !gate.unlocked) {

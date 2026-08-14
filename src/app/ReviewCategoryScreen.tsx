@@ -26,6 +26,7 @@ export default function ReviewCategoryScreen() {
   const navigate = useNavigate();
 
   const settings = useSettings((s) => s.settings);
+  const languages = useSettings((s) => s.languages);
   const update = useSettings((s) => s.update);
   const categories = useData((s) => s.categories);
   const decks = useData((s) => s.decks);
@@ -36,6 +37,7 @@ export default function ReviewCategoryScreen() {
   const gates = gateDecks(
     decks.filter((d) => d.categoryId === categoryId),
     deckProgress,
+    languages,
   );
 
   const picked = settings.memoriseDeckIds ?? [];

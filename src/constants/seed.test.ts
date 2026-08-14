@@ -77,32 +77,87 @@ describe('the starter table', () => {
     expect(SEED_CATEGORIES[0].name).toBe('Basics of Basics');
   });
 
-  it('keeps the Basics of Basics decks naturally small', () => {
+  it('keeps the Basics of Basics concept pools naturally small', () => {
     const basics = SEED_CATEGORIES.find((category) => category.name === 'Basics of Basics');
+    const conceptDecks = basics?.decks.filter(
+      (deck) => !deck.name.includes('Master Test') && deck.studyLanguages?.[0] === 'hebrew',
+    );
 
-    expect(basics?.decks.map((deck) => [deck.name, deck.cards.length])).toEqual([
-      ['Directions', 4],
-      ['Question words', 5],
-      ['Basic pronouns', 6],
-      ['Can', 4],
-      ['Want', 4],
-      ['Need', 4],
-      ['Like', 4],
-      ['Have', 4],
-      ['This / that', 4],
-      ['Basic answers', 3],
-      ['Colours', 7],
-      ['Time of day', 5],
-      ['Basic contrasts', 10],
-      ['Basic quantity', 5],
-      ['Basic movement', 4],
-      ['Basic physical states / needs', 4],
+    expect(conceptDecks?.map((deck) => [deck.name, deck.cards.length])).toEqual([
+      ['Directions — Hebrew', 4],
+      ['Question words — Hebrew', 6],
+      ['Basic pronouns — Hebrew', 6],
+      ['Can — Hebrew', 4],
+      ['Want — Hebrew', 4],
+      ['Need — Hebrew', 4],
+      ['Like — Hebrew', 4],
+      ['Have — Hebrew', 4],
+      ['This / that — Hebrew', 4],
+      ['Basic answers — Hebrew', 3],
+      ['Colours — Hebrew', 7],
+      ['Time of day — Hebrew', 5],
+      ['Basic contrasts — Hebrew', 10],
+      ['Basic quantity — Hebrew', 5],
+      ['Basic movement — Hebrew', 4],
+      ['Basic physical states / needs — Hebrew', 4],
     ]);
+  });
+
+  it('orders Basics of Basics by concept Hebrew, then concept Arabic, then final tests', () => {
+    const basics = SEED_CATEGORIES.find((category) => category.name === 'Basics of Basics');
+    expect(basics?.decks.map((deck) => [deck.name, deck.studyLanguages])).toEqual([
+      ['Directions — Hebrew', ['hebrew']],
+      ['Directions — Palestinian Arabic', ['arabic']],
+      ['Question words — Hebrew', ['hebrew']],
+      ['Question words — Palestinian Arabic', ['arabic']],
+      ['Basic pronouns — Hebrew', ['hebrew']],
+      ['Basic pronouns — Palestinian Arabic', ['arabic']],
+      ['Can — Hebrew', ['hebrew']],
+      ['Can — Palestinian Arabic', ['arabic']],
+      ['Want — Hebrew', ['hebrew']],
+      ['Want — Palestinian Arabic', ['arabic']],
+      ['Need — Hebrew', ['hebrew']],
+      ['Need — Palestinian Arabic', ['arabic']],
+      ['Like — Hebrew', ['hebrew']],
+      ['Like — Palestinian Arabic', ['arabic']],
+      ['Have — Hebrew', ['hebrew']],
+      ['Have — Palestinian Arabic', ['arabic']],
+      ['This / that — Hebrew', ['hebrew']],
+      ['This / that — Palestinian Arabic', ['arabic']],
+      ['Basic answers — Hebrew', ['hebrew']],
+      ['Basic answers — Palestinian Arabic', ['arabic']],
+      ['Colours — Hebrew', ['hebrew']],
+      ['Colours — Palestinian Arabic', ['arabic']],
+      ['Time of day — Hebrew', ['hebrew']],
+      ['Time of day — Palestinian Arabic', ['arabic']],
+      ['Basic contrasts — Hebrew', ['hebrew']],
+      ['Basic contrasts — Palestinian Arabic', ['arabic']],
+      ['Basic quantity — Hebrew', ['hebrew']],
+      ['Basic quantity — Palestinian Arabic', ['arabic']],
+      ['Basic movement — Hebrew', ['hebrew']],
+      ['Basic movement — Palestinian Arabic', ['arabic']],
+      ['Basic physical states / needs — Hebrew', ['hebrew']],
+      ['Basic physical states / needs — Palestinian Arabic', ['arabic']],
+      ['Hebrew Basics Master Test', ['hebrew']],
+      ['Palestinian Arabic Basics Master Test', ['arabic']],
+    ]);
+  });
+
+  it('builds each Basics final test from the current full concept pool', () => {
+    const basics = SEED_CATEGORIES.find((category) => category.name === 'Basics of Basics');
+    const conceptTotal = basics!.decks
+      .filter((deck) => !deck.name.includes('Master Test') && deck.studyLanguages?.[0] === 'hebrew')
+      .reduce((total, deck) => total + deck.cards.length, 0);
+
+    expect(basics?.decks.find((deck) => deck.name === 'Hebrew Basics Master Test')?.cards).toHaveLength(conceptTotal);
+    expect(basics?.decks.find((deck) => deck.name === 'Palestinian Arabic Basics Master Test')?.cards).toHaveLength(conceptTotal);
+    expect(basics?.decks.find((deck) => deck.name === 'Hebrew Basics Master Test')?.masteryOnly).toBe(true);
+    expect(basics?.decks.find((deck) => deck.name === 'Palestinian Arabic Basics Master Test')?.masteryOnly).toBe(true);
   });
 
   it('teaches bare foundational direction forms in Basics of Basics', () => {
     const basics = SEED_CATEGORIES.find((category) => category.name === 'Basics of Basics');
-    const directions = basics?.decks.find((deck) => deck.name === 'Directions');
+    const directions = basics?.decks.find((deck) => deck.name === 'Directions — Hebrew');
 
     expect(directions?.cards.map((card) => ({
       english: card.english,

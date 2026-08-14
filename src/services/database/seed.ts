@@ -15,11 +15,11 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 38;
+export const STARTER_CONTENT_VERSION = 39;
 
 /**
- * How many cards the official starter set contains: every taught deck is a ten,
- * so this is ten times the number of decks, plus the sentences the Custom
+ * How many cards the official starter set contains, across ordinary decks,
+ * small Basics stages, cumulative mastery decks, and the sentences the Custom
  * category opens with. Sentences added there afterwards are the learner's own
  * and are counted nowhere here.
  */
@@ -128,6 +128,7 @@ export async function installStarterCards(): Promise<InstallReport> {
   const newCategories: Category[] = [];
   const changedCategories: Category[] = [];
   const newDecks: Deck[] = [];
+  const changedDecks: Deck[] = [];
   const newCards: Flashcard[] = [];
   const changedCards: Flashcard[] = [];
 
@@ -174,12 +175,29 @@ export async function installStarterCards(): Promise<InstallReport> {
           categoryId: category!.id,
           name: seedDeck.name,
           order: deckOrder,
+          studyLanguages: seedDeck.studyLanguages,
+          masteryOnly: seedDeck.masteryOnly,
           perfectRunsRequired: DEFAULT_SETTINGS.defaultPerfectRunsRequired,
           promptDirections: ['en>he+ar'],
           createdAt: now,
           updatedAt: now,
         };
         newDecks.push(deck);
+        deckByKey.set(deckKey, deck);
+      } else if (
+        deck.order !== deckOrder ||
+        deck.masteryOnly !== seedDeck.masteryOnly ||
+        JSON.stringify(deck.studyLanguages ?? null) !==
+          JSON.stringify(seedDeck.studyLanguages ?? null)
+      ) {
+        deck = {
+          ...deck,
+          order: deckOrder,
+          studyLanguages: seedDeck.studyLanguages,
+          masteryOnly: seedDeck.masteryOnly,
+          updatedAt: now,
+        };
+        changedDecks.push(deck);
         deckByKey.set(deckKey, deck);
       }
 
@@ -217,6 +235,7 @@ export async function installStarterCards(): Promise<InstallReport> {
     if (newCategories.length) await db.categories.bulkAdd(newCategories);
     if (changedCategories.length) await db.categories.bulkPut(changedCategories);
     if (newDecks.length) await db.decks.bulkAdd(newDecks);
+    if (changedDecks.length) await db.decks.bulkPut(changedDecks);
     if (newCards.length) await db.cards.bulkAdd(newCards);
     if (changedCards.length) await db.cards.bulkPut(changedCards);
     await ensureSettings();

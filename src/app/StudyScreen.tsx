@@ -57,10 +57,6 @@ export default function StudyScreen() {
   const perspectives = useSettings((s) => s.perspectives);
   const languages = useSettings((s) => s.languages);
   const lead = useSettings((s) => s.lead);
-  // The whole screen's copy turns on this: with one language there is no
-  // "both" to reveal, no pair of verdicts, and no half-right answer.
-  const single = languages.length === 1;
-  const only = languages[0];
   const decks = useData((s) => s.decks);
   const categories = useData((s) => s.categories);
   const cards = useData((s) => s.cards);
@@ -115,6 +111,9 @@ export default function StudyScreen() {
 
   const deck = decks.find((d) => d.id === deckId);
   const category = categories.find((c) => c.id === deck?.categoryId);
+  const studyLanguages = deck?.studyLanguages ?? languages;
+  const single = studyLanguages.length === 1;
+  const only = studyLanguages[0];
 
   // A bookmark or a stale link can point straight at a deck the learner has
   // not earned yet, so the ladder is enforced here too, not only in the UI
@@ -123,6 +122,7 @@ export default function StudyScreen() {
     ? gateDecks(
         decks.filter((d) => d.categoryId === deck.categoryId),
         deckProgress,
+        languages,
       ).find((g) => g.deck.id === deck.id)
     : undefined;
   const locked = Boolean(gate && !gate.unlocked);
@@ -225,6 +225,8 @@ export default function StudyScreen() {
           answerMode,
           promptDirection: direction,
           perfectRunsRequired: deck.perfectRunsRequired,
+          studyLanguages,
+          masteryOnly: deck.masteryOnly,
           drill: Boolean(drillCardId),
           // Only a deck that runs in an order gets the ordering interlude, and
           // the decision is written onto the session rather than looked up each
@@ -272,7 +274,7 @@ export default function StudyScreen() {
             // And only the languages she is studying. The plan drops the other
             // one's field entirely, so it is never shown, never typed into and
             // never graded.
-            languages,
+            languages: studyLanguages,
           })
         : null,
     [
@@ -282,7 +284,7 @@ export default function StudyScreen() {
       settings.lenientArabicLetters,
       settings.acceptAlternateAnswers,
       perspectives,
-      languages,
+      studyLanguages,
     ],
   );
 
@@ -352,7 +354,7 @@ export default function StudyScreen() {
         lenientArabicLetters: settings.lenientArabicLetters,
         acceptAlternateAnswers: settings.acceptAlternateAnswers,
         perspectives,
-        languages,
+        languages: studyLanguages,
       }),
     );
   }, [
@@ -363,7 +365,7 @@ export default function StudyScreen() {
     grade,
     settings,
     perspectives,
-    languages,
+    studyLanguages,
   ]);
 
   /**
@@ -600,6 +602,7 @@ export default function StudyScreen() {
       gateDecks(
         decks.filter((d) => d.categoryId === deck.categoryId),
         deckProgress,
+        languages,
       ),
     )?.deck;
 

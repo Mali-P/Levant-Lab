@@ -1,4 +1,4 @@
-import type { Deck, DeckProgress } from '../../types';
+import type { Deck, DeckProgress, Language } from '../../types';
 
 /**
  * Decks inside a category are a ladder, not a menu: the learner works the first
@@ -38,6 +38,14 @@ export function isDeckMastered(
   return (progress?.perfectRunsCompleted ?? 0) >= required;
 }
 
+export function deckMatchesLanguages(
+  deck: Deck,
+  languages: readonly Language[] | undefined,
+): boolean {
+  if (!languages || !deck.studyLanguages?.length) return true;
+  return deck.studyLanguages.some((language) => languages.includes(language));
+}
+
 export type DeckGate = {
   deck: Deck;
   /** 1-based rung on the ladder, for "Deck 3 of 10". */
@@ -57,8 +65,11 @@ export type DeckGate = {
 export function gateDecks(
   decks: Deck[],
   deckProgress: Record<string, DeckProgress | undefined>,
+  languages?: readonly Language[],
 ): DeckGate[] {
-  const ordered = sortDecks(decks);
+  const ordered = sortDecks(decks).filter((deck) =>
+    deckMatchesLanguages(deck, languages),
+  );
   const gates: DeckGate[] = [];
   let previous: Deck | undefined;
   let previousMastered = true;

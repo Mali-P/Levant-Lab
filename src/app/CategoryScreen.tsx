@@ -28,6 +28,7 @@ export default function CategoryScreen() {
   const gates = gateDecks(
     decks.filter((d) => d.categoryId === categoryId),
     deckProgress,
+    languages,
   );
   const now = new Date().toISOString();
 

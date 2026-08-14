@@ -40,6 +40,7 @@ export default function ReviewHomeScreen() {
     decks,
     deckProgress,
     lastDeckId: settings.memoriseLastDeckId,
+    languages,
   });
 
   // The pile as the tab would actually deal it rather than as it is stored: a
@@ -50,6 +51,7 @@ export default function ReviewHomeScreen() {
     decks,
     deckProgress,
     selectedIds: settings.memoriseDeckIds,
+    languages,
   });
   const picked = (settings.memoriseDeckIds ?? []).length > 0;
   const pileCards = memorisePool(pile, cards).length;
@@ -140,6 +142,7 @@ export default function ReviewHomeScreen() {
           const gates = gateDecks(
             decks.filter((d) => d.categoryId === category.id),
             deckProgress,
+            languages,
           );
           const open = gates.filter((g) => g.unlocked).length;
           const inPile = gates.filter((g) =>

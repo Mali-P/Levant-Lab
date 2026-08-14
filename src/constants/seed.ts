@@ -2,6 +2,7 @@ import type {
   ArabicDialect,
   FormAgreement,
   GenderedForms,
+  Language,
   LanguageForm,
   SpeechForms,
 } from '../types';
@@ -23,7 +24,12 @@ export type SeedCard = {
   arabic: SeedSide & { dialect?: ArabicDialect };
 };
 
-export type SeedDeck = { name: string; cards: SeedCard[] };
+export type SeedDeck = {
+  name: string;
+  cards: SeedCard[];
+  studyLanguages?: Language[];
+  masteryOnly?: boolean;
+};
 
 export type SeedCategory = {
   name: string;
@@ -1116,6 +1122,7 @@ const BASICS_OF_BASICS_DECKS: SeedDeck[] = [
       c('when', ['מתי', 'matai'], ['إيمتى', 'ēmta']),
       c('where', ['איפה', 'eifo'], ['وين', 'wēn']),
       c('why', ['למה', 'lama'], ['ليش', 'lēsh']),
+      c('how', ['איך', 'eikh'], ['كيف', 'kīf']),
     ],
   },
   {
@@ -1258,11 +1265,44 @@ const BASICS_OF_BASICS_DECKS: SeedDeck[] = [
   },
 ];
 
+function basicsStageDecks(decks: SeedDeck[]): SeedDeck[] {
+  const stages: SeedDeck[] = [];
+  for (const deck of decks) {
+    stages.push({
+      name: deck.name + ' — Hebrew',
+      cards: deck.cards,
+      studyLanguages: ['hebrew'],
+    });
+    stages.push({
+      name: deck.name + ' — Palestinian Arabic',
+      cards: deck.cards,
+      studyLanguages: ['arabic'],
+    });
+  }
+
+  const allCards = decks.flatMap((deck) => deck.cards);
+  stages.push({
+    name: 'Hebrew Basics Master Test',
+    cards: allCards,
+    studyLanguages: ['hebrew'],
+    masteryOnly: true,
+  });
+  stages.push({
+    name: 'Palestinian Arabic Basics Master Test',
+    cards: allCards,
+    studyLanguages: ['arabic'],
+    masteryOnly: true,
+  });
+  return stages;
+}
+
+const BASICS_OF_BASICS_STAGES = basicsStageDecks(BASICS_OF_BASICS_DECKS);
+
 export const SEED_CATEGORIES: SeedCategory[] = [
   {
     name: 'Basics of Basics',
     icon: '🔰',
-    decks: BASICS_OF_BASICS_DECKS,
+    decks: BASICS_OF_BASICS_STAGES,
   },
   {
     name: SEQUENCED_CATEGORY,

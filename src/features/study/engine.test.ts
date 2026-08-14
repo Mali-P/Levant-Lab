@@ -165,6 +165,27 @@ describe('createSession', () => {
     expect(s.currentCardId).toBe('c7');
     expect(s.introduceCardIds).toEqual([]);
   });
+
+  it('opens a mastery-only deck directly on a shuffled full-pool round', () => {
+    const s = createSession({
+      id: 'session_1',
+      deckId: 'deck_1',
+      cardIds: ['c1', 'c2', 'c3', 'c4'],
+      mode: 'normal',
+      promptDirection: 'en>he+ar',
+      answerMode: 'self',
+      perfectRunsRequired: 10,
+      masteryOnly: true,
+      now: T,
+    });
+
+    expect(s.phase).toBe('fullDeckMastery');
+    expect(s.activeCardIds).toEqual(['c1', 'c2', 'c3', 'c4']);
+    expect(s.introduceCardIds).toEqual([]);
+    expect([...s.roundQueue].sort()).toEqual(['c1', 'c2', 'c3', 'c4']);
+    expect(s.roundQueue).toHaveLength(4);
+    expect(s.currentCardId).toBeDefined();
+  });
 });
 
 describe('introducing', () => {

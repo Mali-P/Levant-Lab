@@ -70,6 +70,7 @@ export type AnswerOutcome = {
 export type CreateSessionParams = {
   id: string;
   deckId: string;
+  studyLanguages?: Language[];
   /** The deck in its own order. The ladder deals the first two from the top. */
   cardIds: string[];
   mode: StudyMode;
@@ -82,6 +83,8 @@ export type CreateSessionParams = {
    * closing the tab is not a mistake.
    */
   perfectRoundsCompleted?: number;
+  /** Skip the learning ladder and begin shuffled full-pool mastery immediately. */
+  masteryOnly?: boolean;
   /** A single weak card being drilled, rather than a climb through the deck. */
   drill?: boolean;
   /**
@@ -115,6 +118,7 @@ export function createSession(params: CreateSessionParams): StudySession {
   const base: StudySession = {
     id: params.id,
     deckId: params.deckId,
+    studyLanguages: params.studyLanguages ? [...params.studyLanguages] : undefined,
     mode: params.mode,
     promptDirection: params.promptDirection,
     answerMode: params.answerMode,
@@ -160,6 +164,15 @@ export function createSession(params: CreateSessionParams): StudySession {
       activeCardIds: [...deckCardIds],
       currentCardId: deckCardIds[0],
     };
+  }
+
+  if (params.masteryOnly) {
+    base.activeCardCount = deckCardIds.length;
+    base.activeCardIds = [...deckCardIds];
+    base.introducedCardIds = [...deckCardIds];
+    base.phase = 'fullDeckMastery';
+    openRound(base, Math.random);
+    return base;
   }
 
   openStage(base, stageSizes(deckCardIds.length)[0]);

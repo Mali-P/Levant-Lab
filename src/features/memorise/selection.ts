@@ -1,4 +1,4 @@
-import type { Category, Deck, DeckProgress, Flashcard } from '../../types';
+import type { Category, Deck, DeckProgress, Flashcard, Language } from '../../types';
 import { gateDecks } from '../review/unlock';
 import { sortCards } from '../../utils/cardOrder';
 
@@ -24,6 +24,7 @@ export type MemoriseDeckParams = {
   decks: Deck[];
   deckProgress: Record<string, DeckProgress | undefined>;
   selectedIds: string[] | undefined;
+  languages?: readonly Language[];
 };
 
 /**
@@ -53,7 +54,7 @@ export function memoriseDecks(params: MemoriseDeckParams): Deck[] {
  * same ladder before it is honoured.
  */
 export function unlockedDecks(
-  params: Pick<MemoriseDeckParams, 'categories' | 'decks' | 'deckProgress'>,
+  params: Pick<MemoriseDeckParams, 'categories' | 'decks' | 'deckProgress' | 'languages'>,
 ): Deck[] {
   const open: Deck[] = [];
 
@@ -61,6 +62,7 @@ export function unlockedDecks(
     const gates = gateDecks(
       params.decks.filter((d) => d.categoryId === category.id),
       params.deckProgress,
+      params.languages,
     );
     for (const gate of gates) {
       if (gate.unlocked) open.push(gate.deck);
@@ -79,7 +81,7 @@ export function unlockedDecks(
  * browse, rather than a deck-not-found.
  */
 export function resumeDeck(
-  params: Pick<MemoriseDeckParams, 'categories' | 'decks' | 'deckProgress'> & {
+  params: Pick<MemoriseDeckParams, 'categories' | 'decks' | 'deckProgress' | 'languages'> & {
     lastDeckId: string | undefined;
   },
 ): Deck | undefined {

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { Category } from '../types';
 import { useData } from '../stores/dataStore';
+import { useSettings } from '../stores/settingsStore';
 import { useAlphabet } from '../stores/alphabetStore';
 import { gateDecks, type DeckGate } from '../features/review/unlock';
 import { ALPHABET_SCRIPTS, lettersFor } from '../data/alphabets';
@@ -14,6 +15,7 @@ export default function CategoriesScreen() {
   const decks = useData((s) => s.decks);
   const deckProgress = useData((s) => s.deckProgress);
   const alphabetProgress = useAlphabet((s) => s.progress);
+  const languages = useSettings((s) => s.languages);
 
   // The letters counted the way a category is counted, so the row can say the
   // same kind of thing as the rows under it.
@@ -55,6 +57,7 @@ export default function CategoriesScreen() {
             gates={gateDecks(
               decks.filter((d) => d.categoryId === category.id),
               deckProgress,
+              languages,
             )}
             cardCount={cards.filter((c) => c.categoryId === category.id).length}
           />

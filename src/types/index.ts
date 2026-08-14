@@ -344,6 +344,14 @@ export type Deck = {
    * predates ordering; `sortDecks` falls back to creation time.
    */
   order?: number;
+  /**
+   * Limits a deck to one or more study languages regardless of the global
+   * language preference. Used by Basics language stages: a learner with "both"
+   * enabled still studies Directions in Hebrew first, then Arabic.
+   */
+  studyLanguages?: Language[];
+  /** Opens directly into shuffled full-deck mastery rounds, with no intro ladder. */
+  masteryOnly?: boolean;
   perfectRunsRequired: number;
   promptDirections: PromptDirection[];
   createdAt: string;
@@ -433,6 +441,8 @@ export type StudyPhase =
 export type StudySession = {
   id: string;
   deckId: string;
+  /** Language slice this run is testing, when a deck overrides the global setting. */
+  studyLanguages?: Language[];
 
   /**
    * A one-card drill on a weak word rather than a run through the deck. It is
