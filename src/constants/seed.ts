@@ -1098,7 +1098,172 @@ const CUSTOM_DECKS: SeedDeck[] = [
  */
 export const SEQUENCED_CATEGORY = 'Counting and numbers';
 
+const BASICS_OF_BASICS_DECKS: SeedDeck[] = [
+  {
+    name: 'Directions',
+    cards: [
+      c('up', ['למעלה', 'lema\'la'], ['لفوق', 'la-fōʾ']),
+      c('down', ['למטה', 'lemata'], ['لتحت', 'la-taḥt']),
+      c('left', ['שמאלה', 'smola'], ['عالشمال', 'ʿash-shimāl']),
+      c('right', ['ימינה', 'yamina'], ['عاليمين', 'ʿal-yamīn']),
+    ],
+  },
+  {
+    name: 'Question words',
+    cards: [
+      c('who', ['מי', 'mi'], ['مين', 'mīn']),
+      c('what', ['מה', 'ma'], ['شو', 'shū']),
+      c('when', ['מתי', 'matai'], ['إيمتى', 'ēmta']),
+      c('where', ['איפה', 'eifo'], ['وين', 'wēn']),
+      c('why', ['למה', 'lama'], ['ليش', 'lēsh']),
+    ],
+  },
+  {
+    name: 'Basic pronouns',
+    cards: [
+      c('I', ['אני', 'ani'], ['أنا', 'ana']),
+      c('you', ofListener('את', 'at', 'אתה', 'ata'), ofListener('إنتِ', 'inti', 'إنتَ', 'inta')),
+      c('he', ['הוא', 'hu'], ['هو', 'huwwe']),
+      c('she', ['היא', 'hi'], ['هي', 'hiyye']),
+      c('we', ['אנחנו', 'anakhnu'], ['إحنا', 'iḥna']),
+      c('they', ['הם', 'hem'], ['هم', 'humme']),
+    ],
+  },
+  {
+    name: 'Can',
+    cards: [
+      c('I can', ofSpeaker('אני יכולה', 'ani yekhola', 'אני יכול', 'ani yakhol'), ['بقدر', 'baʾdar']),
+      c('I can\'t', ofSpeaker('אני לא יכולה', 'ani lo yekhola', 'אני לא יכול', 'ani lo yakhol'), ['ما بقدر', 'ma baʾdar']),
+      c('you can', ofListener('את יכולה', 'at yekhola', 'אתה יכול', 'ata yakhol'), ofListener('بتقدري', 'btiʾdari', 'بتقدر', 'btiʾdar')),
+      c('you can\'t', ofListener('את לא יכולה', 'at lo yekhola', 'אתה לא יכול', 'ata lo yakhol'), ofListener('ما بتقدري', 'ma btiʾdari', 'ما بتقدر', 'ma btiʾdar')),
+    ],
+  },
+  {
+    name: 'Want',
+    cards: [
+      c('I want', ofSpeaker('אני רוצה', 'ani rotsa', 'אני רוצה', 'ani rotse'), ['بدي', 'biddi'], { he: 'Written the same either way; only the ending is said differently.' }),
+      c('I don\'t want', ofSpeaker('אני לא רוצה', 'ani lo rotsa', 'אני לא רוצה', 'ani lo rotse'), ['ما بدي', 'ma biddi'], { he: 'Written the same either way; only the ending is said differently.' }),
+      c('you want', ofListener('את רוצה', 'at rotsa', 'אתה רוצה', 'ata rotse'), ofListener('بدك', 'biddik', 'بدك', 'biddak'), { ar: 'Written the same either way; only the ending is said differently.' }),
+      c('you don\'t want', ofListener('את לא רוצה', 'at lo rotsa', 'אתה לא רוצה', 'ata lo rotse'), ofListener('ما بدك', 'ma biddik', 'ما بدك', 'ma biddak'), { ar: 'Written the same either way; only the ending is said differently.' }),
+    ],
+  },
+  {
+    name: 'Need',
+    cards: [
+      c('I need', ofSpeaker('אני צריכה', 'ani tsrikha', 'אני צריך', 'ani tsarikh'), ['لازم أ...', 'lāzim a...']),
+      c('I don\'t need', ofSpeaker('אני לא צריכה', 'ani lo tsrikha', 'אני לא צריך', 'ani lo tsarikh'), ['مش لازم أ...', 'mish lāzim a...']),
+      c('you need', ofListener('את צריכה', 'at tsrikha', 'אתה צריך', 'ata tsarikh'), ['لازم تـ...', 'lāzim ti...']),
+      c('you don\'t need', ofListener('את לא צריכה', 'at lo tsrikha', 'אתה לא צריך', 'ata lo tsarikh'), ['مش لازم تـ...', 'mish lāzim ti...']),
+    ],
+  },
+  {
+    name: 'Like',
+    cards: [
+      c('I like', ofSpeaker('אני אוהבת', 'ani ohevet', 'אני אוהב', 'ani ohev'), ['بحب', 'baḥibb']),
+      c('I don\'t like', ofSpeaker('אני לא אוהבת', 'ani lo ohevet', 'אני לא אוהב', 'ani lo ohev'), ['ما بحب', 'ma baḥibb']),
+      c('you like', ofListener('את אוהבת', 'at ohevet', 'אתה אוהב', 'ata ohev'), ofListener('بتحبي', 'btiḥibbi', 'بتحب', 'btiḥibb')),
+      c('you don\'t like', ofListener('את לא אוהבת', 'at lo ohevet', 'אתה לא אוהב', 'ata lo ohev'), ofListener('ما بتحبي', 'ma btiḥibbi', 'ما بتحب', 'ma btiḥibb')),
+    ],
+  },
+  {
+    name: 'Have',
+    cards: [
+      c('I have', ['יש לי', 'yesh li'], ['عندي', 'ʿindi']),
+      c('I don\'t have', ['אין לי', 'ein li'], ['ما عندي', 'ma ʿindi']),
+      c('you have', toL(['יש לך', 'yesh lekha'], ['יש לך', 'yesh lakh']), toL(['عندك', 'ʿindak'], ['عندك', 'ʿindik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
+      c('you don\'t have', toL(['אין לך', 'ein lekha'], ['אין לך', 'ein lakh']), toL(['ما عندك', 'ma ʿindak'], ['ما عندك', 'ma ʿindik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
+    ],
+  },
+  {
+    name: 'This / that',
+    cards: [
+      c('this', ['זה', 'ze'], ['هاد', 'hād']),
+      c('that', ['ההוא', 'hahu'], ['هداك', 'hadāk']),
+      c('here', ['פה', 'po'], ['هون', 'hōn']),
+      c('there', ['שם', 'sham'], ['هناك', 'hnāk']),
+    ],
+  },
+  {
+    name: 'Basic answers',
+    cards: [
+      c('yes', ['כן', 'ken'], ['آه', 'āh']),
+      c('no', ['לא', 'lo'], ['لأ', 'laʾ']),
+      c('maybe', ['אולי', 'ulai'], ['يمكن', 'yimkin']),
+    ],
+  },
+  {
+    name: 'Colours',
+    cards: [
+      c('red', ['אדומה', 'aduma', 'אדום', 'adom'], ['حمرا', 'ḥamra', 'أحمر', 'aḥmar']),
+      c('orange', ['כתומה', 'ktuma', 'כתום', 'katom'], ['برتقالية', 'burtuʾāliyye', 'برتقالي', 'burtuʾāli']),
+      c('yellow', ['צהובה', 'tsehuba', 'צהוב', 'tsahov'], ['صفرا', 'ṣafra', 'أصفر', 'aṣfar']),
+      c('green', ['ירוקה', 'yeruka', 'ירוק', 'yarok'], ['خضرا', 'khaḍra', 'أخضر', 'akhḍar']),
+      c('blue', ['כחולה', 'kkhula', 'כחול', 'kakhol'], ['زرقا', 'zarʾa', 'أزرق', 'azraʾ']),
+      c('purple', ['סגולה', 'sgula', 'סגול', 'sagol'], ['بنفسجية', 'banafsajiyye', 'بنفسجي', 'banafsaji']),
+      c('pink', ['ורודה', 'vruda', 'ורוד', 'varod'], ['زهري', 'zahri']),
+    ],
+  },
+  {
+    name: 'Time of day',
+    cards: [
+      c('day', ['יום', 'yom'], ['نهار', 'nhār']),
+      c('night', ['לילה', 'layla'], ['ليل', 'lēl']),
+      c('morning', ['בוקר', 'boker'], ['صبح', 'ṣubḥ']),
+      c('afternoon', ['אחר הצהריים', 'akhar hatsahorayim'], ['بعد الظهر', 'baʿd iḍ-ḍuhur']),
+      c('evening', ['ערב', 'erev'], ['مسا', 'masa']),
+    ],
+  },
+  {
+    name: 'Basic contrasts',
+    cards: [
+      c('big', ['גדולה', 'gdola', 'גדול', 'gadol'], ['كبيرة', 'kbīre', 'كبير', 'kbīr']),
+      c('small', ['קטנה', 'ktana', 'קטן', 'katan'], ['صغيرة', 'zghīre', 'صغير', 'zghīr']),
+      c('hot', ['חמה', 'khama', 'חם', 'kham'], ['سخنة', 'sukhne', 'سخن', 'sukhn']),
+      c('cold', ['קרה', 'kara', 'קר', 'kar'], ['بردانة', 'bardāne', 'بردان', 'bardān']),
+      c('good', ['טובה', 'tova', 'טוב', 'tov'], ['منيحة', 'mnīḥa', 'منيح', 'mnīḥ']),
+      c('bad', ['רעה', 'ra\'a', 'רע', 'ra'], ['عاطلة', 'ʿāṭle', 'عاطل', 'ʿāṭel']),
+      c('wet', ['רטובה', 'rtuva', 'רטוב', 'ratuv'], ['مبلولة', 'mablūle', 'مبلول', 'mablūl']),
+      c('dry', ['יבשה', 'yevesha', 'יבש', 'yavesh'], ['ناشفة', 'nāshfe', 'ناشف', 'nāshif']),
+      c('clean', ['נקייה', 'nekiya', 'נקי', 'naki'], ['نضيفة', 'nḍīfe', 'نضيف', 'nḍīf']),
+      c('dirty', ['מלוכלכת', 'melukhlekhet', 'מלוכלך', 'melukhlakh'], ['وسخة', 'waskha', 'وسخ', 'wisikh']),
+    ],
+  },
+  {
+    name: 'Basic quantity',
+    cards: [
+      c('one', ['אחת', 'akhat'], ['واحد', 'wāḥad']),
+      c('two', ['שתיים', 'shtayim'], ['تنين', 'tnēn']),
+      c('three', ['שלוש', 'shalosh'], ['تلاتة', 'talāte']),
+      c('more', ['עוד', 'od'], ['كمان', 'kamān']),
+      c('none', ['אין', 'ein'], ['ولا إشي', 'wala ishi']),
+    ],
+  },
+  {
+    name: 'Basic movement',
+    cards: [
+      c('come', ofListener('בואי', 'bo\'i', 'בוא', 'bo'), ofListener('تعالي', 'taʿāli', 'تعال', 'taʿāl')),
+      c('go', ofListener('לכי', 'lekhi', 'לך', 'lekh'), ofListener('روحي', 'rūḥi', 'روح', 'rūḥ')),
+      c('stop', ofListener('תעצרי', 'ta\'atsri', 'תעצור', 'ta\'atsor'), ofListener('وقفي', 'waʾʾfi', 'وقّف', 'waʾʾif')),
+      c('wait', ofListener('חכי', 'khaki', 'חכה', 'khake'), ofListener('استني', 'istanni', 'استنى', 'istanna')),
+    ],
+  },
+  {
+    name: 'Basic physical states / needs',
+    cards: [
+      c('hungry', ofSpeaker('רעבה', 're\'eva', 'רעב', 'ra\'ev'), ofSpeaker('جوعانة', 'jūʿāne', 'جوعان', 'jūʿān')),
+      c('thirsty', ofSpeaker('צמאה', 'tsme\'a', 'צמא', 'tsame'), ofSpeaker('عطشانة', 'ʿaṭshāne', 'عطشان', 'ʿaṭshān')),
+      c('tired', ofSpeaker('עייפה', 'ayefa', 'עייף', 'ayef'), ofSpeaker('تعبانة', 'taʿbāne', 'تعبان', 'taʿbān')),
+      c('sleepy', ofSpeaker('ישנונית', 'yeshnunit', 'ישנוני', 'yeshnuni'), ofSpeaker('نعسانة', 'naʿsāne', 'نعسان', 'naʿsān')),
+    ],
+  },
+];
+
 export const SEED_CATEGORIES: SeedCategory[] = [
+  {
+    name: 'Basics of Basics',
+    icon: '🔰',
+    decks: BASICS_OF_BASICS_DECKS,
+  },
   {
     name: SEQUENCED_CATEGORY,
     icon: '🔢',

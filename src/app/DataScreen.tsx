@@ -21,6 +21,7 @@ import {
 } from '../services/database/seed';
 import { previewCsvImport, type ImportPreview } from '../features/importExport/importCards';
 import { toCsv, CSV_COLUMNS } from '../features/importExport/csv';
+import { SEED_CATEGORIES } from '../constants/seed';
 import { uid } from '../utils/random';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import WordForms from '../components/cards/WordForms';
@@ -336,9 +337,9 @@ export default function DataScreen() {
           missing starter cards, and does not delete your own cards.
         </p>
         <p className="small muted">
-          The official set is {OFFICIAL_CARD_COUNT} cards across eighteen
-          categories, each word with its feminine and masculine form in Hebrew
-          and Palestinian Arabic.
+          The official set is {OFFICIAL_CARD_COUNT} cards across{' '}
+          {SEED_CATEGORIES.length} categories, with Hebrew and Palestinian
+          Arabic forms for every card.
           {coverage && coverage.missing > 0 && (
             <> This device has {coverage.present} of them; {coverage.missing} are
             missing.</>

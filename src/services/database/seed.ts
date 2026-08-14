@@ -15,7 +15,7 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 35;
+export const STARTER_CONTENT_VERSION = 37;
 
 /**
  * How many cards the official starter set contains: every taught deck is a ten,
@@ -126,6 +126,7 @@ export async function installStarterCards(): Promise<InstallReport> {
   ]);
 
   const newCategories: Category[] = [];
+  const changedCategories: Category[] = [];
   const newDecks: Deck[] = [];
   const newCards: Flashcard[] = [];
   const changedCards: Flashcard[] = [];
@@ -138,20 +139,27 @@ export async function installStarterCards(): Promise<InstallReport> {
     cards.map((c) => [c.deckId + '|' + c.english.toLowerCase(), c]),
   );
 
-  let order = categories.length;
-
-  SEED_CATEGORIES.forEach((seedCategory) => {
+  SEED_CATEGORIES.forEach((seedCategory, categoryOrder) => {
     let category = categoryByName.get(seedCategory.name.toLowerCase());
     if (!category) {
       category = {
         id: uid('cat'),
         name: seedCategory.name,
         icon: seedCategory.icon,
-        order: order++,
+        order: categoryOrder,
         createdAt: now,
         updatedAt: now,
       };
       newCategories.push(category);
+      categoryByName.set(seedCategory.name.toLowerCase(), category);
+    } else if (category.order !== categoryOrder || category.icon !== seedCategory.icon) {
+      category = {
+        ...category,
+        icon: seedCategory.icon,
+        order: categoryOrder,
+        updatedAt: now,
+      };
+      changedCategories.push(category);
       categoryByName.set(seedCategory.name.toLowerCase(), category);
     }
 
@@ -207,6 +215,7 @@ export async function installStarterCards(): Promise<InstallReport> {
 
   await db.transaction('rw', [db.categories, db.decks, db.cards, db.settings], async () => {
     if (newCategories.length) await db.categories.bulkAdd(newCategories);
+    if (changedCategories.length) await db.categories.bulkPut(changedCategories);
     if (newDecks.length) await db.decks.bulkAdd(newDecks);
     if (newCards.length) await db.cards.bulkAdd(newCards);
     if (changedCards.length) await db.cards.bulkPut(changedCards);

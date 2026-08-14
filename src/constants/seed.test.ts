@@ -73,6 +73,33 @@ const VERB_DECK_PERSON: Record<string, 'first' | 'imperative'> = {
 };
 
 describe('the starter table', () => {
+  it('starts with the Basics of Basics section', () => {
+    expect(SEED_CATEGORIES[0].name).toBe('Basics of Basics');
+  });
+
+  it('keeps the Basics of Basics decks naturally small', () => {
+    const basics = SEED_CATEGORIES.find((category) => category.name === 'Basics of Basics');
+
+    expect(basics?.decks.map((deck) => [deck.name, deck.cards.length])).toEqual([
+      ['Directions', 4],
+      ['Question words', 5],
+      ['Basic pronouns', 6],
+      ['Can', 4],
+      ['Want', 4],
+      ['Need', 4],
+      ['Like', 4],
+      ['Have', 4],
+      ['This / that', 4],
+      ['Basic answers', 3],
+      ['Colours', 7],
+      ['Time of day', 5],
+      ['Basic contrasts', 10],
+      ['Basic quantity', 5],
+      ['Basic movement', 4],
+      ['Basic physical states / needs', 4],
+    ]);
+  });
+
   it('leads every gendered pair with the feminine form', () => {
     for (const { where, side } of SIDES) {
       if (!side.forms) continue;
