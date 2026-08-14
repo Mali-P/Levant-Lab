@@ -113,7 +113,7 @@ export default function StudyScreen() {
   );
 
   const [values, setValues] = useState(EMPTY_VALUES);
-  const [revealed, setRevealed] = useState(false);
+  const [revealedCardId, setRevealedCardId] = useState<string | null>(null);
   const [booting, setBooting] = useState(true);
   const [celebrate, setCelebrate] = useState(false);
   // The session advances the moment an answer is graded, so the feedback sheet
@@ -267,6 +267,7 @@ export default function StudyScreen() {
   const currentCard = session?.currentCardId
     ? deckCards.find((c) => c.id === session.currentCardId)
     : undefined;
+  const revealed = Boolean(currentCard && revealedCardId === currentCard.id);
 
   const gradedCard = gradedCardId
     ? deckCards.find((c) => c.id === gradedCardId)
@@ -314,7 +315,7 @@ export default function StudyScreen() {
 
   const continueNext = useCallback(() => {
     setValues(EMPTY_VALUES);
-    setRevealed(false);
+    setRevealedCardId(null);
     setCelebrate(false);
     setGradedCardId(null);
     advance();
@@ -407,7 +408,7 @@ export default function StudyScreen() {
     if (!cardId) return;
 
     setValues(typedHistory.current.pop() ?? EMPTY_VALUES);
-    setRevealed(answerMode !== 'typed');
+    setRevealedCardId(answerMode !== 'typed' ? cardId : null);
     setCelebrate(false);
     setGradedCardId(null);
   }, [stepBack, awaitingAdvance, answerMode]);
@@ -449,7 +450,7 @@ export default function StudyScreen() {
       }
       if (event.key === ' ' && answerMode === 'self' && !revealed) {
         event.preventDefault();
-        setRevealed(true);
+        setRevealedCardId(useSession.getState().session?.currentCardId ?? null);
       }
       // The keyboard twin of the back swipe. Left alone in a typed field, where
       // the arrow is how you move the caret through what you are writing.
@@ -823,7 +824,7 @@ export default function StudyScreen() {
         onChange={(scores, value) =>
           setValues((prev) => ({ ...prev, [scores]: value }))
         }
-        onReveal={() => setRevealed(true)}
+        onReveal={() => setRevealedCardId(currentCard.id)}
         onSpeak={(language) => void speak(currentCard, language)}
         onSwipeRight={() => {
           if (answerMode === 'typed') submitTyped();
@@ -889,7 +890,7 @@ export default function StudyScreen() {
       ) : (
         <button
           className="btn btn-primary btn-block"
-          onClick={() => setRevealed(true)}
+          onClick={() => setRevealedCardId(currentCard.id)}
         >
           {single ? 'Reveal the answer' : 'Reveal both answers'}
         </button>
