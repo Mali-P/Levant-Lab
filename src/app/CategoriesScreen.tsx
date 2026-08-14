@@ -4,6 +4,7 @@ import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { useAlphabet } from '../stores/alphabetStore';
 import { gateDecks, type DeckGate } from '../features/review/unlock';
+import { categoryGateLanguages } from '../features/review/languagePolicy';
 import { ALPHABET_SCRIPTS, lettersFor } from '../data/alphabets';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon from '../components/ornament/Icon';
@@ -57,7 +58,7 @@ export default function CategoriesScreen() {
             gates={gateDecks(
               decks.filter((d) => d.categoryId === category.id),
               deckProgress,
-              languages,
+              categoryGateLanguages(category, languages),
             )}
             cardCount={cards.filter((c) => c.categoryId === category.id).length}
           />

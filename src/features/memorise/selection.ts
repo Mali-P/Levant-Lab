@@ -1,5 +1,6 @@
 import type { Category, Deck, DeckProgress, Flashcard, Language } from '../../types';
 import { gateDecks } from '../review/unlock';
+import { categoryGateLanguages } from '../review/languagePolicy';
 import { sortCards } from '../../utils/cardOrder';
 
 /**
@@ -62,7 +63,9 @@ export function unlockedDecks(
     const gates = gateDecks(
       params.decks.filter((d) => d.categoryId === category.id),
       params.deckProgress,
-      params.languages,
+      params.languages
+        ? categoryGateLanguages(category, params.languages)
+        : undefined,
     );
     for (const gate of gates) {
       if (gate.unlocked) open.push(gate.deck);

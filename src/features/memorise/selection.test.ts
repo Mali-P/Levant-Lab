@@ -9,11 +9,11 @@ import {
 
 const T0 = '2026-01-02T09:00:00.000Z';
 
-function category(id: string, order: number): Category {
-  return { id, name: 'Category ' + id, icon: '', order, createdAt: T0, updatedAt: T0 };
+function category(id: string, order: number, name = 'Category ' + id): Category {
+  return { id, name, icon: '', order, createdAt: T0, updatedAt: T0 };
 }
 
-function deck(id: string, categoryId: string, order: number): Deck {
+function deck(id: string, categoryId: string, order: number, overrides: Partial<Deck> = {}): Deck {
   return {
     id,
     categoryId,
@@ -23,6 +23,7 @@ function deck(id: string, categoryId: string, order: number): Deck {
     promptDirections: ['en>he+ar'],
     createdAt: T0,
     updatedAt: T0,
+    ...overrides,
   };
 }
 
@@ -111,6 +112,32 @@ describe('unlockedDecks', () => {
         (d) => d.id,
       ),
     ).toEqual(['a1', 'b1']);
+  });
+
+  it('keeps Basics Hebrew-first regardless of the global language setting', () => {
+    const basics = category('basics', 0, 'Basics of Basics');
+    const stages = [
+      deck('directions-he', 'basics', 0, { studyLanguages: ['hebrew'] }),
+      deck('directions-ar', 'basics', 1, { studyLanguages: ['arabic'] }),
+    ];
+
+    expect(
+      unlockedDecks({
+        categories: [basics],
+        decks: stages,
+        deckProgress: {},
+        languages: ['arabic'],
+      }).map((d) => d.id),
+    ).toEqual(['directions-he']);
+
+    expect(
+      unlockedDecks({
+        categories: [basics],
+        decks: stages,
+        deckProgress: { 'directions-he': mastered('directions-he') },
+        languages: ['arabic'],
+      }).map((d) => d.id),
+    ).toEqual(['directions-he', 'directions-ar']);
   });
 });
 

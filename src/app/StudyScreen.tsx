@@ -24,6 +24,10 @@ import {
 } from '../features/study/engine';
 import { isSequencedDeck } from '../features/ordering/sequenced';
 import { gateDecks, nextDeck } from '../features/review/unlock';
+import {
+  categoryGateLanguages,
+  deckStudyLanguages,
+} from '../features/review/languagePolicy';
 import { db } from '../services/database/db';
 import { fireFeedback } from '../services/audio/feedback';
 import StudyCard from '../components/cards/StudyCard';
@@ -124,7 +128,8 @@ export default function StudyScreen() {
 
   const deck = decks.find((d) => d.id === deckId);
   const category = categories.find((c) => c.id === deck?.categoryId);
-  const studyLanguages = deck?.studyLanguages ?? languages;
+  const gateLanguages = categoryGateLanguages(category, languages);
+  const studyLanguages = deckStudyLanguages(deck, languages);
   const single = studyLanguages.length === 1;
   const only = studyLanguages[0];
 
@@ -135,7 +140,7 @@ export default function StudyScreen() {
     ? gateDecks(
         decks.filter((d) => d.categoryId === deck.categoryId),
         deckProgress,
-        languages,
+        gateLanguages,
       ).find((g) => g.deck.id === deck.id)
     : undefined;
   const locked = Boolean(gate && !gate.unlocked);
@@ -616,7 +621,7 @@ export default function StudyScreen() {
       gateDecks(
         decks.filter((d) => d.categoryId === deck.categoryId),
         deckProgress,
-        languages,
+        gateLanguages,
       ),
     )?.deck;
 

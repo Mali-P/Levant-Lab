@@ -7,6 +7,10 @@ import { wordForms } from '../utils/wordForms';
 import { sortCards } from '../utils/cardOrder';
 import { gateDecks } from '../features/review/unlock';
 import {
+  categoryGateLanguages,
+  deckStudyLanguages,
+} from '../features/review/languagePolicy';
+import {
   createMemoriseSession,
   currentMemoriseCardId,
   flipCard,
@@ -74,6 +78,7 @@ export default function MemoriseScreen({ pile }: Props) {
 
   const deck = deckId ? decks.find((d) => d.id === deckId) : undefined;
   const category = categories.find((c) => c.id === deck?.categoryId);
+  const studyLanguages = deckStudyLanguages(deck, languages);
 
   // The selection run: the decks ticked while browsing Review, and the first
   // unlocked deck until she ticks any. Deliberately not consulted in deck mode,
@@ -100,7 +105,7 @@ export default function MemoriseScreen({ pile }: Props) {
     ? gateDecks(
         decks.filter((d) => d.categoryId === deck.categoryId),
         deckProgress,
-        languages,
+        categoryGateLanguages(category, languages),
       ).find((g) => g.deck.id === deck.id)
     : undefined;
   const locked = Boolean(gate && !gate.unlocked);
@@ -212,11 +217,11 @@ export default function MemoriseScreen({ pile }: Props) {
     // Never a language she has switched off, whatever its auto-play toggle
     // says: that setting decides when a language is spoken, not whether it is
     // one of hers.
-    if (settings.autoPlayHebrew && languages.includes('hebrew')) {
+    if (settings.autoPlayHebrew && studyLanguages.includes('hebrew')) {
       const [first] = wordForms(currentCard.hebrew, perspectives, lead);
       if (first) void play(first, 'hebrew');
     }
-    if (settings.autoPlayArabic && languages.includes('arabic')) {
+    if (settings.autoPlayArabic && studyLanguages.includes('arabic')) {
       const [first] = wordForms(currentCard.arabic, perspectives, lead);
       if (first) void play(first, 'arabic');
     }
@@ -224,7 +229,7 @@ export default function MemoriseScreen({ pile }: Props) {
     flipped,
     currentCard,
     perspectives,
-    languages,
+    studyLanguages,
     lead,
     settings.autoPlayHebrew,
     settings.autoPlayArabic,
@@ -466,7 +471,7 @@ export default function MemoriseScreen({ pile }: Props) {
         card={currentCard}
         flipped={session.flipped}
         perspectives={perspectives}
-        languages={languages}
+        languages={studyLanguages}
         lead={lead}
         showTransliteration={settings.showTransliteration}
         animationIntensity={settings.cardAnimationIntensity}

@@ -6,6 +6,10 @@ import { useSettings } from '../stores/settingsStore';
 import { LANGUAGE_LONG_LABEL } from '../utils/languageSelection';
 import { sortCards } from '../utils/cardOrder';
 import { gateDecks } from '../features/review/unlock';
+import {
+  categoryGateLanguages,
+  deckStudyLanguages,
+} from '../features/review/languagePolicy';
 import { isSequencedCategory } from '../features/ordering/sequenced';
 import { fireFeedback } from '../services/audio/feedback';
 import DeckOrderingPair, {
@@ -48,6 +52,7 @@ export default function OrderRecallScreen() {
 
   const deck = decks.find((d) => d.id === deckId);
   const category = categories.find((c) => c.id === deck?.categoryId);
+  const studyLanguages = deckStudyLanguages(deck, languages);
 
   /** The deck in its own order — which, for a counting deck, is the answer. */
   const deckCards = useMemo(
@@ -130,7 +135,7 @@ export default function OrderRecallScreen() {
   const gate = gateDecks(
     decks.filter((d) => d.categoryId === deck.categoryId),
     deckProgress,
-    languages,
+    categoryGateLanguages(category, languages),
   ).find((g) => g.deck.id === deck.id);
 
   if (gate && !gate.unlocked) {
@@ -170,7 +175,7 @@ export default function OrderRecallScreen() {
     // Every column she was asked for, not every column that exists: a learner
     // studying Hebrew alone has put the deck in order when the Hebrew is in
     // order.
-    const both = languages.every((language) => passed[language] === true);
+    const both = studyLanguages.every((language) => passed[language] === true);
 
     return (
       <div className="screen">
@@ -184,10 +189,10 @@ export default function OrderRecallScreen() {
               ? 'All ' +
                 deckCards.length +
                 ' back in the right order' +
-                (languages.length > 1
+                (studyLanguages.length > 1
                   ? ', in both languages.'
-                  : ', in ' + LANGUAGE_LONG_LABEL[languages[0]] + '.')
-              : languages
+                  : ', in ' + LANGUAGE_LONG_LABEL[studyLanguages[0]] + '.')
+              : studyLanguages
                   .map(
                     (entry) =>
                       LANGUAGE_LONG_LABEL[entry] +
@@ -235,7 +240,7 @@ export default function OrderRecallScreen() {
         key={attempt}
         cards={deckCards}
         perspectives={perspectives}
-        languages={languages}
+        languages={studyLanguages}
         lead={lead}
         showTransliteration={settings.showTransliteration}
         reducedMotion={settings.reducedMotion}

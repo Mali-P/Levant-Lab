@@ -8,6 +8,7 @@ import {
 } from '../features/memorise/selection';
 import { letterReviewPool } from '../features/memorise/letters';
 import { gateDecks } from '../features/review/unlock';
+import { categoryGateLanguages } from '../features/review/languagePolicy';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon from '../components/ornament/Icon';
 import { categoryIcon } from '../components/ornament/Ornament';
@@ -142,7 +143,7 @@ export default function ReviewHomeScreen() {
           const gates = gateDecks(
             decks.filter((d) => d.categoryId === category.id),
             deckProgress,
-            languages,
+            categoryGateLanguages(category, languages),
           );
           const open = gates.filter((g) => g.unlocked).length;
           const inPile = gates.filter((g) =>

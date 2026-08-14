@@ -4,6 +4,10 @@ import { useSettings } from '../stores/settingsStore';
 import { LANGUAGE_LABEL } from '../utils/languageSelection';
 import { statusFor } from '../features/review/mastery';
 import { gateDecks, isDeckMastered } from '../features/review/unlock';
+import {
+  categoryGateLanguages,
+  deckStudyLanguages,
+} from '../features/review/languagePolicy';
 import { isSequencedCategory } from '../features/ordering/sequenced';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import PerfectRuns from '../components/progress/PerfectRuns';
@@ -65,8 +69,9 @@ export default function DeckScreen() {
   const gate = gateDecks(
     decks.filter((d) => d.categoryId === deck.categoryId),
     deckProgress,
-    languages,
+    categoryGateLanguages(category, languages),
   ).find((g) => g.deck.id === deck.id);
+  const studyLanguages = deckStudyLanguages(deck, languages);
 
   // The same ladder the category screen draws, enforced again here so a
   // bookmark cannot walk past it.
@@ -95,7 +100,7 @@ export default function DeckScreen() {
   const now = new Date().toISOString();
   const mastered = deckCards.filter(
     (c) =>
-      statusFor(cardProgress[c.id], now, settings.enableMasteryDecay, languages) ===
+      statusFor(cardProgress[c.id], now, settings.enableMasteryDecay, studyLanguages) ===
       'mastered',
   ).length;
 
@@ -119,7 +124,7 @@ export default function DeckScreen() {
   // Only the languages she is studying. A Hebrew-only learner has finished
   // this activity when the Hebrew column is in, and must not be told that "the
   // other language is still waiting" for a column she will never be shown.
-  const orderPasses = languages.filter(
+  const orderPasses = studyLanguages.filter(
     (language) => progress?.orderRecallPassedAt?.[language],
   );
 
@@ -189,8 +194,8 @@ export default function DeckScreen() {
                       : 'Activity: Memory Consolidation'}
                   </span>
                   <span className="small muted">
-                    {orderPasses.length === languages.length
-                      ? (languages.length > 1
+                    {orderPasses.length === studyLanguages.length
+                      ? (studyLanguages.length > 1
                           ? 'Passed in both languages. '
                           : 'Passed. ') +
                         'Take it again whenever you like.'
