@@ -25,6 +25,7 @@ import { isSequencedDeck } from '../features/ordering/sequenced';
 import { nextDeck } from '../features/review/unlock';
 import {
   basicsBaseName,
+  basicsStage,
   deckStudyLanguages,
   gateCategoryDecks,
   isBasicsCategory,
@@ -622,26 +623,35 @@ export default function StudyScreen() {
       ),
     )?.deck;
     const basics = isBasicsCategory(category);
-    const deckLanguage = deck.studyLanguages?.[0];
+    const stage = basicsStage(deck);
+    const nextStage = upNext ? basicsStage(upNext) : 'other';
     const sameBasicsLot =
       basics && upNext && basicsBaseName(deck) === basicsBaseName(upNext);
     const nextBasicsLot = basics && upNext && !sameBasicsLot;
     const headline =
-      basics && deckLanguage === 'hebrew'
+      basics && stage === 'hebrew'
         ? 'Hebrew mastered'
-        : basics && deckLanguage === 'arabic'
+        : basics && stage === 'arabic'
+          ? 'Arabic mastered'
+          : basics && stage === 'both'
           ? 'Basics lot mastered'
           : 'Deck mastered';
     const detail =
-      basics && deckLanguage === 'hebrew'
+      basics && stage === 'hebrew'
         ? 'Hebrew is complete for ' +
           basicsBaseName(deck) +
-          '. Arabic is the next half of this lot.'
-        : basics && deckLanguage === 'arabic'
+          '. Arabic is next for this lot.'
+        : basics && stage === 'arabic'
+          ? 'Arabic is complete for ' +
+            basicsBaseName(deck) +
+            '. Now put Hebrew and Arabic together on the same cards.'
+        : basics && stage === 'both'
           ? 'Hebrew and Arabic are both complete for ' + basicsBaseName(deck) + '.'
           : session.perfectRunsRequired + ' perfect rounds over the whole deck.';
     const startLabel = sameBasicsLot
-      ? 'Start Arabic'
+      ? nextStage === 'both'
+        ? 'Start Both'
+        : 'Start Arabic'
       : nextBasicsLot
         ? 'Start ' + basicsBaseName(upNext) + ' — Hebrew'
         : upNext

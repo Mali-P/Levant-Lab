@@ -1278,6 +1278,11 @@ function basicsStageDecks(decks: SeedDeck[]): SeedDeck[] {
       cards: deck.cards,
       studyLanguages: ['arabic'],
     });
+    stages.push({
+      name: deck.name + ' — Both',
+      cards: deck.cards,
+      studyLanguages: ['hebrew', 'arabic'],
+    });
   }
 
   const allCards = decks.flatMap((deck) => deck.cards);

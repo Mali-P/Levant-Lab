@@ -3,6 +3,7 @@ import type {
   CardProgress,
   Deck,
   Flashcard,
+  Language,
   MasteryStatus,
 } from '../types';
 import { CUSTOM_CATEGORY } from '../constants/seed';
@@ -12,6 +13,8 @@ import { useSettings } from '../stores/settingsStore';
 import { statusFor, STATUS_LABELS } from '../features/review/mastery';
 import type { DeckGate } from '../features/review/unlock';
 import {
+  basicsBaseName,
+  basicsStage,
   deckStudyLanguages,
   gateCategoryDecks,
   isBasicsCategory,
@@ -209,7 +212,7 @@ function BasicsGates({
   return (
     <>
       {groups.map((group, index) => {
-        const primary = group.hebrew ?? group.arabic;
+        const primary = group.hebrew ?? group.arabic ?? group.both;
         if (!primary) return null;
 
         const target =
@@ -217,16 +220,21 @@ function BasicsGates({
             ? group.hebrew
             : group.arabic && !group.arabic.mastered
               ? group.arabic
-              : undefined;
-        const active = target ?? group.arabic ?? group.hebrew;
+              : group.both && !group.both.mastered
+                ? group.both
+                : undefined;
+        const active = target ?? group.both ?? group.arabic ?? group.hebrew;
         const locked = Boolean(target && !target.unlocked);
         const deckCards = cards.filter((c) => c.deckId === primary.deck.id);
+        const statusLanguages: readonly Language[] = active
+          ? deckStudyLanguages(active.deck, ['hebrew', 'arabic'])
+          : ['hebrew', 'arabic'];
         const statuses = deckCards.map((c) =>
           statusFor(
             cardProgress[c.id],
             now,
             decayEnabled,
-            group.hebrew && !group.hebrew.mastered ? ['hebrew'] : ['arabic'],
+            statusLanguages,
           ),
         );
         const mastered = statuses.filter((s) => s === 'mastered').length;
@@ -246,7 +254,11 @@ function BasicsGates({
                   {deckCards.length} cards · {mastered} mastered · {needsReview} need review
                 </div>
               </div>
-              <BasicsStageChip hebrew={group.hebrew} arabic={group.arabic} />
+              <BasicsStageChip
+                hebrew={group.hebrew}
+                arabic={group.arabic}
+                both={group.both}
+              />
             </div>
 
             <div className="stack">
@@ -264,11 +276,18 @@ function BasicsGates({
                   required={group.arabic.perfectRunsRequired}
                 />
               )}
+              {group.both && (
+                <PerfectRuns
+                  label="Both perfect runs"
+                  completed={group.both.perfectRunsCompleted}
+                  required={group.both.perfectRunsRequired}
+                />
+              )}
             </div>
 
             {target && target.unlocked ? (
               <Link className="btn btn-primary btn-block" to={'/deck/' + target.deck.id}>
-                Practise {target.deck.studyLanguages?.[0] === 'arabic' ? 'Arabic' : 'Hebrew'}
+                Practise {basicsStageLabel(target.deck)}
               </Link>
             ) : target?.blockedBy ? (
               <p className="small muted">
@@ -289,9 +308,10 @@ function BasicsGates({
                         <strong>{card.english}</strong>
                         <div className="small muted">{STATUS_LABELS[statuses[i]]}</div>
                       </span>
-                      {group.hebrew && !group.hebrew.mastered ? (
+                      {statusLanguages.includes('hebrew') && (
                         <WordForms side={card.hebrew} language="hebrew" />
-                      ) : (
+                      )}
+                      {statusLanguages.includes('arabic') && (
                         <WordForms side={card.arabic} language="arabic" />
                       )}
                     </Link>
@@ -309,13 +329,25 @@ function BasicsGates({
 function BasicsStageChip({
   hebrew,
   arabic,
+  both,
 }: {
   hebrew?: DeckGate;
   arabic?: DeckGate;
+  both?: DeckGate;
 }) {
-  if (arabic?.mastered) return <span className="chip chip-ok">Complete</span>;
+  if (both?.mastered || (!both && arabic?.mastered)) {
+    return <span className="chip chip-ok">Complete</span>;
+  }
+  if (arabic?.mastered) return <span className="chip">Both next</span>;
   if (hebrew?.mastered) return <span className="chip">Arabic next</span>;
   return <span className="chip">Hebrew first</span>;
+}
+
+function basicsStageLabel(deck: Deck): string {
+  const stage = basicsStage(deck);
+  if (stage === 'arabic') return 'Arabic';
+  if (stage === 'both') return 'Both';
+  return 'Hebrew';
 }
 
 function needsReviewStatus(status: MasteryStatus): boolean {
@@ -327,22 +359,20 @@ function basicsGroups(gates: DeckGate[]): {
   name: string;
   hebrew?: DeckGate;
   arabic?: DeckGate;
+  both?: DeckGate;
 }[] {
   const byName = new Map<
     string,
-    { key: string; name: string; hebrew?: DeckGate; arabic?: DeckGate }
+    { key: string; name: string; hebrew?: DeckGate; arabic?: DeckGate; both?: DeckGate }
   >();
 
   for (const gate of gates) {
-    const language = gate.deck.studyLanguages?.[0];
-    const name = gate.deck.name
-      .replace(/\s+—\s+Hebrew$/, '')
-      .replace(/\s+—\s+Palestinian Arabic$/, '')
-      .replace(/^Hebrew\s+/, '')
-      .replace(/^Palestinian Arabic\s+/, '');
+    const stage = basicsStage(gate.deck);
+    const name = basicsBaseName(gate.deck);
     const existing = byName.get(name) ?? { key: name.toLowerCase(), name };
-    if (language === 'hebrew') existing.hebrew = gate;
-    else if (language === 'arabic') existing.arabic = gate;
+    if (stage === 'hebrew') existing.hebrew = gate;
+    else if (stage === 'arabic') existing.arabic = gate;
+    else if (stage === 'both') existing.both = gate;
     else existing.hebrew = gate;
     byName.set(name, existing);
   }
