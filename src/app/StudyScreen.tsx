@@ -3,7 +3,6 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type {
   AnswerMode,
   Flashcard,
-  Language,
   PromptDirection,
   StudyMode,
 } from '../types';
@@ -29,6 +28,7 @@ import {
   deckStudyLanguages,
   gateCategoryDecks,
   isBasicsCategory,
+  sameStudyLanguages,
 } from '../features/review/languagePolicy';
 import { db } from '../services/database/db';
 import { fireFeedback } from '../services/audio/feedback';
@@ -59,13 +59,6 @@ const QUIET_EVENTS: readonly StudyEvent[] = [
   'retry-queued',
   'round-missed',
 ];
-
-function sameLanguages(
-  left: readonly Language[] | undefined,
-  right: readonly Language[],
-): boolean {
-  return (left ?? right).join('|') === right.join('|');
-}
 
 export default function StudyScreen() {
   const { deckId = '' } = useParams();
@@ -219,7 +212,7 @@ export default function StudyScreen() {
                 !s.completedAt &&
                 !s.drill &&
                 s.mode === mode &&
-                sameLanguages(s.studyLanguages, studyLanguages) &&
+                sameStudyLanguages(s.studyLanguages, studyLanguages) &&
                 // A row from before the ladder has no stage to come back to.
                 // Left in place rather than resumed; the climb starts again.
                 isLadderSession(s),

@@ -1,4 +1,4 @@
-import type { Category, Deck, DeckProgress, Language } from '../../types';
+import { LANGUAGES, type Category, type Deck, type DeckProgress, type Language } from '../../types';
 import { gateDecks, isDeckMastered, sortDecks, type DeckGate } from './unlock';
 
 export const BASICS_CATEGORY_NAME = 'Basics of Basics';
@@ -19,6 +19,13 @@ export function deckStudyLanguages(
 
 export function isBasicsCategory(category: Pick<Category, 'name'> | undefined): boolean {
   return category?.name === BASICS_CATEGORY_NAME;
+}
+
+export function sameStudyLanguages(
+  left: readonly Language[] | undefined,
+  right: readonly Language[],
+): boolean {
+  return (left ?? LANGUAGES).join('|') === right.join('|');
 }
 
 export function basicsBaseName(deck: Pick<Deck, 'name'>): string {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Category, Deck, DeckProgress } from '../../types';
-import { gateCategoryDecks } from './languagePolicy';
+import { gateCategoryDecks, sameStudyLanguages } from './languagePolicy';
 
 const T0 = '2026-01-02T09:00:00.000Z';
 const basics: Category = {
@@ -61,5 +61,16 @@ describe('gateCategoryDecks', () => {
       ['questions-ar', false],
     ]);
     expect(gates.find((gate) => gate.deck.id === 'questions-he')?.blockedBy).toBeUndefined();
+  });
+});
+
+describe('sameStudyLanguages', () => {
+  it('does not resume an old mixed session for a single-language Basics stage', () => {
+    expect(sameStudyLanguages(undefined, ['hebrew'])).toBe(false);
+    expect(sameStudyLanguages(undefined, ['arabic'])).toBe(false);
+  });
+
+  it('still treats a session with no stored language as a both-language run', () => {
+    expect(sameStudyLanguages(undefined, ['hebrew', 'arabic'])).toBe(true);
   });
 });
