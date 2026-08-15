@@ -1,6 +1,5 @@
 import type { Category, Deck, DeckProgress, Flashcard, Language } from '../../types';
-import { gateDecks } from '../review/unlock';
-import { categoryGateLanguages } from '../review/languagePolicy';
+import { gateCategoryDecks } from '../review/languagePolicy';
 import { sortCards } from '../../utils/cardOrder';
 
 /**
@@ -60,12 +59,11 @@ export function unlockedDecks(
   const open: Deck[] = [];
 
   for (const category of params.categories) {
-    const gates = gateDecks(
+    const gates = gateCategoryDecks(
+      category,
       params.decks.filter((d) => d.categoryId === category.id),
       params.deckProgress,
-      params.languages
-        ? categoryGateLanguages(category, params.languages)
-        : undefined,
+      params.languages ?? ['hebrew', 'arabic'],
     );
     for (const gate of gates) {
       if (gate.unlocked) open.push(gate.deck);

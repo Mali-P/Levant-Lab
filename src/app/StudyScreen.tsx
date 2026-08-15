@@ -23,10 +23,10 @@ import {
   type StudyEvent,
 } from '../features/study/engine';
 import { isSequencedDeck } from '../features/ordering/sequenced';
-import { gateDecks, nextDeck } from '../features/review/unlock';
+import { nextDeck } from '../features/review/unlock';
 import {
-  categoryGateLanguages,
   deckStudyLanguages,
+  gateCategoryDecks,
 } from '../features/review/languagePolicy';
 import { db } from '../services/database/db';
 import { fireFeedback } from '../services/audio/feedback';
@@ -128,7 +128,6 @@ export default function StudyScreen() {
 
   const deck = decks.find((d) => d.id === deckId);
   const category = categories.find((c) => c.id === deck?.categoryId);
-  const gateLanguages = categoryGateLanguages(category, languages);
   const studyLanguages = deckStudyLanguages(deck, languages);
   const single = studyLanguages.length === 1;
   const only = studyLanguages[0];
@@ -137,10 +136,11 @@ export default function StudyScreen() {
   // not earned yet, so the ladder is enforced here too, not only in the UI
   // that hides the button.
   const gate = deck
-    ? gateDecks(
+    ? gateCategoryDecks(
+        category,
         decks.filter((d) => d.categoryId === deck.categoryId),
         deckProgress,
-        gateLanguages,
+        languages,
       ).find((g) => g.deck.id === deck.id)
     : undefined;
   const locked = Boolean(gate && !gate.unlocked);
@@ -619,10 +619,11 @@ export default function StudyScreen() {
     // learner who has just held ten words through ten clean rounds should not
     // be dropped back into a menu to work out what to open.
     const upNext = nextDeck(
-      gateDecks(
+      gateCategoryDecks(
+        category,
         decks.filter((d) => d.categoryId === deck.categoryId),
         deckProgress,
-        gateLanguages,
+        languages,
       ),
     )?.deck;
 

@@ -10,10 +10,10 @@ import { uid } from '../utils/random';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { statusFor, STATUS_LABELS } from '../features/review/mastery';
-import { gateDecks, type DeckGate } from '../features/review/unlock';
+import type { DeckGate } from '../features/review/unlock';
 import {
-  categoryGateLanguages,
   deckStudyLanguages,
+  gateCategoryDecks,
   isBasicsCategory,
 } from '../features/review/languagePolicy';
 import ScreenHeader from '../components/controls/ScreenHeader';
@@ -35,11 +35,11 @@ export default function CategoryScreen() {
   const saveCard = useData((s) => s.saveCard);
 
   const category = categories.find((c) => c.id === categoryId);
-  const gateLanguages = categoryGateLanguages(category, languages);
-  const gates = gateDecks(
+  const gates = gateCategoryDecks(
+    category,
     decks.filter((d) => d.categoryId === categoryId),
     deckProgress,
-    gateLanguages,
+    languages,
   );
   const now = new Date().toISOString();
 

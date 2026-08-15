@@ -1,8 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
-import { gateDecks } from '../features/review/unlock';
-import { categoryGateLanguages } from '../features/review/languagePolicy';
+import { gateCategoryDecks } from '../features/review/languagePolicy';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon from '../components/ornament/Icon';
 import { LevantMotif } from '../components/ornament/Ornament';
@@ -35,10 +34,11 @@ export default function ReviewCategoryScreen() {
   const deckProgress = useData((s) => s.deckProgress);
 
   const category = categories.find((c) => c.id === categoryId);
-  const gates = gateDecks(
+  const gates = gateCategoryDecks(
+    category,
     decks.filter((d) => d.categoryId === categoryId),
     deckProgress,
-    categoryGateLanguages(category, languages),
+    languages,
   );
 
   const picked = settings.memoriseDeckIds ?? [];

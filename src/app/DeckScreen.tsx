@@ -3,10 +3,10 @@ import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { LANGUAGE_LABEL } from '../utils/languageSelection';
 import { statusFor } from '../features/review/mastery';
-import { gateDecks, isDeckMastered } from '../features/review/unlock';
+import { isDeckMastered } from '../features/review/unlock';
 import {
-  categoryGateLanguages,
   deckStudyLanguages,
+  gateCategoryDecks,
 } from '../features/review/languagePolicy';
 import { isSequencedCategory } from '../features/ordering/sequenced';
 import ScreenHeader from '../components/controls/ScreenHeader';
@@ -66,10 +66,11 @@ export default function DeckScreen() {
     );
   }
 
-  const gate = gateDecks(
+  const gate = gateCategoryDecks(
+    category,
     decks.filter((d) => d.categoryId === deck.categoryId),
     deckProgress,
-    categoryGateLanguages(category, languages),
+    languages,
   ).find((g) => g.deck.id === deck.id);
   const studyLanguages = deckStudyLanguages(deck, languages);
 
