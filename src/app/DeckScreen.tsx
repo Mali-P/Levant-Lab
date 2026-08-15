@@ -8,7 +8,7 @@ import {
   deckStudyLanguages,
   gateCategoryDecks,
 } from '../features/review/languagePolicy';
-import { isSequencedCategory } from '../features/ordering/sequenced';
+import { isSequencedDeck } from '../features/ordering/sequenced';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import PerfectRuns from '../components/progress/PerfectRuns';
 import Icon from '../components/ornament/Icon';
@@ -113,13 +113,13 @@ export default function DeckScreen() {
    * is most of the point. For a deck of greetings there is nothing there to
    * ask: its ten cards sit in the order somebody wrote them down, and marking
    * her wrong for putting one before another would be testing the file rather
-   * than the language. So the numbers get this, the alphabets get their own,
-   * and every other deck is left alone.
+   * than the language. So the numbers and selected basics sequences get this,
+   * the alphabets get their own, and every other deck is left alone.
    *
    * The main run offers it too, part-way through the flawless rounds. This is
    * the same drill, on its own, for a learner who wants another go at it.
    */
-  const sequenced = isSequencedCategory(category);
+  const sequenced = isSequencedDeck(deck, categories);
   const progress = deckProgress[deck.id];
   const finalTest = isDeckMastered(deck, progress);
   // Only the languages she is studying. A Hebrew-only learner has finished
@@ -204,7 +204,7 @@ export default function DeckScreen() {
                         ? 'Passed in ' +
                           LANGUAGE_LABEL[orderPasses[0]] +
                           '. The other language is still waiting.'
-                        : 'Drag the numbers into the correct order.'}
+                        : 'Drag the cards into the correct order.'}
                   </span>
                 </span>
                 {/* No tally beside the row. How many languages are in is

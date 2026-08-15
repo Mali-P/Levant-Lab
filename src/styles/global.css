@@ -891,6 +891,28 @@ textarea.input {
   line-height: 1;
 }
 
+.card-prompt .gender-glyph {
+  width: calc(2.25rem * var(--fit));
+  height: calc(2.25rem * var(--fit));
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(1.45rem * var(--fit));
+  font-weight: 800;
+  border: 1px solid currentColor;
+}
+
+.card-prompt .gender-glyph.female {
+  color: #be185d;
+  background: rgba(244, 114, 182, 0.16);
+}
+
+.card-prompt .gender-glyph.male {
+  color: #1d4ed8;
+  background: rgba(96, 165, 250, 0.16);
+}
+
 .answer-block {
   border-top: 1px solid rgba(0, 0, 0, 0.1);
   padding-top: calc(8px * var(--fit));

@@ -614,16 +614,44 @@ export default function StudyScreen() {
     // and then points at what comes next. The ladder is meant to run on: the
     // learner who has just held ten words through ten clean rounds should not
     // be dropped back into a menu to work out what to open.
+    const basics = isBasicsCategory(category);
+    const stage = basicsStage(deck);
+    const categoryDecks = decks.filter((d) => d.categoryId === deck.categoryId);
+    const progressForNext = { ...deckProgress };
+    const markMastered = (entry: typeof deck) => {
+      const current = progressForNext[entry.id];
+      progressForNext[entry.id] = {
+        ...current,
+        deckId: entry.id,
+        perfectRunsCompleted: Math.max(
+          current?.perfectRunsCompleted ?? 0,
+          Math.max(1, entry.perfectRunsRequired),
+        ),
+      };
+    };
+
+    markMastered(deck);
+
+    // Basics is a three-step lot: Hebrew, Arabic, then Both. If the learner
+    // has just mastered the integrated Both stage, the next suggestion should
+    // move to the next lot even if one sibling's persisted progress is a render
+    // behind. Navigation can infer only this much; the real stored progress is
+    // still written by the session store.
+    if (basics && stage === 'both') {
+      const base = basicsBaseName(deck);
+      categoryDecks
+        .filter((entry) => basicsBaseName(entry) === base)
+        .forEach(markMastered);
+    }
+
     const upNext = nextDeck(
       gateCategoryDecks(
         category,
-        decks.filter((d) => d.categoryId === deck.categoryId),
-        deckProgress,
+        categoryDecks,
+        progressForNext,
         languages,
       ),
     )?.deck;
-    const basics = isBasicsCategory(category);
-    const stage = basicsStage(deck);
     const nextStage = upNext ? basicsStage(upNext) : 'other';
     const sameBasicsLot =
       basics && upNext && basicsBaseName(deck) === basicsBaseName(upNext);
@@ -793,7 +821,7 @@ export default function StudyScreen() {
 
         <div className="panel order-brief">
           <div className="headline">Reorder the cards</div>
-          <p className="small muted">Drag the numbers into the correct order.</p>
+          <p className="small muted">Drag the cards into the correct order.</p>
         </div>
 
         <DeckOrderingPair

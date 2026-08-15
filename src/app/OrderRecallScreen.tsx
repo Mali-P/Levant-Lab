@@ -10,7 +10,7 @@ import {
   categoryGateLanguages,
   deckStudyLanguages,
 } from '../features/review/languagePolicy';
-import { isSequencedCategory } from '../features/ordering/sequenced';
+import { isSequencedDeck } from '../features/ordering/sequenced';
 import { fireFeedback } from '../services/audio/feedback';
 import DeckOrderingPair, {
   type OrderingResult,
@@ -112,7 +112,7 @@ export default function OrderRecallScreen() {
   // A deck of words has no order to recall — its cards sit in the order
   // somebody wrote them down. A bookmark can still point here, so it is said
   // plainly rather than quietly quizzing her on a sequence that means nothing.
-  if (!isSequencedCategory(category)) {
+  if (!isSequencedDeck(deck, categories)) {
     return (
       <div className="screen">
         <ScreenHeader title={deck.name} eyebrow={category?.name} back />
@@ -120,7 +120,7 @@ export default function OrderRecallScreen() {
           <p>
             There is no order to put this deck in. Its cards are words rather
             than a sequence, so what comes after what is not a question about
-            the language. The numbers and the alphabets are.
+            the language. The numbers, alphabets, and a few basics sequences are.
           </p>
           <Link className="btn btn-primary" to={'/deck/' + deck.id}>
             Back to {deck.name}
@@ -231,7 +231,7 @@ export default function OrderRecallScreen() {
 
       <div className="panel order-brief">
         <div className="headline">Reorder the cards</div>
-        <p className="small muted">Drag the numbers into the correct order.</p>
+        <p className="small muted">Drag the cards into the correct order.</p>
       </div>
 
       <DeckOrderingPair

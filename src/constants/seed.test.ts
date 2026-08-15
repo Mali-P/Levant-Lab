@@ -89,15 +89,16 @@ describe('the starter table', () => {
     expect(conceptDecks?.map((deck) => [deck.name, deck.cards.length])).toEqual([
       ['Directions — Hebrew', 4],
       ['Question words — Hebrew', 6],
-      ['Basic pronouns — Hebrew', 6],
-      ['Can — Hebrew', 4],
-      ['Want — Hebrew', 4],
-      ['Need — Hebrew', 4],
-      ['Like — Hebrew', 4],
-      ['Have — Hebrew', 4],
+      ['Basic pronouns — Hebrew', 8],
+      ['Can — Hebrew', 8],
+      ['Want — Hebrew', 8],
+      ['Need — Hebrew', 8],
+      ['Like — Hebrew', 8],
+      ['Have — Hebrew', 6],
       ['This / that — Hebrew', 4],
       ['Basic answers — Hebrew', 3],
       ['Colours — Hebrew', 7],
+      ['Days of the week — Hebrew', 7],
       ['Time of day — Hebrew', 5],
       ['Basic contrasts — Hebrew', 10],
       ['Basic quantity — Hebrew', 5],
@@ -142,6 +143,9 @@ describe('the starter table', () => {
       ['Colours — Hebrew', ['hebrew']],
       ['Colours — Palestinian Arabic', ['arabic']],
       ['Colours — Both', ['hebrew', 'arabic']],
+      ['Days of the week — Hebrew', ['hebrew']],
+      ['Days of the week — Palestinian Arabic', ['arabic']],
+      ['Days of the week — Both', ['hebrew', 'arabic']],
       ['Time of day — Hebrew', ['hebrew']],
       ['Time of day — Palestinian Arabic', ['arabic']],
       ['Time of day — Both', ['hebrew', 'arabic']],
@@ -218,6 +222,46 @@ describe('the starter table', () => {
         arabic: 'يمين',
         arabicTransliteration: 'yameen',
       },
+    ]);
+  });
+
+  it('splits Basics gendered person forms into separate symbol-marked cards', () => {
+    const basics = SEED_CATEGORIES.find((category) => category.name === 'Basics of Basics');
+    const pronouns = basics?.decks.find((deck) => deck.name === 'Basic pronouns — Hebrew');
+    const can = basics?.decks.find((deck) => deck.name === 'Can — Hebrew');
+
+    expect(pronouns?.cards.map((card) => ({
+      english: card.english,
+      icon: card.icon,
+      hebrew: card.hebrew.transliteration,
+      arabic: card.arabic.transliteration,
+      paired: Boolean(card.hebrew.forms || card.arabic.forms || card.hebrew.speechForms || card.arabic.speechForms),
+    }))).toEqual([
+      { english: 'I', icon: undefined, hebrew: 'ani', arabic: 'ana', paired: false },
+      { english: 'you (female)', icon: '♀', hebrew: 'at', arabic: 'inti', paired: false },
+      { english: 'you (male)', icon: '♂', hebrew: 'ata', arabic: 'inta', paired: false },
+      { english: 'he', icon: undefined, hebrew: 'hu', arabic: 'huwwe', paired: false },
+      { english: 'she', icon: undefined, hebrew: 'hi', arabic: 'hiyye', paired: false },
+      { english: 'we', icon: undefined, hebrew: 'anakhnu', arabic: 'iḥna', paired: false },
+      { english: 'they (female)', icon: '♀', hebrew: 'hen', arabic: 'hinne', paired: false },
+      { english: 'they (male)', icon: '♂', hebrew: 'hem', arabic: 'humme', paired: false },
+    ]);
+
+    expect(can?.cards.map((card) => ({
+      english: card.english,
+      icon: card.icon,
+      hebrew: card.hebrew.transliteration,
+      arabic: card.arabic.transliteration,
+      paired: Boolean(card.hebrew.forms || card.arabic.forms || card.hebrew.speechForms || card.arabic.speechForms),
+    }))).toEqual([
+      { english: 'I can (female)', icon: '♀', hebrew: 'ani yekhola', arabic: 'baʾdar', paired: false },
+      { english: 'I can (male)', icon: '♂', hebrew: 'ani yakhol', arabic: 'baʾdar', paired: false },
+      { english: 'I can\'t (female)', icon: '♀', hebrew: 'ani lo yekhola', arabic: 'ma baʾdar', paired: false },
+      { english: 'I can\'t (male)', icon: '♂', hebrew: 'ani lo yakhol', arabic: 'ma baʾdar', paired: false },
+      { english: 'you can (female)', icon: '♀', hebrew: 'at yekhola', arabic: 'btiʾdari', paired: false },
+      { english: 'you can (male)', icon: '♂', hebrew: 'ata yakhol', arabic: 'btiʾdar', paired: false },
+      { english: 'you can\'t (female)', icon: '♀', hebrew: 'at lo yekhola', arabic: 'ma btiʾdari', paired: false },
+      { english: 'you can\'t (male)', icon: '♂', hebrew: 'ata lo yakhol', arabic: 'ma btiʾdar', paired: false },
     ]);
   });
 

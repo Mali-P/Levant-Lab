@@ -71,6 +71,12 @@ const SWIPE_VELOCITY = 480;
  */
 const SINGLE_LANGUAGE_CEILING = 1.3;
 
+function glyphClass(icon: string): string {
+  if (icon === '♀') return 'glyph gender-glyph female';
+  if (icon === '♂') return 'glyph gender-glyph male';
+  return 'glyph';
+}
+
 export default function StudyCard(props: StudyCardProps) {
   const { card, plan, revealed, typed, values, reducedMotion } = props;
   const firstField = useRef<HTMLInputElement>(null);
@@ -394,7 +400,7 @@ export default function StudyCard(props: StudyCardProps) {
           ) : (
             <>
               {card.icon && (
-                <span className="glyph" aria-hidden="true">
+                <span className={glyphClass(card.icon)} aria-hidden="true">
                   {card.icon}
                 </span>
               )}

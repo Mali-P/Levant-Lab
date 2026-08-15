@@ -1,5 +1,9 @@
 import type { Category, Deck } from '../../types';
 import { SEQUENCED_CATEGORY } from '../../constants/seed';
+import {
+  BASICS_CATEGORY_NAME,
+  basicsBaseName,
+} from '../review/languagePolicy';
 
 /**
  * Which decks the ordering drill is allowed to ask about.
@@ -11,13 +15,18 @@ import { SEQUENCED_CATEGORY } from '../../constants/seed';
  * marking her wrong for putting شكرا before أهلا would be worse than asking
  * nothing at all.
  *
- * So: the numbers, and the alphabets. The alphabets reach the drill from their
- * own module — a script is a sequence by definition and needs no permission —
- * and every other category of words and sentences is left alone.
+ * So: the numbers, the explicitly ordered basics decks, and the alphabets. The
+ * alphabets reach the drill from their own module — a script is a sequence by
+ * definition and needs no permission — and every other category of words and
+ * sentences is left alone.
  */
 
 /** The categories whose decks run in an order. */
 const SEQUENCED_CATEGORIES: readonly string[] = [SEQUENCED_CATEGORY];
+const SEQUENCED_BASICS_DECKS: readonly string[] = [
+  'Question words',
+  'Days of the week',
+];
 
 export function isSequencedCategory(
   category: Pick<Category, 'name'> | undefined,
@@ -37,9 +46,14 @@ export function isSequencedCategory(
  * business insisting a deck is numbers when its owner says otherwise.
  */
 export function isSequencedDeck(
-  deck: Pick<Deck, 'categoryId'> | undefined,
+  deck: Pick<Deck, 'categoryId' | 'name'> | undefined,
   categories: readonly Category[],
 ): boolean {
   if (!deck) return false;
-  return isSequencedCategory(categories.find((c) => c.id === deck.categoryId));
+  const category = categories.find((c) => c.id === deck.categoryId);
+  if (isSequencedCategory(category)) return true;
+  if (category?.name !== BASICS_CATEGORY_NAME) return false;
+
+  const name = basicsBaseName(deck).trim().toLowerCase();
+  return SEQUENCED_BASICS_DECKS.some((entry) => entry.toLowerCase() === name);
 }

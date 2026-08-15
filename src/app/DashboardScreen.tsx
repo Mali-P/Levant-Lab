@@ -6,6 +6,7 @@ import { useSettings } from '../stores/settingsStore';
 import { db } from '../services/database/db';
 import { LANGUAGE_LABEL } from '../utils/languageSelection';
 import { accuracy, statusFor, STATUS_LABELS } from '../features/review/mastery';
+import { dueDecksForReview } from '../features/review/due';
 import { describeStage, isLadderSession } from '../features/study/engine';
 import ThemeToggle from '../components/controls/ThemeToggle';
 import Icon from '../components/ornament/Icon';
@@ -82,18 +83,14 @@ export default function DashboardScreen() {
     (c) => statusFor(cardProgress[c.id], now, settings.enableMasteryDecay, languages) === 'mastered',
   ).length;
 
-  const dueDecks = decks
-    .map((deck) => {
-      const deckCards = cards.filter((c) => c.deckId === deck.id);
-      const due = deckCards.filter((c) => {
-        const status = statusFor(cardProgress[c.id], now, settings.enableMasteryDecay, languages);
-        return status === 'rusty' || status === 'needs-review' || status === 'forgotten';
-      }).length;
-      return { deck, due, total: deckCards.length };
-    })
-    .filter((d) => d.due > 0)
-    .sort((a, b) => b.due - a.due)
-    .slice(0, 4);
+  const dueDecks = dueDecksForReview({
+    categories,
+    decks,
+    cards,
+    cardProgress,
+    now,
+    limit: 4,
+  });
 
   // Weakest in the languages she is studying. A card whose Arabic she keeps
   // missing is not a weak card to a learner studying Hebrew — it is a card she
@@ -199,7 +196,7 @@ export default function DashboardScreen() {
         <section className="stack">
           <span className="eyebrow">Due for review</span>
           <div className="list">
-            {dueDecks.map(({ deck, due, total }) => (
+            {dueDecks.map(({ deck, due, total, label }) => (
               <Link className="list-item" key={deck.id} to={'/study/' + deck.id + '?mode=normal'}>
                 <span className="icon" aria-hidden="true">
                   <CategoryMark
@@ -207,7 +204,7 @@ export default function DashboardScreen() {
                   />
                 </span>
                 <span className="grow">
-                  <strong>{deck.name}</strong>
+                  <strong>{label}</strong>
                   <div className="small muted">{due} of {total} need review</div>
                 </span>
                 <Icon name="forward" className="chevron" />

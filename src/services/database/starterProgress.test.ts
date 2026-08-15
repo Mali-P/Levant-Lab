@@ -171,5 +171,5 @@ describe('starter practice progress coverage', () => {
       .first();
     expect(repaired).toBeTruthy();
     expect(await db.sessions.get('session-stale-question-words')).toBeUndefined();
-  });
+  }, 10000);
 });

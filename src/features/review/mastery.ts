@@ -10,7 +10,7 @@ import { emptyCardProgress } from '../../services/database/defaults';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Interval in days after N consecutive both-correct answers. */
-const REVIEW_LADDER = [1, 2, 4, 8, 16, 32, 64];
+const REVIEW_LADDER = [1, 3, 7, 30, 90, 180, 365];
 
 export function accuracy(p: LanguageProgress): number {
   const total = p.correct + p.incorrect;

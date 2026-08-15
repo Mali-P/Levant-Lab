@@ -163,7 +163,7 @@ describe('refreshing starter cards over an existing install', () => {
   it('starts from a fifty-card install missing most of the official set', () => {
     expect(before.cards).toBe(50);
     expect(before.official).toBe(36);
-    expect(OFFICIAL_CARD_COUNT).toBe(1303);
+    expect(OFFICIAL_CARD_COUNT).toBe(1516);
   });
 
   it('ends with the full official set present', async () => {

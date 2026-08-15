@@ -56,6 +56,11 @@ export type MemoriseCardProps = {
 const SWIPE_DISTANCE = 70;
 const SWIPE_VELOCITY = 300;
 
+function glyphClass(icon: string): string {
+  if (icon === '♀') return 'glyph gender-glyph female';
+  if (icon === '♂') return 'glyph gender-glyph male';
+  return 'glyph';
+}
 
 /**
  * One card in Memorise mode: English on the front, every Hebrew and Arabic
@@ -323,7 +328,7 @@ export default function MemoriseCard(props: MemoriseCardProps) {
 
         <div className="card-prompt">
           {card.icon && (
-            <span className="glyph" aria-hidden="true">
+            <span className={glyphClass(card.icon)} aria-hidden="true">
               {card.icon}
             </span>
           )}

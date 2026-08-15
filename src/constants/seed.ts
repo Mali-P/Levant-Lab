@@ -222,6 +222,19 @@ function c(
   };
 }
 
+function genderCard(
+  english: string,
+  gender: 'female' | 'male',
+  hebrew: W,
+  arabic: W,
+  notes?: { he?: string; ar?: string },
+): SeedCard {
+  return {
+    ...c(english + (gender === 'female' ? ' (female)' : ' (male)'), hebrew, arabic, notes),
+    icon: gender === 'female' ? '♀' : '♂',
+  };
+}
+
 /** Only the listener's gender changes the wording. */
 function toL(toMale: W, toFemale: W): Speech {
   return { by: 'listener', toMale, toFemale };
@@ -1129,47 +1142,65 @@ const BASICS_OF_BASICS_DECKS: SeedDeck[] = [
     name: 'Basic pronouns',
     cards: [
       c('I', ['אני', 'ani'], ['أنا', 'ana']),
-      c('you', ofListener('את', 'at', 'אתה', 'ata'), ofListener('إنتِ', 'inti', 'إنتَ', 'inta')),
+      genderCard('you', 'female', ['את', 'at'], ['إنتِ', 'inti']),
+      genderCard('you', 'male', ['אתה', 'ata'], ['إنتَ', 'inta']),
       c('he', ['הוא', 'hu'], ['هو', 'huwwe']),
       c('she', ['היא', 'hi'], ['هي', 'hiyye']),
       c('we', ['אנחנו', 'anakhnu'], ['إحنا', 'iḥna']),
-      c('they', ['הם', 'hem'], ['هم', 'humme']),
+      genderCard('they', 'female', ['הן', 'hen'], ['هن', 'hinne']),
+      genderCard('they', 'male', ['הם', 'hem'], ['هم', 'humme']),
     ],
   },
   {
     name: 'Can',
     cards: [
-      c('I can', ofSpeaker('אני יכולה', 'ani yekhola', 'אני יכול', 'ani yakhol'), ['بقدر', 'baʾdar']),
-      c('I can\'t', ofSpeaker('אני לא יכולה', 'ani lo yekhola', 'אני לא יכול', 'ani lo yakhol'), ['ما بقدر', 'ma baʾdar']),
-      c('you can', ofListener('את יכולה', 'at yekhola', 'אתה יכול', 'ata yakhol'), ofListener('بتقدري', 'btiʾdari', 'بتقدر', 'btiʾdar')),
-      c('you can\'t', ofListener('את לא יכולה', 'at lo yekhola', 'אתה לא יכול', 'ata lo yakhol'), ofListener('ما بتقدري', 'ma btiʾdari', 'ما بتقدر', 'ma btiʾdar')),
+      genderCard('I can', 'female', ['אני יכולה', 'ani yekhola'], ['بقدر', 'baʾdar']),
+      genderCard('I can', 'male', ['אני יכול', 'ani yakhol'], ['بقدر', 'baʾdar']),
+      genderCard('I can\'t', 'female', ['אני לא יכולה', 'ani lo yekhola'], ['ما بقدر', 'ma baʾdar']),
+      genderCard('I can\'t', 'male', ['אני לא יכול', 'ani lo yakhol'], ['ما بقدر', 'ma baʾdar']),
+      genderCard('you can', 'female', ['את יכולה', 'at yekhola'], ['بتقدري', 'btiʾdari']),
+      genderCard('you can', 'male', ['אתה יכול', 'ata yakhol'], ['بتقدر', 'btiʾdar']),
+      genderCard('you can\'t', 'female', ['את לא יכולה', 'at lo yekhola'], ['ما بتقدري', 'ma btiʾdari']),
+      genderCard('you can\'t', 'male', ['אתה לא יכול', 'ata lo yakhol'], ['ما بتقدر', 'ma btiʾdar']),
     ],
   },
   {
     name: 'Want',
     cards: [
-      c('I want', ofSpeaker('אני רוצה', 'ani rotsa', 'אני רוצה', 'ani rotse'), ['بدي', 'biddi'], { he: 'Written the same either way; only the ending is said differently.' }),
-      c('I don\'t want', ofSpeaker('אני לא רוצה', 'ani lo rotsa', 'אני לא רוצה', 'ani lo rotse'), ['ما بدي', 'ma biddi'], { he: 'Written the same either way; only the ending is said differently.' }),
-      c('you want', ofListener('את רוצה', 'at rotsa', 'אתה רוצה', 'ata rotse'), ofListener('بدك', 'biddik', 'بدك', 'biddak'), { ar: 'Written the same either way; only the ending is said differently.' }),
-      c('you don\'t want', ofListener('את לא רוצה', 'at lo rotsa', 'אתה לא רוצה', 'ata lo rotse'), ofListener('ما بدك', 'ma biddik', 'ما بدك', 'ma biddak'), { ar: 'Written the same either way; only the ending is said differently.' }),
+      genderCard('I want', 'female', ['אני רוצה', 'ani rotsa'], ['بدي', 'biddi'], { he: 'Hebrew is written the same as the masculine form; only the ending is said differently.' }),
+      genderCard('I want', 'male', ['אני רוצה', 'ani rotse'], ['بدي', 'biddi'], { he: 'Hebrew is written the same as the feminine form; only the ending is said differently.' }),
+      genderCard('I don\'t want', 'female', ['אני לא רוצה', 'ani lo rotsa'], ['ما بدي', 'ma biddi'], { he: 'Hebrew is written the same as the masculine form; only the ending is said differently.' }),
+      genderCard('I don\'t want', 'male', ['אני לא רוצה', 'ani lo rotse'], ['ما بدي', 'ma biddi'], { he: 'Hebrew is written the same as the feminine form; only the ending is said differently.' }),
+      genderCard('you want', 'female', ['את רוצה', 'at rotsa'], ['بدك', 'biddik'], { ar: 'Arabic is written the same as the masculine form; only the ending is said differently.' }),
+      genderCard('you want', 'male', ['אתה רוצה', 'ata rotse'], ['بدك', 'biddak'], { ar: 'Arabic is written the same as the feminine form; only the ending is said differently.' }),
+      genderCard('you don\'t want', 'female', ['את לא רוצה', 'at lo rotsa'], ['ما بدك', 'ma biddik'], { ar: 'Arabic is written the same as the masculine form; only the ending is said differently.' }),
+      genderCard('you don\'t want', 'male', ['אתה לא רוצה', 'ata lo rotse'], ['ما بدك', 'ma biddak'], { ar: 'Arabic is written the same as the feminine form; only the ending is said differently.' }),
     ],
   },
   {
     name: 'Need',
     cards: [
-      c('I need', ofSpeaker('אני צריכה', 'ani tsrikha', 'אני צריך', 'ani tsarikh'), ['لازم أ...', 'lāzim a...']),
-      c('I don\'t need', ofSpeaker('אני לא צריכה', 'ani lo tsrikha', 'אני לא צריך', 'ani lo tsarikh'), ['مش لازم أ...', 'mish lāzim a...']),
-      c('you need', ofListener('את צריכה', 'at tsrikha', 'אתה צריך', 'ata tsarikh'), ['لازم تـ...', 'lāzim ti...']),
-      c('you don\'t need', ofListener('את לא צריכה', 'at lo tsrikha', 'אתה לא צריך', 'ata lo tsarikh'), ['مش لازم تـ...', 'mish lāzim ti...']),
+      genderCard('I need', 'female', ['אני צריכה', 'ani tsrikha'], ['لازم أ...', 'lāzim a...']),
+      genderCard('I need', 'male', ['אני צריך', 'ani tsarikh'], ['لازم أ...', 'lāzim a...']),
+      genderCard('I don\'t need', 'female', ['אני לא צריכה', 'ani lo tsrikha'], ['مش لازم أ...', 'mish lāzim a...']),
+      genderCard('I don\'t need', 'male', ['אני לא צריך', 'ani lo tsarikh'], ['مش لازم أ...', 'mish lāzim a...']),
+      genderCard('you need', 'female', ['את צריכה', 'at tsrikha'], ['لازم تـ...', 'lāzim ti...']),
+      genderCard('you need', 'male', ['אתה צריך', 'ata tsarikh'], ['لازم تـ...', 'lāzim ti...']),
+      genderCard('you don\'t need', 'female', ['את לא צריכה', 'at lo tsrikha'], ['مش لازم تـ...', 'mish lāzim ti...']),
+      genderCard('you don\'t need', 'male', ['אתה לא צריך', 'ata lo tsarikh'], ['مش لازم تـ...', 'mish lāzim ti...']),
     ],
   },
   {
     name: 'Like',
     cards: [
-      c('I like', ofSpeaker('אני אוהבת', 'ani ohevet', 'אני אוהב', 'ani ohev'), ['بحب', 'baḥibb']),
-      c('I don\'t like', ofSpeaker('אני לא אוהבת', 'ani lo ohevet', 'אני לא אוהב', 'ani lo ohev'), ['ما بحب', 'ma baḥibb']),
-      c('you like', ofListener('את אוהבת', 'at ohevet', 'אתה אוהב', 'ata ohev'), ofListener('بتحبي', 'btiḥibbi', 'بتحب', 'btiḥibb')),
-      c('you don\'t like', ofListener('את לא אוהבת', 'at lo ohevet', 'אתה לא אוהב', 'ata lo ohev'), ofListener('ما بتحبي', 'ma btiḥibbi', 'ما بتحب', 'ma btiḥibb')),
+      genderCard('I like', 'female', ['אני אוהבת', 'ani ohevet'], ['بحب', 'baḥibb']),
+      genderCard('I like', 'male', ['אני אוהב', 'ani ohev'], ['بحب', 'baḥibb']),
+      genderCard('I don\'t like', 'female', ['אני לא אוהבת', 'ani lo ohevet'], ['ما بحب', 'ma baḥibb']),
+      genderCard('I don\'t like', 'male', ['אני לא אוהב', 'ani lo ohev'], ['ما بحب', 'ma baḥibb']),
+      genderCard('you like', 'female', ['את אוהבת', 'at ohevet'], ['بتحبي', 'btiḥibbi']),
+      genderCard('you like', 'male', ['אתה אוהב', 'ata ohev'], ['بتحب', 'btiḥibb']),
+      genderCard('you don\'t like', 'female', ['את לא אוהבת', 'at lo ohevet'], ['ما بتحبي', 'ma btiḥibbi']),
+      genderCard('you don\'t like', 'male', ['אתה לא אוהב', 'ata lo ohev'], ['ما بتحب', 'ma btiḥibb']),
     ],
   },
   {
@@ -1177,8 +1208,10 @@ const BASICS_OF_BASICS_DECKS: SeedDeck[] = [
     cards: [
       c('I have', ['יש לי', 'yesh li'], ['عندي', 'ʿindi']),
       c('I don\'t have', ['אין לי', 'ein li'], ['ما عندي', 'ma ʿindi']),
-      c('you have', toL(['יש לך', 'yesh lekha'], ['יש לך', 'yesh lakh']), toL(['عندك', 'ʿindak'], ['عندك', 'ʿindik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
-      c('you don\'t have', toL(['אין לך', 'ein lekha'], ['אין לך', 'ein lakh']), toL(['ما عندك', 'ma ʿindak'], ['ما عندك', 'ma ʿindik']), { he: 'Written the same either way; only the ending is said differently.', ar: 'Written the same either way; only the ending is said differently.' }),
+      genderCard('you have', 'female', ['יש לך', 'yesh lakh'], ['عندك', 'ʿindik'], { he: 'Hebrew is written the same as the masculine form; only the ending is said differently.', ar: 'Arabic is written the same as the masculine form; only the ending is said differently.' }),
+      genderCard('you have', 'male', ['יש לך', 'yesh lekha'], ['عندك', 'ʿindak'], { he: 'Hebrew is written the same as the feminine form; only the ending is said differently.', ar: 'Arabic is written the same as the feminine form; only the ending is said differently.' }),
+      genderCard('you don\'t have', 'female', ['אין לך', 'ein lakh'], ['ما عندك', 'ma ʿindik'], { he: 'Hebrew is written the same as the masculine form; only the ending is said differently.', ar: 'Arabic is written the same as the masculine form; only the ending is said differently.' }),
+      genderCard('you don\'t have', 'male', ['אין לך', 'ein lekha'], ['ما عندك', 'ma ʿindak'], { he: 'Hebrew is written the same as the feminine form; only the ending is said differently.', ar: 'Arabic is written the same as the feminine form; only the ending is said differently.' }),
     ],
   },
   {
@@ -1208,6 +1241,18 @@ const BASICS_OF_BASICS_DECKS: SeedDeck[] = [
       c('blue', ['כחולה', 'kkhula', 'כחול', 'kakhol'], ['زرقا', 'zarʾa', 'أزرق', 'azraʾ']),
       c('purple', ['סגולה', 'sgula', 'סגול', 'sagol'], ['بنفسجية', 'banafsajiyye', 'بنفسجي', 'banafsaji']),
       c('pink', ['ורודה', 'vruda', 'ורוד', 'varod'], ['زهري', 'zahri']),
+    ],
+  },
+  {
+    name: 'Days of the week',
+    cards: [
+      c('Sunday', ['יום ראשון', 'yom rishon'], ['الأحد', 'il-aḥad']),
+      c('Monday', ['יום שני', 'yom sheni'], ['الإثنين', 'il-itnēn']),
+      c('Tuesday', ['יום שלישי', 'yom shlishi'], ['الثلاثا', 'it-talāta']),
+      c('Wednesday', ['יום רביעי', 'yom revi\'i'], ['الأربعا', 'il-arbaʿa']),
+      c('Thursday', ['יום חמישי', 'yom khamishi'], ['الخميس', 'il-khamīs']),
+      c('Friday', ['יום שישי', 'yom shishi'], ['الجمعة', 'il-jumʿa']),
+      c('Saturday', ['שבת', 'shabat'], ['السبت', 'is-sabt']),
     ],
   },
   {

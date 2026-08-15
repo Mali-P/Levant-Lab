@@ -107,6 +107,20 @@ describe('decay and review scheduling', () => {
     );
   });
 
+  it('uses a consolidation ladder of tomorrow, three days, a week, then a month', () => {
+    let p = applyAnswerToProgress(undefined, 'c1', { hebrew: true, arabic: true }, T0);
+    expect(p.nextReviewAt).toBe(plusDays(1));
+
+    p = applyAnswerToProgress(p, 'c1', { hebrew: true, arabic: true }, T0);
+    expect(p.nextReviewAt).toBe(plusDays(3));
+
+    p = applyAnswerToProgress(p, 'c1', { hebrew: true, arabic: true }, T0);
+    expect(p.nextReviewAt).toBe(plusDays(7));
+
+    p = applyAnswerToProgress(p, 'c1', { hebrew: true, arabic: true }, T0);
+    expect(p.nextReviewAt).toBe(plusDays(30));
+  });
+
   it('becomes due once the scheduled date passes', () => {
     const p = applyAnswerToProgress(undefined, 'c1', { hebrew: true, arabic: true }, T0);
     expect(isDueForReview(p, T0)).toBe(false);
