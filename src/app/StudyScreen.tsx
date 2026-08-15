@@ -25,8 +25,10 @@ import {
 import { isSequencedDeck } from '../features/ordering/sequenced';
 import { nextDeck } from '../features/review/unlock';
 import {
+  basicsBaseName,
   deckStudyLanguages,
   gateCategoryDecks,
+  isBasicsCategory,
 } from '../features/review/languagePolicy';
 import { db } from '../services/database/db';
 import { fireFeedback } from '../services/audio/feedback';
@@ -626,16 +628,40 @@ export default function StudyScreen() {
         languages,
       ),
     )?.deck;
+    const basics = isBasicsCategory(category);
+    const deckLanguage = deck.studyLanguages?.[0];
+    const sameBasicsLot =
+      basics && upNext && basicsBaseName(deck) === basicsBaseName(upNext);
+    const nextBasicsLot = basics && upNext && !sameBasicsLot;
+    const headline =
+      basics && deckLanguage === 'hebrew'
+        ? 'Hebrew mastered'
+        : basics && deckLanguage === 'arabic'
+          ? 'Basics lot mastered'
+          : 'Deck mastered';
+    const detail =
+      basics && deckLanguage === 'hebrew'
+        ? 'Hebrew is complete for ' +
+          basicsBaseName(deck) +
+          '. Arabic is the next half of this lot.'
+        : basics && deckLanguage === 'arabic'
+          ? 'Hebrew and Arabic are both complete for ' + basicsBaseName(deck) + '.'
+          : session.perfectRunsRequired + ' perfect rounds over the whole deck.';
+    const startLabel = sameBasicsLot
+      ? 'Start Arabic'
+      : nextBasicsLot
+        ? 'Start ' + basicsBaseName(upNext) + ' — Hebrew'
+        : upNext
+          ? 'Start ' + upNext.name + ' — first words'
+          : '';
 
     return (
       <div className="screen">
         <ScreenHeader title={deck.name} eyebrow={category?.name} back />
         <Confetti active />
         <div className="panel">
-          <div className="headline">Deck mastered</div>
-          <p className="muted">
-            {session.perfectRunsRequired} perfect rounds over the whole deck.
-          </p>
+          <div className="headline">{headline}</div>
+          <p className="muted">{detail}</p>
 
           <div className="stack">
             {upNext && (
@@ -646,7 +672,7 @@ export default function StudyScreen() {
                   navigate('/study/' + upNext.id + '?mode=' + mode);
                 }}
               >
-                Start {upNext.name} — first words
+                {startLabel}
               </button>
             )}
             <button

@@ -21,7 +21,7 @@ export function isBasicsCategory(category: Pick<Category, 'name'> | undefined): 
   return category?.name === BASICS_CATEGORY_NAME;
 }
 
-function basicsBaseName(deck: Pick<Deck, 'name'>): string {
+export function basicsBaseName(deck: Pick<Deck, 'name'>): string {
   return deck.name
     .replace(/\s+—\s+Hebrew$/, '')
     .replace(/\s+—\s+Palestinian Arabic$/, '')
