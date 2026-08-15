@@ -428,14 +428,21 @@ describe('testing a stage', () => {
     expect(sizes).toEqual([2, 3, 4, 5, 6]);
   });
 
-  it('hands the full deck over to mastery on one clean pass, not two', () => {
-    // The last rung has no word waiting behind it, so the rule that buys the
-    // next one has nothing to buy. Mastery does its own counting from here.
+  it('hands the full deck over to mastery after two clean passes', () => {
+    // The last word has only just arrived, so the final rung follows the same
+    // rule as the rest: two clean passes with the new word mixed through the
+    // older ones, then mastery begins.
     const r = rng();
     let s = start();
     while (s.activeCardCount < 10) s = clearStage(readIntroduction(s, r), r).session;
 
-    const out = clearPass(readIntroduction(s, r), r);
+    const first = clearPass(readIntroduction(s, r), r);
+    expect(first.event).toBe('stage-pass-complete');
+    expect(first.session.phase).toBe('testing');
+    expect(first.session.activeCardIds).toEqual(DECK);
+    expect(first.session.stagePerfectRounds).toBe(1);
+
+    const out = clearPass(first.session, r);
     expect(out.event).toBe('full-deck-reached');
     expect(out.session.phase).toBe('fullDeckMastery');
     expect(out.session.perfectRounds).toBe(0);
@@ -770,7 +777,7 @@ describe('describeStage', () => {
     expect(describeStage(out.session).detail).toContain('will not count');
   });
 
-  it('calls the last stage the full deck, and says nothing of passes', () => {
+  it('calls the last stage the full deck, and still names the clean pass', () => {
     const r = rng();
     let s = start();
     while (s.activeCardCount < 10) {
@@ -778,9 +785,7 @@ describe('describeStage', () => {
     }
     const { label, detail } = describeStage(readIntroduction(s, r));
     expect(label).toBe('Full deck');
-    // No second pass to be on, so no line about one — and the count is already
-    // beside the headline, which leaves this rung nothing to add.
-    expect(detail).toBeNull();
+    expect(detail).toBe('Clean pass 1 of 2');
   });
 
   it('counts perfect rounds once mastery begins', () => {

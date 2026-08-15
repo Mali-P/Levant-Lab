@@ -503,9 +503,10 @@ function applyDrill(
  * than "each of them, once, at some point" — and spoil the pass, so that the
  * two that buy the next word have to be two she got right end to end.
  *
- * The last rung is the exception, and deliberately: once the active set is the
- * deck there is no next word to buy, so one clean sweep hands over to the
- * mastery rounds exactly as it always did, and they do their own counting.
+ * The last rung follows the same rule. The final word has only just arrived,
+ * so one lucky recall of it is not enough to throw the learner into mastery:
+ * it has to survive the same two clean passes mixed back through the older
+ * words before the full-deck rounds begin.
  */
 function applyTesting(
   s: StudySession,
@@ -537,17 +538,17 @@ function applyTesting(
 
   const grown = nextStageSize(s.deckCardIds.length, s.activeCardCount);
 
-  if (grown === undefined) {
-    openRound(s, rng);
-    s.phase = 'fullDeckMastery';
-    return 'full-deck-reached';
-  }
-
   if (s.stagePerfect) s.stagePerfectRounds += 1;
 
   if (s.stagePerfectRounds < STAGE_PERFECT_ROUNDS) {
     openPass(s, rng);
     return 'stage-pass-complete';
+  }
+
+  if (grown === undefined) {
+    openRound(s, rng);
+    s.phase = 'fullDeckMastery';
+    return 'full-deck-reached';
   }
 
   openStage(s, grown);
@@ -708,13 +709,10 @@ export function describeStage(
       // `??` for the same reason as in `answerCurrentCard`: a row written
       // before the one-card ladder can be read before it is ever answered.
       const banked = s.stagePerfectRounds ?? 0;
-      // The full deck is the one rung with no word waiting behind it, so it is
-      // not asked for two clean passes and is not told about them either.
       return {
         label: full ? 'Full deck' : 'Testing',
-        detail: full
-          ? null
-          : (s.stagePerfect ?? true)
+        detail:
+          s.stagePerfect ?? true
             ? 'Clean pass ' + (banked + 1) + ' of ' + STAGE_PERFECT_ROUNDS
             : 'This pass will not count',
         phase: s.phase,

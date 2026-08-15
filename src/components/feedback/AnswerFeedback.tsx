@@ -114,13 +114,18 @@ function detailFor(
   switch (outcome.event) {
     case 'stage-pass-complete': {
       const held = 'All ' + s.activeCardIds.length + ' recalled';
+      const full = s.activeCardIds.length >= s.deckCardIds.length;
       // A pass with a miss in it is not a pass. Saying so here, rather than
       // letting the next word simply fail to arrive, is the difference between
       // a rule she can see and one she has to infer.
       return s.stagePerfectRounds > 0
-        ? held + ', nothing missed. One more clean pass and a new word arrives.'
+        ? full
+          ? held + ', nothing missed. One more clean pass and mastery begins.'
+          : held + ', nothing missed. One more clean pass and a new word arrives.'
         : held +
-            ', but that pass had a miss in it. Two clean passes in a row bring the next word.';
+            (full
+              ? ', but that pass had a miss in it. Two clean passes in a row open mastery.'
+              : ', but that pass had a miss in it. Two clean passes in a row bring the next word.');
     }
     case 'stage-complete':
       return (
