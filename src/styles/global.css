@@ -2951,17 +2951,17 @@ a.btn-primary:active {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.basics-runs .seg.stage-hebrew.filled {
+.basics-runs.stage-hebrew .seg.filled {
   background: var(--lapis);
   border-color: var(--lapis);
 }
 
-.basics-runs .seg.stage-arabic.filled {
+.basics-runs.stage-arabic .seg.filled {
   background: var(--terracotta);
   border-color: var(--terracotta);
 }
 
-.basics-runs .seg.stage-both.filled,
+.basics-runs.stage-both .seg.filled,
 .basics-runs.mastered .seg.filled {
   background: var(--olive);
   border-color: var(--olive);

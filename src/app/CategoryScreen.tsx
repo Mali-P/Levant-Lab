@@ -335,29 +335,32 @@ function BasicsProgressBar({
   arabic?: DeckGate;
   both?: DeckGate;
 }) {
-  const stages = [
-    { key: 'hebrew', gate: hebrew },
-    { key: 'arabic', gate: arabic },
-    { key: 'both', gate: both },
-  ] as const;
-  const segments = stages.flatMap(({ key, gate }) =>
-    Array.from({ length: gate?.perfectRunsRequired ?? 0 }, (_unused, index) => ({
-      key: key + '-' + index,
-      stage: key,
-      filled: index < (gate?.perfectRunsCompleted ?? 0),
-    })),
-  );
-  const completed = stages.reduce(
-    (sum, stage) => sum + (stage.gate?.perfectRunsCompleted ?? 0),
-    0,
-  );
-  const required = stages.reduce(
-    (sum, stage) => sum + (stage.gate?.perfectRunsRequired ?? 0),
-    0,
-  );
   const mastered = Boolean(both?.mastered || (!both && arabic?.mastered));
+  const displayed =
+    mastered && both
+      ? { stage: 'both' as const, gate: both }
+      : hebrew && !hebrew.mastered
+        ? { stage: 'hebrew' as const, gate: hebrew }
+        : arabic && !arabic.mastered
+          ? { stage: 'arabic' as const, gate: arabic }
+          : both
+            ? { stage: 'both' as const, gate: both }
+            : arabic
+              ? { stage: 'arabic' as const, gate: arabic }
+              : hebrew
+                ? { stage: 'hebrew' as const, gate: hebrew }
+                : undefined;
 
-  if (required === 0) return null;
+  if (!displayed || displayed.gate.perfectRunsRequired === 0) return null;
+
+  const completed = mastered
+    ? displayed.gate.perfectRunsRequired
+    : displayed.gate.perfectRunsCompleted;
+  const required = displayed.gate.perfectRunsRequired;
+  const segments = Array.from({ length: required }, (_unused, index) => ({
+    key: displayed.stage + '-' + index,
+    filled: index < completed,
+  }));
 
   return (
     <div className="stack" style={{ gap: 6 }}>
@@ -370,7 +373,7 @@ function BasicsProgressBar({
             content={
               <>
                 <span className="tip-line">Blue: Hebrew</span>
-                <span className="tip-line">Burnt orange: Arabic</span>
+                <span className="tip-line">Burnt orange: Palestinian Arabic</span>
                 <span className="tip-line">Green: Hebrew and Arabic together</span>
               </>
             }
@@ -383,23 +386,23 @@ function BasicsProgressBar({
         </span>
       </div>
       <div
-        className={'runs basics-runs' + (mastered ? ' mastered' : '')}
+        className={
+          'runs basics-runs stage-' +
+          displayed.stage +
+          (mastered ? ' mastered' : '')
+        }
         role="img"
         aria-label={
           completed +
           ' of ' +
           required +
-          ' perfect runs complete. Blue is Hebrew, burnt orange is Arabic, green is Hebrew and Arabic together.'
+          ' perfect runs complete. Blue is Hebrew, burnt orange is Palestinian Arabic, green is Hebrew and Arabic together.'
         }
       >
         {segments.map((segment) => (
           <span
             key={segment.key}
-            className={
-              'seg stage-' +
-              segment.stage +
-              (segment.filled ? ' filled' : '')
-            }
+            className={'seg' + (segment.filled ? ' filled' : '')}
           />
         ))}
       </div>
