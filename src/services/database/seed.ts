@@ -369,10 +369,10 @@ export async function archiveCards(cardIds: string[]): Promise<number> {
 }
 
 /**
- * Earlier Basics installs taught listener-gendered "you can" rows as one card
- * with two forms. The official set now teaches those as separate symbol-marked
- * cards, so the old combined rows need to leave the Basics decks even on a
- * device already marked current.
+ * Earlier Basics installs taught gendered "can" rows as one card with two
+ * forms. The official set now teaches those as separate symbol-marked cards,
+ * so the old combined rows need to leave the Basics decks even on a device
+ * already marked current.
  */
 export async function archiveRetiredBasicsCanCards(): Promise<number> {
   const [categories, decks, cards] = await Promise.all([
@@ -396,10 +396,16 @@ export async function archiveRetiredBasicsCanCards(): Promise<number> {
 
   const retired = cards
     .filter(
-      (card) =>
-        canDeckIds.has(card.deckId) &&
-        (card.english.toLowerCase() === 'you can' ||
-          card.english.toLowerCase() === "you can't"),
+      (card) => {
+        if (!canDeckIds.has(card.deckId)) return false;
+        const english = card.english.toLowerCase();
+        return (
+          english === 'i can' ||
+          english === "i can't" ||
+          english === 'you can' ||
+          english === "you can't"
+        );
+      },
     )
     .map((card) => card.id);
 

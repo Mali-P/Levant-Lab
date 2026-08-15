@@ -318,7 +318,7 @@ describe('current-version installs with missing starter content', () => {
 });
 
 describe('retired Basics gender cards', () => {
-  it('moves old combined "you can" cards out of the Can stages', async () => {
+  it('moves old combined Can cards out of the Can stages', async () => {
     await db.delete();
     await db.open();
 
@@ -352,33 +352,31 @@ describe('retired Basics gender cards', () => {
       })),
     );
     await db.cards.bulkAdd(
-      ['can-hebrew', 'can-arabic', 'can-both'].map((deckId) => ({
-        id: 'old-you-can-' + deckId,
-        categoryId: 'basics',
-        deckId,
-        english: 'you can',
-        hebrew: {
-          script: 'את יכולה',
-          transliteration: 'at yekhola',
-          forms: {
-            feminine: { script: 'את יכולה', transliteration: 'at yekhola' },
-            masculine: { script: 'אתה יכול', transliteration: 'ata yakhol' },
+      ['can-hebrew', 'can-arabic', 'can-both'].flatMap((deckId) =>
+        [
+          ['I can', 'אני יכולה', 'ani yekhola', 'אני יכול', 'ani yakhol', 'speaker'],
+          ['I can\'t', 'אני לא יכולה', 'ani lo yekhola', 'אני לא יכול', 'ani lo yakhol', 'speaker'],
+          ['you can', 'את יכולה', 'at yekhola', 'אתה יכול', 'ata yakhol', 'listener'],
+          ['you can\'t', 'את לא יכולה', 'at lo yekhola', 'אתה לא יכול', 'ata lo yakhol', 'listener'],
+        ].map(([english, fScript, fTranslit, mScript, mTranslit, agreement]) => ({
+          id: 'old-' + english.toLowerCase().replace(/[^a-z]+/g, '-') + '-' + deckId,
+          categoryId: 'basics',
+          deckId,
+          english,
+          hebrew: {
+            script: fScript,
+            transliteration: fTranslit,
+            forms: {
+              feminine: { script: fScript, transliteration: fTranslit },
+              masculine: { script: mScript, transliteration: mTranslit },
+            },
+            agreement: agreement as 'speaker' | 'listener',
           },
-          agreement: 'listener' as const,
-        },
-        arabic: {
-          script: 'بتقدري',
-          transliteration: 'btiʾdari',
-          forms: {
-            feminine: { script: 'بتقدري', transliteration: 'btiʾdari' },
-            masculine: { script: 'بتقدر', transliteration: 'btiʾdar' },
-          },
-          agreement: 'listener' as const,
-          dialect: 'Palestinian' as const,
-        },
-        createdAt: now,
-        updatedAt: now,
-      })),
+          arabic: { script: 'بقدر', transliteration: 'baʾdar', dialect: 'Palestinian' as const },
+          createdAt: now,
+          updatedAt: now,
+        })),
+      ),
     );
 
     await prepareStarterContent();
@@ -387,7 +385,14 @@ describe('retired Basics gender cards', () => {
     for (const name of ['Can — Hebrew', 'Can — Palestinian Arabic', 'Can — Both']) {
       const canDeck = decks.find((deck) => deck.name === name)!;
       const canCards = await db.cards.where('deckId').equals(canDeck.id).toArray();
-      expect(canCards.some((card) => card.english === 'you can'), name).toBe(false);
+      for (const english of ['I can', 'I can\'t', 'you can', 'you can\'t']) {
+        expect(canCards.some((card) => card.english === english), name + ' / ' + english)
+          .toBe(false);
+      }
+      expect(canCards.map((card) => card.english).sort(), name).toContain(
+        'I can (female)',
+      );
+      expect(canCards.map((card) => card.english).sort(), name).toContain('I can (male)');
       expect(canCards.map((card) => card.english).sort(), name).toContain(
         'you can (female)',
       );
@@ -397,11 +402,11 @@ describe('retired Basics gender cards', () => {
     }
 
     const archived = await db.cards
-      .filter((card) => card.id.startsWith('old-you-can-'))
+      .filter((card) => card.id.startsWith('old-'))
       .toArray();
     // The archive sits outside starter decks, and duplicate retired rows are
     // collapsed there like any other duplicate content.
-    expect(archived).toHaveLength(1);
+    expect(archived).toHaveLength(4);
     const archivedDeckNames = await Promise.all(
       archived.map(async (card) => (await db.decks.get(card.deckId))!.name),
     );
