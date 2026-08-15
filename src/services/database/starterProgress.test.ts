@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { SEED_CATEGORIES } from '../../constants/seed';
 import { applyAnswerToProgress } from '../../features/review/mastery';
-import type { CardProgress, DeckProgress } from '../../types';
+import type { CardProgress, DeckProgress, StudySession } from '../../types';
 import { emptyDeckProgress } from './defaults';
 import { db } from './db';
 import {
@@ -115,5 +115,61 @@ describe('starter practice progress coverage', () => {
           .map((card) => card.id),
       ),
     ).toHaveLength(30);
+  });
+
+  it('drops unfinished starter sessions when a missing official card is restored', async () => {
+    await installStarterCards();
+
+    const basics = await db.categories.where('name').equals('Basics of Basics').first();
+    const deck = (await db.decks.toArray()).find(
+      (entry) =>
+        entry.categoryId === basics!.id && entry.name === 'Question words — Hebrew',
+    );
+    const cards = await db.cards.where('deckId').equals(deck!.id).toArray();
+    const how = cards.find((card) => card.english === 'how');
+    expect(how).toBeTruthy();
+
+    await db.cards.delete(how!.id);
+    await db.sessions.put({
+      id: 'session-stale-question-words',
+      deckId: deck!.id,
+      studyLanguages: ['hebrew'],
+      mode: 'normal',
+      promptDirection: 'en>he+ar',
+      answerMode: 'self',
+      phase: 'testing',
+      deckCardIds: cards.filter((card) => card.id !== how!.id).map((card) => card.id),
+      activeCardCount: 5,
+      activeCardIds: cards.filter((card) => card.id !== how!.id).map((card) => card.id),
+      introducedCardIds: [],
+      introduceCardIds: [],
+      introduceIndex: 0,
+      introduceFlipped: false,
+      currentCardId: cards.find((card) => card.id !== how!.id)!.id,
+      stageCorrect: [],
+      stageIncorrect: [],
+      stagePerfectRounds: 0,
+      stagePerfect: true,
+      roundQueue: [],
+      roundIndex: 0,
+      roundPerfect: true,
+      currentRound: 0,
+      perfectRounds: 0,
+      perfectRunsRequired: 10,
+      deckMastered: false,
+      answers: [],
+      startedAt: NOW,
+      updatedAt: NOW,
+    } satisfies StudySession);
+
+    await installStarterCards();
+
+    const repaired = await db.cards
+      .where('deckId')
+      .equals(deck!.id)
+      .and((card) => card.english === 'how')
+      .first();
+    expect(repaired).toBeTruthy();
+    expect(await db.sessions.get('session-stale-question-words')).toBeUndefined();
   });
 });

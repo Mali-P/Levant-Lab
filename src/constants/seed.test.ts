@@ -80,7 +80,10 @@ describe('the starter table', () => {
   it('keeps the Basics of Basics concept pools naturally small', () => {
     const basics = SEED_CATEGORIES.find((category) => category.name === 'Basics of Basics');
     const conceptDecks = basics?.decks.filter(
-      (deck) => !deck.name.includes('Master Test') && deck.studyLanguages?.[0] === 'hebrew',
+      (deck) =>
+        !deck.name.includes('Master Test') &&
+        deck.studyLanguages?.length === 1 &&
+        deck.studyLanguages[0] === 'hebrew',
     );
 
     expect(conceptDecks?.map((deck) => [deck.name, deck.cards.length])).toEqual([
@@ -108,36 +111,52 @@ describe('the starter table', () => {
     expect(basics?.decks.map((deck) => [deck.name, deck.studyLanguages])).toEqual([
       ['Directions — Hebrew', ['hebrew']],
       ['Directions — Palestinian Arabic', ['arabic']],
+      ['Directions — Both', ['hebrew', 'arabic']],
       ['Question words — Hebrew', ['hebrew']],
       ['Question words — Palestinian Arabic', ['arabic']],
+      ['Question words — Both', ['hebrew', 'arabic']],
       ['Basic pronouns — Hebrew', ['hebrew']],
       ['Basic pronouns — Palestinian Arabic', ['arabic']],
+      ['Basic pronouns — Both', ['hebrew', 'arabic']],
       ['Can — Hebrew', ['hebrew']],
       ['Can — Palestinian Arabic', ['arabic']],
+      ['Can — Both', ['hebrew', 'arabic']],
       ['Want — Hebrew', ['hebrew']],
       ['Want — Palestinian Arabic', ['arabic']],
+      ['Want — Both', ['hebrew', 'arabic']],
       ['Need — Hebrew', ['hebrew']],
       ['Need — Palestinian Arabic', ['arabic']],
+      ['Need — Both', ['hebrew', 'arabic']],
       ['Like — Hebrew', ['hebrew']],
       ['Like — Palestinian Arabic', ['arabic']],
+      ['Like — Both', ['hebrew', 'arabic']],
       ['Have — Hebrew', ['hebrew']],
       ['Have — Palestinian Arabic', ['arabic']],
+      ['Have — Both', ['hebrew', 'arabic']],
       ['This / that — Hebrew', ['hebrew']],
       ['This / that — Palestinian Arabic', ['arabic']],
+      ['This / that — Both', ['hebrew', 'arabic']],
       ['Basic answers — Hebrew', ['hebrew']],
       ['Basic answers — Palestinian Arabic', ['arabic']],
+      ['Basic answers — Both', ['hebrew', 'arabic']],
       ['Colours — Hebrew', ['hebrew']],
       ['Colours — Palestinian Arabic', ['arabic']],
+      ['Colours — Both', ['hebrew', 'arabic']],
       ['Time of day — Hebrew', ['hebrew']],
       ['Time of day — Palestinian Arabic', ['arabic']],
+      ['Time of day — Both', ['hebrew', 'arabic']],
       ['Basic contrasts — Hebrew', ['hebrew']],
       ['Basic contrasts — Palestinian Arabic', ['arabic']],
+      ['Basic contrasts — Both', ['hebrew', 'arabic']],
       ['Basic quantity — Hebrew', ['hebrew']],
       ['Basic quantity — Palestinian Arabic', ['arabic']],
+      ['Basic quantity — Both', ['hebrew', 'arabic']],
       ['Basic movement — Hebrew', ['hebrew']],
       ['Basic movement — Palestinian Arabic', ['arabic']],
+      ['Basic movement — Both', ['hebrew', 'arabic']],
       ['Basic physical states / needs — Hebrew', ['hebrew']],
       ['Basic physical states / needs — Palestinian Arabic', ['arabic']],
+      ['Basic physical states / needs — Both', ['hebrew', 'arabic']],
       ['Hebrew Basics Master Test', ['hebrew']],
       ['Palestinian Arabic Basics Master Test', ['arabic']],
     ]);
@@ -146,7 +165,12 @@ describe('the starter table', () => {
   it('builds each Basics final test from the current full concept pool', () => {
     const basics = SEED_CATEGORIES.find((category) => category.name === 'Basics of Basics');
     const conceptTotal = basics!.decks
-      .filter((deck) => !deck.name.includes('Master Test') && deck.studyLanguages?.[0] === 'hebrew')
+      .filter(
+        (deck) =>
+          !deck.name.includes('Master Test') &&
+          deck.studyLanguages?.length === 1 &&
+          deck.studyLanguages[0] === 'hebrew',
+      )
       .reduce((total, deck) => total + deck.cards.length, 0);
 
     expect(basics?.decks.find((deck) => deck.name === 'Hebrew Basics Master Test')?.cards).toHaveLength(conceptTotal);

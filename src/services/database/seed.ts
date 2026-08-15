@@ -15,7 +15,7 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 41;
+export const STARTER_CONTENT_VERSION = 42;
 
 /**
  * How many cards the official starter set contains, across ordinary decks,
@@ -131,6 +131,7 @@ export async function installStarterCards(): Promise<InstallReport> {
   const changedDecks: Deck[] = [];
   const newCards: Flashcard[] = [];
   const changedCards: Flashcard[] = [];
+  const decksWithNewOfficialCards = new Set<string>();
 
   const categoryByName = new Map(categories.map((c) => [c.name.toLowerCase(), c]));
   const deckByKey = new Map(
@@ -225,19 +226,30 @@ export async function installStarterCards(): Promise<InstallReport> {
             createdAt: now,
             ...sides,
           });
+          decksWithNewOfficialCards.add(deck!.id);
           report.added++;
         }
       });
     });
   });
 
-  await db.transaction('rw', [db.categories, db.decks, db.cards, db.settings], async () => {
+  const staleSessions = decksWithNewOfficialCards.size
+    ? await db.sessions
+        .filter(
+          (session) =>
+            !session.completedAt && decksWithNewOfficialCards.has(session.deckId),
+        )
+        .primaryKeys()
+    : [];
+
+  await db.transaction('rw', [db.categories, db.decks, db.cards, db.sessions, db.settings], async () => {
     if (newCategories.length) await db.categories.bulkAdd(newCategories);
     if (changedCategories.length) await db.categories.bulkPut(changedCategories);
     if (newDecks.length) await db.decks.bulkAdd(newDecks);
     if (changedDecks.length) await db.decks.bulkPut(changedDecks);
     if (newCards.length) await db.cards.bulkAdd(newCards);
     if (changedCards.length) await db.cards.bulkPut(changedCards);
+    if (staleSessions.length) await db.sessions.bulkDelete(staleSessions);
     await ensureSettings();
     // The device now holds this build's starter set, so later launches leave
     // it alone and the learner's own deletions stay deleted.
