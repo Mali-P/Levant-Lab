@@ -20,6 +20,7 @@ import {
   isBasicsCategory,
 } from '../features/review/languagePolicy';
 import ScreenHeader from '../components/controls/ScreenHeader';
+import Tip from '../components/controls/Tip';
 import PerfectRuns from '../components/progress/PerfectRuns';
 import WordForms from '../components/cards/WordForms';
 import Icon from '../components/ornament/Icon';
@@ -261,29 +262,11 @@ function BasicsGates({
               />
             </div>
 
-            <div className="stack">
-              {group.hebrew && (
-                <PerfectRuns
-                  label="Hebrew perfect runs"
-                  completed={group.hebrew.perfectRunsCompleted}
-                  required={group.hebrew.perfectRunsRequired}
-                />
-              )}
-              {group.arabic && (
-                <PerfectRuns
-                  label="Arabic perfect runs"
-                  completed={group.arabic.perfectRunsCompleted}
-                  required={group.arabic.perfectRunsRequired}
-                />
-              )}
-              {group.both && (
-                <PerfectRuns
-                  label="Both perfect runs"
-                  completed={group.both.perfectRunsCompleted}
-                  required={group.both.perfectRunsRequired}
-                />
-              )}
-            </div>
+            <BasicsProgressBar
+              hebrew={group.hebrew}
+              arabic={group.arabic}
+              both={group.both}
+            />
 
             {target && target.unlocked ? (
               <Link className="btn btn-primary btn-block" to={'/deck/' + target.deck.id}>
@@ -341,6 +324,87 @@ function BasicsStageChip({
   if (arabic?.mastered) return <span className="chip">Both next</span>;
   if (hebrew?.mastered) return <span className="chip">Arabic next</span>;
   return <span className="chip">Hebrew first</span>;
+}
+
+function BasicsProgressBar({
+  hebrew,
+  arabic,
+  both,
+}: {
+  hebrew?: DeckGate;
+  arabic?: DeckGate;
+  both?: DeckGate;
+}) {
+  const stages = [
+    { key: 'hebrew', gate: hebrew },
+    { key: 'arabic', gate: arabic },
+    { key: 'both', gate: both },
+  ] as const;
+  const segments = stages.flatMap(({ key, gate }) =>
+    Array.from({ length: gate?.perfectRunsRequired ?? 0 }, (_unused, index) => ({
+      key: key + '-' + index,
+      stage: key,
+      filled: index < (gate?.perfectRunsCompleted ?? 0),
+    })),
+  );
+  const completed = stages.reduce(
+    (sum, stage) => sum + (stage.gate?.perfectRunsCompleted ?? 0),
+    0,
+  );
+  const required = stages.reduce(
+    (sum, stage) => sum + (stage.gate?.perfectRunsRequired ?? 0),
+    0,
+  );
+  const mastered = Boolean(both?.mastered || (!both && arabic?.mastered));
+
+  if (required === 0) return null;
+
+  return (
+    <div className="stack" style={{ gap: 6 }}>
+      <div className="spread">
+        <span className="eyebrow row basics-progress-label">
+          Perfect runs
+          <Tip
+            className="info-tip"
+            label="Perfect run colour code"
+            content={
+              <>
+                <span className="tip-line">Blue: Hebrew</span>
+                <span className="tip-line">Burnt orange: Arabic</span>
+                <span className="tip-line">Green: Hebrew and Arabic together</span>
+              </>
+            }
+          >
+            <Icon name="info" />
+          </Tip>
+        </span>
+        <span className="small">
+          {completed} / {required}
+        </span>
+      </div>
+      <div
+        className={'runs basics-runs' + (mastered ? ' mastered' : '')}
+        role="img"
+        aria-label={
+          completed +
+          ' of ' +
+          required +
+          ' perfect runs complete. Blue is Hebrew, burnt orange is Arabic, green is Hebrew and Arabic together.'
+        }
+      >
+        {segments.map((segment) => (
+          <span
+            key={segment.key}
+            className={
+              'seg stage-' +
+              segment.stage +
+              (segment.filled ? ' filled' : '')
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function basicsStageLabel(deck: Deck): string {
