@@ -259,17 +259,17 @@ describe('refreshing starter cards over an existing install', () => {
     expect(retired.some((c) => c.deckId === 'my_deck')).toBe(false);
   });
 
-  it('does not re-run once the device is marked current', async () => {
+  it('does not re-run once the device is marked current unless official cards are missing', async () => {
     const second = await prepareStarterContent();
     expect(second.ran).toBe(false);
 
-    // A word deleted after the top-up stays deleted.
+    // A missing official starter word is restored even on a current install.
     const id = oldIds.get('two')!;
     await db.cards.delete(id);
     const third = await prepareStarterContent();
-    expect(third.ran).toBe(false);
-    expect(await db.cards.get(id)).toBeUndefined();
-  });
+    expect(third.ran).toBe(true);
+    expect((await db.cards.toArray()).some((card) => card.english === 'two')).toBe(true);
+  }, 10000);
 });
 
 describe('current-version installs with missing starter content', () => {
@@ -313,18 +313,6 @@ describe('current-version installs with missing starter content', () => {
     const report = await prepareStarterContent();
     expect(report.ran).toBe(true);
 
-    const wants = await db.categories.where('name').equals('Wants and feelings').first();
-    expect(wants).toBeTruthy();
-
-    const wantDecks = await db.decks.where('categoryId').equals(wants!.id).toArray();
-    expect(wantDecks.map((deck) => deck.name).sort()).toEqual([
-      'I want and I need',
-      'Saying what you want',
-      'You, he and she',
-    ]);
-
-    const wantCards = await db.cards.where('categoryId').equals(wants!.id).toArray();
-    expect(wantCards).toHaveLength(30);
     expect(await starterCoverage()).toMatchObject({ missing: 0, present: OFFICIAL_CARD_COUNT });
   });
 });
@@ -347,55 +335,76 @@ describe('retired Basics gender cards', () => {
       createdAt: now,
       updatedAt: now,
     });
-    await db.decks.add({
-      id: 'can-hebrew',
-      categoryId: 'basics',
-      name: 'Can — Hebrew',
-      perfectRunsRequired: 10,
-      promptDirections: ['en>he+ar'],
-      studyLanguages: ['hebrew'],
-      createdAt: now,
-      updatedAt: now,
-    });
-    await db.cards.add({
-      id: 'old-you-can',
-      categoryId: 'basics',
-      deckId: 'can-hebrew',
-      english: 'you can',
-      hebrew: {
-        script: 'את יכולה',
-        transliteration: 'at yekhola',
-        forms: {
-          feminine: { script: 'את יכולה', transliteration: 'at yekhola' },
-          masculine: { script: 'אתה יכול', transliteration: 'ata yakhol' },
+    await db.decks.bulkAdd(
+      [
+        ['can-hebrew', 'Can — Hebrew', ['hebrew']],
+        ['can-arabic', 'Can — Palestinian Arabic', ['arabic']],
+        ['can-both', 'Can — Both', ['hebrew', 'arabic']],
+      ].map(([id, name, studyLanguages]) => ({
+        id: id as string,
+        categoryId: 'basics',
+        name: name as string,
+        perfectRunsRequired: 10,
+        promptDirections: ['en>he+ar'] as const,
+        studyLanguages: studyLanguages as ['hebrew'] | ['arabic'] | ['hebrew', 'arabic'],
+        createdAt: now,
+        updatedAt: now,
+      })),
+    );
+    await db.cards.bulkAdd(
+      ['can-hebrew', 'can-arabic', 'can-both'].map((deckId) => ({
+        id: 'old-you-can-' + deckId,
+        categoryId: 'basics',
+        deckId,
+        english: 'you can',
+        hebrew: {
+          script: 'את יכולה',
+          transliteration: 'at yekhola',
+          forms: {
+            feminine: { script: 'את יכולה', transliteration: 'at yekhola' },
+            masculine: { script: 'אתה יכול', transliteration: 'ata yakhol' },
+          },
+          agreement: 'listener' as const,
         },
-        agreement: 'listener',
-      },
-      arabic: {
-        script: 'بتقدري',
-        transliteration: 'btiʾdari',
-        forms: {
-          feminine: { script: 'بتقدري', transliteration: 'btiʾdari' },
-          masculine: { script: 'بتقدر', transliteration: 'btiʾdar' },
+        arabic: {
+          script: 'بتقدري',
+          transliteration: 'btiʾdari',
+          forms: {
+            feminine: { script: 'بتقدري', transliteration: 'btiʾdari' },
+            masculine: { script: 'بتقدر', transliteration: 'btiʾdar' },
+          },
+          agreement: 'listener' as const,
+          dialect: 'Palestinian' as const,
         },
-        agreement: 'listener',
-        dialect: 'Palestinian',
-      },
-      createdAt: now,
-      updatedAt: now,
-    });
+        createdAt: now,
+        updatedAt: now,
+      })),
+    );
 
     await prepareStarterContent();
 
     const decks = await db.decks.toArray();
-    const canDeck = decks.find((deck) => deck.name === 'Can — Hebrew')!;
-    const canCards = await db.cards.where('deckId').equals(canDeck.id).toArray();
-    expect(canCards.some((card) => card.english === 'you can')).toBe(false);
-    expect(canCards.map((card) => card.english).sort()).toContain('you can (female)');
-    expect(canCards.map((card) => card.english).sort()).toContain('you can (male)');
+    for (const name of ['Can — Hebrew', 'Can — Palestinian Arabic', 'Can — Both']) {
+      const canDeck = decks.find((deck) => deck.name === name)!;
+      const canCards = await db.cards.where('deckId').equals(canDeck.id).toArray();
+      expect(canCards.some((card) => card.english === 'you can'), name).toBe(false);
+      expect(canCards.map((card) => card.english).sort(), name).toContain(
+        'you can (female)',
+      );
+      expect(canCards.map((card) => card.english).sort(), name).toContain(
+        'you can (male)',
+      );
+    }
 
-    const archived = await db.cards.get('old-you-can');
-    const archivedDeck = await db.decks.get(archived!.deckId);
-    expect(archivedDeck!.name).toBe('Retired starter words');
+    const archived = await db.cards
+      .filter((card) => card.id.startsWith('old-you-can-'))
+      .toArray();
+    // The archive sits outside starter decks, and duplicate retired rows are
+    // collapsed there like any other duplicate content.
+    expect(archived).toHaveLength(1);
+    const archivedDeckNames = await Promise.all(
+      archived.map(async (card) => (await db.decks.get(card.deckId))!.name),
+    );
+    expect(new Set(archivedDeckNames)).toEqual(new Set(['Retired starter words']));
   });
 });

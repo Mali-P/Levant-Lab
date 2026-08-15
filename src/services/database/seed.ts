@@ -623,8 +623,9 @@ async function runStarterContent(): Promise<StartupReport> {
   const coverage = seeded ? await starterCoverage() : null;
   const hasEveryCategory =
     coverage !== null && coverage.emptyCategories.length === 0;
+  const hasEveryOfficialCard = coverage !== null && coverage.missing === 0;
   const install =
-    seeded && current && hasEveryCategory
+    seeded && current && hasEveryCategory && hasEveryOfficialCard
       ? { ran: false, added: 0, updated: 0 }
       : { ran: true, ...(await installStarterCards()) };
 
