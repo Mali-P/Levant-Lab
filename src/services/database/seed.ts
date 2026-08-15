@@ -368,6 +368,44 @@ export async function archiveCards(cardIds: string[]): Promise<number> {
   return moving.length;
 }
 
+/**
+ * Earlier Basics installs taught listener-gendered "you can" rows as one card
+ * with two forms. The official set now teaches those as separate symbol-marked
+ * cards, so the old combined rows need to leave the Basics decks even on a
+ * device already marked current.
+ */
+export async function archiveRetiredBasicsCanCards(): Promise<number> {
+  const [categories, decks, cards] = await Promise.all([
+    db.categories.toArray(),
+    db.decks.toArray(),
+    db.cards.toArray(),
+  ]);
+  const basics = categories.find((c) => c.name.toLowerCase() === 'basics of basics');
+  if (!basics) return 0;
+
+  const canDeckIds = new Set(
+    decks
+      .filter(
+        (deck) =>
+          deck.categoryId === basics.id &&
+          (deck.name === 'Can' || deck.name.startsWith('Can —')),
+      )
+      .map((deck) => deck.id),
+  );
+  if (!canDeckIds.size) return 0;
+
+  const retired = cards
+    .filter(
+      (card) =>
+        canDeckIds.has(card.deckId) &&
+        (card.english.toLowerCase() === 'you can' ||
+          card.english.toLowerCase() === "you can't"),
+    )
+    .map((card) => card.id);
+
+  return archiveCards(retired);
+}
+
 /** Which official cards exist, and how many cards each official category holds. */
 async function officialIndex(): Promise<{
   officialCardIds: Set<string>;
@@ -589,6 +627,8 @@ async function runStarterContent(): Promise<StartupReport> {
     seeded && current && hasEveryCategory
       ? { ran: false, added: 0, updated: 0 }
       : { ran: true, ...(await installStarterCards()) };
+
+  await archiveRetiredBasicsCanCards();
 
   // Runs unconditionally: a device duplicated by an older build is already
   // marked current, so gating this on the install would never reach it.

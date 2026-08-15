@@ -328,3 +328,74 @@ describe('current-version installs with missing starter content', () => {
     expect(await starterCoverage()).toMatchObject({ missing: 0, present: OFFICIAL_CARD_COUNT });
   });
 });
+
+describe('retired Basics gender cards', () => {
+  it('moves old combined "you can" cards out of the Can stages', async () => {
+    await db.delete();
+    await db.open();
+
+    const now = '2026-08-15T20:00:00.000Z';
+    await db.settings.put({
+      ...DEFAULT_SETTINGS,
+      starterContentVersion: STARTER_CONTENT_VERSION,
+    });
+    await db.categories.add({
+      id: 'basics',
+      name: 'Basics of Basics',
+      icon: '🔰',
+      order: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.decks.add({
+      id: 'can-hebrew',
+      categoryId: 'basics',
+      name: 'Can — Hebrew',
+      perfectRunsRequired: 10,
+      promptDirections: ['en>he+ar'],
+      studyLanguages: ['hebrew'],
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.cards.add({
+      id: 'old-you-can',
+      categoryId: 'basics',
+      deckId: 'can-hebrew',
+      english: 'you can',
+      hebrew: {
+        script: 'את יכולה',
+        transliteration: 'at yekhola',
+        forms: {
+          feminine: { script: 'את יכולה', transliteration: 'at yekhola' },
+          masculine: { script: 'אתה יכול', transliteration: 'ata yakhol' },
+        },
+        agreement: 'listener',
+      },
+      arabic: {
+        script: 'بتقدري',
+        transliteration: 'btiʾdari',
+        forms: {
+          feminine: { script: 'بتقدري', transliteration: 'btiʾdari' },
+          masculine: { script: 'بتقدر', transliteration: 'btiʾdar' },
+        },
+        agreement: 'listener',
+        dialect: 'Palestinian',
+      },
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await prepareStarterContent();
+
+    const decks = await db.decks.toArray();
+    const canDeck = decks.find((deck) => deck.name === 'Can — Hebrew')!;
+    const canCards = await db.cards.where('deckId').equals(canDeck.id).toArray();
+    expect(canCards.some((card) => card.english === 'you can')).toBe(false);
+    expect(canCards.map((card) => card.english).sort()).toContain('you can (female)');
+    expect(canCards.map((card) => card.english).sort()).toContain('you can (male)');
+
+    const archived = await db.cards.get('old-you-can');
+    const archivedDeck = await db.decks.get(archived!.deckId);
+    expect(archivedDeck!.name).toBe('Retired starter words');
+  });
+});
