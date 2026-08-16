@@ -92,6 +92,31 @@ describe('gateCategoryDecks', () => {
 
     expect(gates.find((gate) => gate.deck.id === 'questions-he')?.unlocked).toBe(true);
   });
+
+  it('holds a stageless deck of a lot behind the same gate as its lot', () => {
+    // The shape a device seeded before the language split ends up in while its
+    // old deck is still standing beside the stages: it belongs to the "Question
+    // words" lot, which the learner has not reached, and it used to fall
+    // through to unlocked and sit open in the middle of the ladder.
+    const spare: Deck = {
+      ...deck('questions-old', 'Question words', 4, 'hebrew'),
+      studyLanguages: undefined,
+    };
+    const decks = [
+      deck('directions-he', 'Directions — Hebrew', 0, 'hebrew'),
+      deck('directions-ar', 'Directions — Palestinian Arabic', 1, 'arabic'),
+      bothDeck('directions-both', 'Directions — Both', 2),
+      deck('questions-he', 'Question words — Hebrew', 3, 'hebrew'),
+      spare,
+    ];
+
+    const gates = gateCategoryDecks(basics, decks, {}, ['hebrew', 'arabic']);
+
+    expect(gates.find((gate) => gate.deck.id === 'questions-old')?.unlocked).toBe(false);
+    expect(gates.filter((gate) => gate.unlocked).map((gate) => gate.deck.id)).toEqual([
+      'directions-he',
+    ]);
+  });
 });
 
 describe('sameStudyLanguages', () => {

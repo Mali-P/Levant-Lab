@@ -85,17 +85,56 @@ export function resolveDirection(
   return SINGLE_LANGUAGE_DIRECTION[languages[0]][direction] ?? direction;
 }
 
+/** Whether a card carries anything at all to be asked in a language. */
+export function hasSideFor(card: Flashcard, language: Language): boolean {
+  const side = card[language];
+  if (side.script.trim()) return true;
+  if (side.forms) {
+    return Boolean(
+      side.forms.feminine.script.trim() || side.forms.masculine.script.trim(),
+    );
+  }
+  // A perspective that is `sameAs` another, or `notApplicable`, carries no
+  // wording of its own — only a plain form can stand in for a missing script.
+  return Object.values(side.speechForms ?? {}).some(
+    (variant) => 'script' in variant && Boolean(variant.script.trim()),
+  );
+}
+
+/**
+ * The languages a card can actually be asked in: the ones being studied, minus
+ * any the card has no side for.
+ *
+ * A half-filled card — one saved with its Hebrew still blank, which is how
+ * every new card starts — has no Hebrew answer for anything typed into it to
+ * match, so grading marked her wrong every single time and no amount of review
+ * could ever move it. An absent half is not a wrong one. It is treated here
+ * exactly as a language she has switched off is treated: never asked, never
+ * shown, and never written to her statistics.
+ */
+export function askableLanguages(
+  card: Flashcard,
+  languages: readonly Language[] = LANGUAGES,
+): readonly Language[] {
+  return languages.filter((language) => hasSideFor(card, language));
+}
+
 export function buildPromptPlan(
   card: Flashcard,
   direction: PromptDirection,
   opts: ValidationOptions = {},
 ): PromptPlan {
-  const languages = opts.languages ?? LANGUAGES;
+  const languages = askableLanguages(card, opts.languages ?? LANGUAGES);
   const plan = buildFullPlan(card, resolveDirection(direction, languages), opts);
 
   // The prompt stands; only what is asked for narrows. A field scoring a
   // language she is not studying is not so much hidden as never asked — there
   // is nothing for it to grade and nothing for it to feed.
+  //
+  // Narrowing to what the card holds also reroutes the prompt itself, through
+  // the same single-language rule: a card with no Hebrew can no more be asked
+  // *in* Hebrew than it can be asked *for* it, and `he>en+ar` over such a card
+  // used to open on an empty line where the word should have been.
   return {
     ...plan,
     fields: plan.fields.filter((field) => languages.includes(field.scores)),
@@ -196,6 +235,10 @@ export function gradeField(
  * when there is only one half being asked, and it is what keeps a learner
  * studying Hebrew alone from being held back by an Arabic answer she was never
  * shown.
+ *
+ * A language the *card* has nothing in behaves the same way, for the same
+ * reason. The caller must pass the same languages on to `recordAnswer`, or a
+ * half that was never asked will be marked down for staying silent.
  */
 export function gradePlan(
   plan: PromptPlan,
@@ -203,7 +246,7 @@ export function gradePlan(
   values: Record<string, string>,
   opts: ValidationOptions = {},
 ): { hebrew: boolean; arabic: boolean } {
-  const languages = opts.languages ?? LANGUAGES;
+  const languages = askableLanguages(card, opts.languages ?? LANGUAGES);
   const result = {
     hebrew: !languages.includes('hebrew'),
     arabic: !languages.includes('arabic'),

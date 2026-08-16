@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import type { StudySession } from '../types';
+import type { Language, LanguageProgress, StudySession } from '../types';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { db } from '../services/database/db';
 import { LANGUAGE_LABEL } from '../utils/languageSelection';
 import { accuracy, statusFor, STATUS_LABELS } from '../features/review/mastery';
+import { askableLanguages, hasSideFor } from '../features/study/prompts';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon from '../components/ornament/Icon';
 import { LevantMotif, categoryIcon } from '../components/ornament/Ornament';
@@ -34,10 +35,26 @@ export default function StatsScreen() {
   const sum = (pick: (p: (typeof rows)[number]) => number) =>
     rows.reduce((n, p) => n + pick(p), 0);
 
-  const heCorrect = sum((p) => p.hebrew.correct);
-  const heWrong = sum((p) => p.hebrew.incorrect);
-  const arCorrect = sum((p) => p.arabic.correct);
-  const arWrong = sum((p) => p.arabic.incorrect);
+  // Per-language figures are taken card by card, so a word with no Hebrew on it
+  // cannot pull the Hebrew accuracy down with answers it was never able to get
+  // right. Everything not split by language still comes straight off the rows.
+  const scored = cards
+    .map((card) => ({ card, p: cardProgress[card.id] }))
+    .filter((row) => Boolean(row.p));
+
+  const sideSum = (
+    language: Language,
+    pick: (side: LanguageProgress) => number,
+  ) =>
+    scored.reduce(
+      (n, row) => (hasSideFor(row.card, language) ? n + pick(row.p![language]) : n),
+      0,
+    );
+
+  const heCorrect = sideSum('hebrew', (s) => s.correct);
+  const heWrong = sideSum('hebrew', (s) => s.incorrect);
+  const arCorrect = sideSum('arabic', (s) => s.correct);
+  const arWrong = sideSum('arabic', (s) => s.incorrect);
   const bothCorrect = sum((p) => p.bothCorrectCount);
   const answered = sessions.reduce((n, s) => n + s.answers.length, 0);
 
@@ -51,27 +68,34 @@ export default function StatsScreen() {
   );
 
   // Wrong answers in the languages she is studying. A card missed only in the
-  // language she has switched off is not a card she is getting wrong.
-  const misses = (p: (typeof rows)[number]) =>
-    languages.reduce((n, language) => n + p[language].incorrect, 0);
+  // language she has switched off is not a card she is getting wrong — and nor
+  // is one whose misses were all recorded against a half it never carried.
+  const misses = (
+    p: (typeof rows)[number],
+    on: readonly Language[] = languages,
+  ) => on.reduce((n, language) => n + p[language].incorrect, 0);
 
   const pct = (correct: number, wrong: number) =>
     correct + wrong === 0 ? 0 : Math.round((correct / (correct + wrong)) * 100);
 
   const hardestCategories = categories
     .map((category) => {
-      const owned = cards.filter((c) => c.categoryId === category.id);
-      const stats = owned.map((c) => cardProgress[c.id]).filter(Boolean);
-      const wrong = stats.reduce((n, p) => n + misses(p!), 0);
-      return { category, wrong, studied: stats.length };
+      const owned = scored.filter((row) => row.card.categoryId === category.id);
+      const wrong = owned.reduce(
+        (n, row) => n + misses(row.p!, askableLanguages(row.card, languages)),
+        0,
+      );
+      return { category, wrong, studied: owned.length };
     })
     .filter((row) => row.wrong > 0)
     .sort((a, b) => b.wrong - a.wrong)
     .slice(0, 5);
 
-  const mostMissed = cards
-    .map((card) => ({ card, p: cardProgress[card.id] }))
-    .filter((row) => row.p)
+  // Deliberately still a lifetime tally — this list is headed "most frequently
+  // missed", and that is a question about her record, not about where a card
+  // stands today. The weakest list on the home screen answers the other one.
+  const mostMissed = scored
+    .map((row) => ({ ...row, on: askableLanguages(row.card, languages) }))
     .sort((a, b) => misses(b.p!) - misses(a.p!))
     .filter((row) => misses(row.p!) > 0)
     .slice(0, 8);
@@ -144,12 +168,15 @@ export default function StatsScreen() {
         <section className="stack">
           <span className="eyebrow">Most frequently missed</span>
           <div className="list">
-            {mostMissed.map(({ card, p }) => (
+            {mostMissed.map(({ card, p, on }) => (
               <div className="list-item" key={card.id}>
                 <span className="grow english">
                   <strong>{card.english}</strong>
+                  {/* Only the halves the card has. A "Hebrew 0/6 (0%)" against
+                      a word with no Hebrew on it described the app's own gap,
+                      not hers. */}
                   <div className="small muted">
-                    {languages
+                    {on
                       .map(
                         (language) =>
                           LANGUAGE_LABEL[language] +
@@ -165,7 +192,7 @@ export default function StatsScreen() {
                   </div>
                 </span>
                 <span className="chip">
-                  {STATUS_LABELS[statusFor(p, now, settings.enableMasteryDecay, languages)]}
+                  {STATUS_LABELS[statusFor(p, now, settings.enableMasteryDecay, on)]}
                 </span>
               </div>
             ))}

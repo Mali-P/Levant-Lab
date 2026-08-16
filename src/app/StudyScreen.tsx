@@ -13,7 +13,11 @@ import { usePronunciation } from '../hooks/usePronunciation';
 import { wordForms } from '../utils/wordForms';
 import { LANGUAGE_LONG_LABEL } from '../utils/languageSelection';
 import { sortCards } from '../utils/cardOrder';
-import { buildPromptPlan, gradePlan } from '../features/study/prompts';
+import {
+  askableLanguages,
+  buildPromptPlan,
+  gradePlan,
+} from '../features/study/prompts';
 import { selfGradeResult } from '../features/study/selfGrade';
 import {
   currentIntroCardId,
@@ -21,6 +25,7 @@ import {
   isLadderSession,
   type StudyEvent,
 } from '../features/study/engine';
+import { RECOVERY_STREAK } from '../features/review/mastery';
 import { isSequencedDeck } from '../features/ordering/sequenced';
 import { nextDeck } from '../features/review/unlock';
 import {
@@ -125,8 +130,6 @@ export default function StudyScreen() {
   const deck = decks.find((d) => d.id === deckId);
   const category = categories.find((c) => c.id === deck?.categoryId);
   const studyLanguages = deckStudyLanguages(deck, languages);
-  const single = studyLanguages.length === 1;
-  const only = studyLanguages[0];
 
   // A bookmark or a stale link can point straight at a deck the learner has
   // not earned yet, so the ladder is enforced here too, not only in the UI
@@ -148,17 +151,29 @@ export default function StudyScreen() {
     [cards, deckId],
   );
 
+  // A card with nothing on it in any language she is studying has no question
+  // to put, so it is left out of the run rather than dealt and marked wrong for
+  // an answer it never held. Half-filled cards stay in and are asked in the
+  // half they have.
+  const studyKey = studyLanguages.join('|');
+  const studiableCards = useMemo(
+    () => deckCards.filter((c) => askableLanguages(c, studyLanguages).length > 0),
+    // `studyKey` stands in for the array, which is rebuilt on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [deckCards, studyKey],
+  );
+
   // `?card=` turns the screen into a drill on one weak word: the same quiz and
   // the same grading, over a stack of one. It is what the weakest-cards list on
   // the home screen opens, so a word answered wrongly comes back as a question
   // rather than as the card editor.
   const drillCardId = params.get('card');
   const drillCard = drillCardId
-    ? deckCards.find((c) => c.id === drillCardId)
+    ? studiableCards.find((c) => c.id === drillCardId)
     : undefined;
   const sessionCards = useMemo(
-    () => (drillCardId ? (drillCard ? [drillCard] : []) : deckCards),
-    [drillCardId, drillCard, deckCards],
+    () => (drillCardId ? (drillCard ? [drillCard] : []) : studiableCards),
+    [drillCardId, drillCard, studiableCards],
   );
 
   const mode = (params.get('mode') as StudyMode) || settings.defaultMode;
@@ -264,6 +279,19 @@ export default function StudyScreen() {
     ? deckCards.find((c) => c.id === session.currentCardId)
     : undefined;
   const revealed = Boolean(currentCard && revealedCardId === currentCard.id);
+
+  // The halves *this* card can be asked in. A word carrying no Hebrew is a
+  // one-language card however many she has switched on, and the verdict buttons
+  // have to agree with the fields above them: offering "Hebrew wrong" over a
+  // card with no Hebrew invites her to mark down an answer never asked for.
+  // The drill card stands in once the run is over and there is no current card
+  // left, so the closing panel describes the word she actually drilled.
+  const askedCard = currentCard ?? drillCard;
+  const cardLanguages = askedCard
+    ? askableLanguages(askedCard, studyLanguages)
+    : studyLanguages;
+  const cardSingle = cardLanguages.length === 1;
+  const cardOnly = cardLanguages[0];
 
   const gradedCard = gradedCardId
     ? deckCards.find((c) => c.id === gradedCardId)
@@ -567,13 +595,23 @@ export default function StudyScreen() {
   }
 
   if (sessionCards.length === 0) {
+    // A deck can be full of cards and still have nothing to ask: every one of
+    // them may be missing the half she is studying. Saying "no cards yet" there
+    // would send her to add words she has already written.
+    const unfilled = deckCards.length > 0;
     return (
       <div className="screen">
         <ScreenHeader title={deck.name} eyebrow={category?.name} back />
         <div className="empty">
-          <p>This deck has no cards yet.</p>
+          <p>
+            {unfilled
+              ? 'No card in this deck has ' +
+                studyLanguages.map((l) => LANGUAGE_LONG_LABEL[l]).join(' or ') +
+                ' filled in yet.'
+              : 'This deck has no cards yet.'}
+          </p>
           <button className="btn btn-primary" onClick={() => navigate('/manage')}>
-            Add cards
+            {unfilled ? 'Fill them in' : 'Add cards'}
           </button>
         </div>
       </div>
@@ -590,11 +628,16 @@ export default function StudyScreen() {
           <Confetti active />
           <div className="panel">
             <div className="headline">Card cleared</div>
+            {/* What it takes to be rid of it, in the terms the list now uses.
+                It used to promise that accuracy would catch up, which for a
+                lifetime average it never really did. */}
             <p className="muted">
-              {single
-                ? 'Answered correctly in ' + LANGUAGE_LONG_LABEL[only] + '.'
+              {cardSingle
+                ? 'Answered correctly in ' + LANGUAGE_LONG_LABEL[cardOnly] + '.'
                 : 'Answered correctly in both Hebrew and Arabic.'}{' '}
-              It stays on the weakest list until its accuracy catches up.
+              {'Get it right ' +
+                RECOVERY_STREAK +
+                ' times in a row and it leaves the weakest list.'}
             </p>
             <button
               className="btn btn-primary btn-block"
@@ -902,17 +945,17 @@ export default function StudyScreen() {
            four-way grid collapses to the only two verdicts there are. The
            language she is not studying is handed to the engine correct, so it
            can never be the reason a card comes back. */
-        single ? (
+        cardSingle ? (
           <div className="grade-grid">
             <button
               className="btn btn-primary"
-              onClick={() => void grade(selfGradeResult('correct', only))}
+              onClick={() => void grade(selfGradeResult('correct', cardOnly))}
             >
               ✓ Correct
             </button>
             <button
               className="btn btn-danger"
-              onClick={() => void grade(selfGradeResult('wrong', only))}
+              onClick={() => void grade(selfGradeResult('wrong', cardOnly))}
             >
               ✗ Wrong
             </button>
@@ -950,7 +993,7 @@ export default function StudyScreen() {
           className="btn btn-primary btn-block"
           onClick={() => setRevealedCardId(currentCard.id)}
         >
-          {single ? 'Reveal the answer' : 'Reveal both answers'}
+          {cardSingle ? 'Reveal the answer' : 'Reveal both answers'}
         </button>
       )}
 

@@ -4,7 +4,11 @@ import {
   applyAnswerToProgress,
   computeMasteryScore,
   isDueForReview,
+  isRecovered,
+  isWeak,
   statusFor,
+  weaknessRank,
+  RECOVERY_STREAK,
 } from './mastery';
 
 const T0 = '2026-08-06T10:00:00.000Z';
@@ -125,5 +129,57 @@ describe('decay and review scheduling', () => {
     const p = applyAnswerToProgress(undefined, 'c1', { hebrew: true, arabic: true }, T0);
     expect(isDueForReview(p, T0)).toBe(false);
     expect(isDueForReview(p, plusDays(3))).toBe(true);
+  });
+});
+
+describe('the weakest list', () => {
+  const right = (p: Parameters<typeof applyAnswerToProgress>[0]) =>
+    applyAnswerToProgress(p, 'c1', { hebrew: true, arabic: true }, T0);
+  const wrong = (p: Parameters<typeof applyAnswerToProgress>[0]) =>
+    applyAnswerToProgress(p, 'c1', { hebrew: false, arabic: false }, T0);
+
+  it('leaves a card that has never been missed off it', () => {
+    expect(isWeak(right(right(undefined)))).toBe(false);
+    expect(isWeak(undefined)).toBe(false);
+  });
+
+  it('puts a missed card on it', () => {
+    expect(isWeak(wrong(undefined))).toBe(true);
+  });
+
+  it('takes a card off once she has earned it back', () => {
+    // The bug: a card missed once sat here forever, because the old test was
+    // "ever missed" and lifetime accuracy could never climb far enough to
+    // matter. Redoing it correctly now clears it.
+    let p = wrong(undefined);
+    for (let i = 0; i < RECOVERY_STREAK; i += 1) {
+      expect(isWeak(p)).toBe(true);
+      p = right(p);
+    }
+    expect(isRecovered(p)).toBe(true);
+    expect(isWeak(p)).toBe(false);
+  });
+
+  it('puts it straight back the moment she misses it again', () => {
+    let p = wrong(undefined);
+    for (let i = 0; i < RECOVERY_STREAK; i += 1) p = right(p);
+    expect(isWeak(p)).toBe(false);
+    expect(isWeak(wrong(p))).toBe(true);
+  });
+
+  it('needs the recovery in every language being studied', () => {
+    let p = applyAnswerToProgress(undefined, 'c1', { hebrew: false, arabic: false }, T0);
+    p = applyAnswerToProgress(p, 'c1', { hebrew: true, arabic: false }, T0);
+    p = applyAnswerToProgress(p, 'c1', { hebrew: true, arabic: false }, T0);
+    // Hebrew is back; Arabic is still being missed, so the card stays.
+    expect(isWeak(p)).toBe(true);
+    // To a learner studying Hebrew alone, it is a card she has put right.
+    expect(isWeak(p, ['hebrew'])).toBe(false);
+  });
+
+  it('ranks a card missed just now above one half rebuilt since', () => {
+    const fresh = wrong(undefined);
+    const rebuilding = right(wrong(undefined));
+    expect(weaknessRank(fresh)).toBeLessThan(weaknessRank(rebuilding));
   });
 });

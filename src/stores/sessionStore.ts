@@ -20,6 +20,7 @@ import {
   type AnswerInput,
   type AnswerOutcome,
 } from '../features/study/engine';
+import { askableLanguages } from '../features/study/prompts';
 import { db } from '../services/database/db';
 import { uid } from '../utils/random';
 import { useData } from './dataStore';
@@ -223,10 +224,16 @@ export const useSession = create<SessionState>((set, get) => ({
     // engine still works in a pair — a language switched off is handed to it
     // already correct, so the run's shape is unchanged — but a half nobody
     // asked about must not have a right answer written against it.
+    //
+    // Narrowed again by what the card holds, and for the same reason: a card
+    // with no Hebrew on it was not asked in Hebrew, whatever she has switched
+    // on. `gradePlan` hands such a half over correct, and writing that down
+    // would be inventing a right answer to a question never put.
+    const answered = data.cards.find((c) => c.id === cardId);
     await data.recordAnswer(
-      session.currentCardId!,
+      cardId,
       { hebrew: outcome.hebrewCorrect, arabic: outcome.arabicCorrect },
-      studyLanguages,
+      answered ? askableLanguages(answered, studyLanguages) : studyLanguages,
     );
 
     const now = new Date().toISOString();

@@ -440,7 +440,12 @@ function basicsGroups(gates: DeckGate[]): {
     if (stage === 'hebrew') existing.hebrew = gate;
     else if (stage === 'arabic') existing.arabic = gate;
     else if (stage === 'both') existing.both = gate;
-    else existing.hebrew = gate;
+    // A deck of this lot carrying no language stands in for the Hebrew rung,
+    // but only where there is no real one. It used to be assigned outright,
+    // so a deck left over from before the lot was split could take the Hebrew
+    // rung's place in the panel and the learner would be shown that deck's
+    // card count and offered that deck to practise.
+    else existing.hebrew ??= gate;
     byName.set(name, existing);
   }
 

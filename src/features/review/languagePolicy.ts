@@ -99,6 +99,13 @@ export function gateCategoryDecks(
     const hebrew = group.hebrew ?? group.fallback;
     const arabic = group.arabic;
     const both = group.both;
+    // A deck of this lot that is none of its three stages — one the learner
+    // made here, or one left over from before the lot was split in three. It
+    // stands where its lot stands. Left out of the reckoning it would fall
+    // through to the default at the bottom of this function and sit open in
+    // the middle of a ladder the learner has not climbed to yet, which is a
+    // whole category of locks quietly not holding.
+    const spare = group.hebrew ? group.fallback : undefined;
     const hebrewMastered = hebrew
       ? isDeckMastered(hebrew, deckProgress[hebrew.id])
       : true;
@@ -111,6 +118,12 @@ export function gateCategoryDecks(
 
     if (hebrew) {
       openByDeck.set(hebrew.id, {
+        unlocked: previousComplete,
+        blockedBy: previousComplete ? undefined : previousBlocker,
+      });
+    }
+    if (spare) {
+      openByDeck.set(spare.id, {
         unlocked: previousComplete,
         blockedBy: previousComplete ? undefined : previousBlocker,
       });

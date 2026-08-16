@@ -1,11 +1,13 @@
-import type { Category, Deck, Flashcard } from '../../types';
+import type { Category, Deck, Flashcard, Language } from '../../types';
 import { CUSTOM_CATEGORY, SEED_CATEGORIES, type SeedCard } from '../../constants/seed';
+import { BASICS_CATEGORY_NAME } from '../../features/review/languagePolicy';
 import { uid } from '../../utils/random';
 import { audioIdFor } from '../audio/paths';
 import { withClipPaths } from '../audio/manifest';
 import { db } from './db';
 import { mergeDuplicateContent, type MergeReport } from './dedupe';
 import { DEFAULT_SETTINGS } from './defaults';
+import { clearUnaskableProgress } from './repairProgress';
 
 export type InstallReport = { added: number; updated: number };
 
@@ -15,23 +17,11 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 42;
-
-/**
- * How many cards the official starter set contains, across ordinary decks,
- * small Basics stages, cumulative mastery decks, and the sentences the Custom
- * category opens with. Sentences added there afterwards are the learner's own
- * and are counted nowhere here.
- */
-export const OFFICIAL_CARD_COUNT = SEED_CATEGORIES.reduce(
-  (total, category) =>
-    total + category.decks.reduce((n, deck) => n + deck.cards.length, 0),
-  0,
-);
+export const STARTER_CONTENT_VERSION = 43;
 
 /** `category|deck|english`, lowercased. Identifies one official word. */
 function officialKey(category: string, deck: string, english: string): string {
-  return [category, deck, english].map((s) => s.toLowerCase()).join('|');
+  return [category, deck, english].map((s) => s.trim().toLowerCase()).join('|');
 }
 
 const OFFICIAL_KEYS: ReadonlySet<string> = new Set(
@@ -43,16 +33,47 @@ const OFFICIAL_KEYS: ReadonlySet<string> = new Set(
 );
 
 /**
+ * How many cards the official starter set contains, across ordinary decks,
+ * small Basics stages, cumulative mastery decks, and the sentences the Custom
+ * category opens with. Sentences added there afterwards are the learner's own
+ * and are counted nowhere here.
+ *
+ * Counted as distinct words rather than as seed rows, because it is compared
+ * against what a device actually holds and that comparison is by word. Were the
+ * seed ever to list one word twice in a deck, a row count would stand for ever
+ * one above anything a device could reach, and the top-up — which repairs only
+ * while something is missing — would then run on every single launch.
+ */
+export const OFFICIAL_CARD_COUNT = OFFICIAL_KEYS.size;
+
+/**
  * Decks whose contents the official set defines in full — the Custom category
  * excepted, since a sentence the learner writes there belongs in its deck and
  * must not be read as a leftover from an older seed.
  */
+function officialDeckKey(category: string, deck: string): string {
+  return [category, deck].map((s) => s.trim().toLowerCase()).join('|');
+}
+
 const OFFICIAL_DECK_KEYS: ReadonlySet<string> = new Set(
   SEED_CATEGORIES.filter((category) => category.name !== CUSTOM_CATEGORY).flatMap(
-    (category) =>
-      category.decks.map((deck) => (category.name + '|' + deck.name).toLowerCase()),
+    (category) => category.decks.map((deck) => officialDeckKey(category.name, deck.name)),
   ),
 );
+
+/**
+ * Whether the official set defines this deck's contents in full — which is to
+ * say, whether an empty one is a fault rather than a deck waiting to be
+ * written. The Custom category is excluded by the set above, so a sentence deck
+ * of the learner's own answers false and keeps its own empty state.
+ */
+export function isOfficialDeck(
+  categoryName: string | undefined,
+  deckName: string | undefined,
+): boolean {
+  if (!categoryName || !deckName) return false;
+  return OFFICIAL_DECK_KEYS.has(officialDeckKey(categoryName, deckName));
+}
 
 function sidesFor(
   card: SeedCard,
@@ -274,14 +295,14 @@ export type StarterCoverage = {
 
 /** How much of the official starter set this device actually has. */
 export async function starterCoverage(): Promise<StarterCoverage> {
-  const { officialCardIds, cardsByCategory } = await officialIndex();
+  const { presentKeys, cardsByCategory } = await officialIndex();
   const emptyCategories = SEED_CATEGORIES.filter(
     (c) => (cardsByCategory.get(c.name.toLowerCase()) ?? 0) === 0,
   ).map((c) => c.name);
 
   return {
-    present: officialCardIds.size,
-    missing: OFFICIAL_CARD_COUNT - officialCardIds.size,
+    present: presentKeys.size,
+    missing: OFFICIAL_CARD_COUNT - presentKeys.size,
     total: OFFICIAL_CARD_COUNT,
     emptyCategories,
   };
@@ -412,9 +433,20 @@ export async function archiveRetiredBasicsCanCards(): Promise<number> {
   return archiveCards(retired);
 }
 
-/** Which official cards exist, and how many cards each official category holds. */
+/**
+ * Which official words this device holds, and how many each official category
+ * holds.
+ *
+ * Counted as words rather than as rows. A device that somehow ends up with one
+ * word twice — two launches racing each other is the way it happens — would
+ * otherwise have that spare row cancel out a word missing somewhere else, the
+ * total would come out right, and the top-up that exists to restore the missing
+ * word would decide there was nothing to do. That is a deck sitting empty on a
+ * device the app believes to be complete, and it is the whole reason this is a
+ * set of keys and not a set of ids.
+ */
 async function officialIndex(): Promise<{
-  officialCardIds: Set<string>;
+  presentKeys: Set<string>;
   cardsByCategory: Map<string, number>;
 }> {
   const [categories, decks, cards] = await Promise.all([
@@ -425,7 +457,7 @@ async function officialIndex(): Promise<{
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const deckById = new Map(decks.map((d) => [d.id, d]));
 
-  const officialCardIds = new Set<string>();
+  const presentKeys = new Set<string>();
   const cardsByCategory = new Map<string, number>();
 
   for (const card of cards) {
@@ -433,13 +465,13 @@ async function officialIndex(): Promise<{
     const deck = deckById.get(card.deckId);
     if (!category || !deck) continue;
     const key = officialKey(category.name, deck.name, card.english);
-    if (!OFFICIAL_KEYS.has(key)) continue;
-    officialCardIds.add(card.id);
+    if (!OFFICIAL_KEYS.has(key) || presentKeys.has(key)) continue;
+    presentKeys.add(key);
     const name = category.name.toLowerCase();
     cardsByCategory.set(name, (cardsByCategory.get(name) ?? 0) + 1);
   }
 
-  return { officialCardIds, cardsByCategory };
+  return { presentKeys, cardsByCategory };
 }
 
 /**
@@ -585,6 +617,62 @@ export async function reshapeRenamedCategories(): Promise<number> {
   );
 }
 
+/**
+ * Basics decks as they were named before the category became a language
+ * ladder, mapped to the stage each one is now the first rung of.
+ *
+ * The lots were once a single deck each — "Directions", "Question words" — and
+ * are now three: Hebrew, then Palestinian Arabic, then both together. The deck
+ * a learner already worked is the Hebrew rung of its lot, so it is renamed
+ * into that rung rather than left standing beside it. Without this the top-up
+ * finds no deck called "Directions — Hebrew", builds a second one, and the
+ * learner is shown her old deck and its replacement side by side with her ten
+ * flawless runs recorded against the copy the ladder no longer uses.
+ */
+const LEGACY_BASICS_STAGE_NAMES: ReadonlyMap<string, string> = new Map(
+  (SEED_CATEGORIES.find((c) => c.name === BASICS_CATEGORY_NAME)?.decks ?? [])
+    .filter((deck) => deck.name.endsWith(' — Hebrew'))
+    .map((deck) => [
+      deck.name.slice(0, -' — Hebrew'.length).trim().toLowerCase(),
+      deck.name,
+    ]),
+);
+
+/**
+ * Renames those decks in place, keeping every id. Writes nothing on a device
+ * seeded after the split, or on one that has already been through this.
+ */
+export async function reshapeLegacyBasicsDecks(): Promise<number> {
+  const categories = await db.categories.toArray();
+  const basics = categories.find(
+    (c) => c.name.trim().toLowerCase() === BASICS_CATEGORY_NAME.toLowerCase(),
+  );
+  if (!basics) return 0;
+
+  const now = new Date().toISOString();
+  const decks = await db.decks.toArray();
+  const renamed = decks.flatMap((deck) => {
+    if (deck.categoryId !== basics.id) return [];
+    // A deck already carrying a language is a stage and keeps its name; only
+    // the unstaged, bare-named decks of the older build are candidates.
+    if (deck.studyLanguages?.length) return [];
+    const stageName = LEGACY_BASICS_STAGE_NAMES.get(deck.name.trim().toLowerCase());
+    if (!stageName) return [];
+    return [
+      {
+        ...deck,
+        name: stageName,
+        studyLanguages: ['hebrew'] as Language[],
+        updatedAt: now,
+      },
+    ];
+  });
+
+  if (!renamed.length) return 0;
+  await db.decks.bulkPut(renamed);
+  return renamed.length;
+}
+
 export type StartupReport = InstallReport & { ran: boolean; merged: MergeReport };
 
 /**
@@ -621,11 +709,21 @@ async function runStarterContent(): Promise<StartupReport> {
   const seeded = (await db.categories.count()) > 0;
   const current = settings?.starterContentVersion === STARTER_CONTENT_VERSION;
 
-  // Before the top-up, not after: the install matches categories by name, and
-  // a device still holding a since-split one would otherwise be given the new
-  // categories as duplicates rather than having its own rows moved across.
-  if (seeded) await reshapeRenamedCategories();
+  // Before the top-up, not after: the install matches categories and decks by
+  // name, and a device still holding a since-split category or a since-staged
+  // Basics deck would otherwise be given the new rows as duplicates rather than
+  // having its own moved across, taking its progress with them.
+  if (seeded) {
+    await reshapeRenamedCategories();
+    await reshapeLegacyBasicsDecks();
+  }
 
+  // What is counted here is words, not rows — see `officialIndex`. It has to
+  // be, because this is the decision about whether anything needs restoring and
+  // it is taken before duplicates are collapsed at the bottom of this function.
+  // Counting rows, a word held twice would settle the account for a word held
+  // nowhere, the total would come out right, and a deck could sit empty on a
+  // device the app had just pronounced complete.
   const coverage = seeded ? await starterCoverage() : null;
   const hasEveryCategory =
     coverage !== null && coverage.emptyCategories.length === 0;
@@ -636,6 +734,12 @@ async function runStarterContent(): Promise<StartupReport> {
       : { ran: true, ...(await installStarterCards()) };
 
   await archiveRetiredBasicsCanCards();
+
+  // After the install and the reshapes, so each card is judged by the sides it
+  // has once every card is where it belongs. Runs on every launch: it is a
+  // repair rather than a version step, and a device can acquire such a row at
+  // any time by saving a card with one half still blank.
+  await clearUnaskableProgress();
 
   // Runs unconditionally: a device duplicated by an older build is already
   // marked current, so gating this on the install would never reach it.

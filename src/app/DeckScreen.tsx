@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import type { Deck } from '../types';
+import { installStarterCards, isOfficialDeck } from '../services/database/seed';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { LANGUAGE_LABEL } from '../utils/languageSelection';
@@ -146,13 +149,7 @@ export default function DeckScreen() {
       </section>
 
       {deckCards.length === 0 ? (
-        <div className="empty">
-          <LevantMotif name="amphora" />
-          <p>This deck has no cards yet.</p>
-          <Link className="btn btn-primary" to="/manage">
-            Add cards
-          </Link>
-        </div>
+        <EmptyDeck deck={deck} categoryName={category?.name} />
       ) : (
         <>
           <h2 className="section-title">How do you want to practise?</h2>
@@ -228,6 +225,72 @@ export default function DeckScreen() {
           </Link>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * What a deck with nothing in it says.
+ *
+ * A starter deck is never something to fill in. Its words ship with the app,
+ * so finding it empty means the words did not survive some earlier update, and
+ * the only useful thing to offer is putting them back — not an invitation to
+ * write them out again, which is what "Add cards" amounted to. The restore is
+ * the same top-up the app runs at launch: it keeps every streak, and touches
+ * nothing the learner wrote.
+ *
+ * A deck of the learner's own is genuinely waiting for her, and still says so.
+ */
+function EmptyDeck({
+  deck,
+  categoryName,
+}: {
+  deck: Deck;
+  categoryName: string | undefined;
+}) {
+  const load = useData((s) => s.load);
+  const [restoring, setRestoring] = useState(false);
+  const [failed, setFailed] = useState('');
+
+  if (!isOfficialDeck(categoryName, deck.name)) {
+    return (
+      <div className="empty">
+        <LevantMotif name="amphora" />
+        <p>This deck has no cards yet.</p>
+        <Link className="btn btn-primary" to="/manage">
+          Add cards
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="empty">
+      <LevantMotif name="amphora" />
+      <p>
+        This deck's words ship with the app, and they are not on this device.
+        Putting them back keeps your perfect runs and every card you have added
+        yourself.
+      </p>
+      {failed && <p className="small muted">{failed}</p>}
+      <button
+        className="btn btn-primary"
+        disabled={restoring}
+        onClick={async () => {
+          setRestoring(true);
+          setFailed('');
+          try {
+            await installStarterCards();
+            await load();
+          } catch (e) {
+            setFailed(e instanceof Error ? e.message : String(e));
+          } finally {
+            setRestoring(false);
+          }
+        }}
+      >
+        {restoring ? 'Restoring…' : 'Restore this deck'}
+      </button>
     </div>
   );
 }

@@ -145,6 +145,79 @@ export function statusFor(
   return 'forgotten';
 }
 
+/**
+ * Clean answers in a row that clear a card of its history.
+ *
+ * Two rather than one: a single lucky answer is not the same as knowing a word
+ * again, and the streak drops back to nothing the moment she misses it, so the
+ * bar has to be cleared afresh every time rather than banked once and kept.
+ */
+export const RECOVERY_STREAK = 2;
+
+/**
+ * Whether a card that was once missed has been earned back.
+ *
+ * Read off `currentStreak`, which is the only figure on the row describing
+ * where she stands *now*: it climbs with each correct answer and drops to zero
+ * on a miss. Lifetime accuracy cannot do this job — one wrong answer in six is
+ * 83%, and eight more correct ones still leave it under 94% — so a card graded
+ * on its history is judged forever on a morning that long ago stopped being
+ * true of her.
+ */
+export function isRecovered(
+  p: CardProgress,
+  languages: readonly Language[] = LANGUAGES,
+): boolean {
+  return languages.every(
+    (language) => p[language].currentStreak >= RECOVERY_STREAK,
+  );
+}
+
+/**
+ * Whether a card belongs on the weakest list as things stand today.
+ *
+ * Two conditions, and the second is the one that was missing: it has been
+ * missed at some point, and she has not since put it right. Without it the list
+ * read "every card ever answered wrongly", which is a list that can only ever
+ * grow — she could drill a word to perfection and watch it sit there unmoved,
+ * because nothing she could do would take it off.
+ *
+ * `languages` should be the ones the card can actually be asked in, so a word
+ * with no Hebrew on it is not held to be weak in Hebrew forever.
+ */
+export function isWeak(
+  p: CardProgress | undefined,
+  languages: readonly Language[] = LANGUAGES,
+): boolean {
+  if (!p || languages.length === 0) return false;
+  const missed = languages.some((language) => p[language].incorrect > 0);
+  return missed && !isRecovered(p, languages);
+}
+
+/**
+ * How weak, for ordering. Lower is weaker.
+ *
+ * Current standing leads and history breaks the tie: a word missed this morning
+ * ranks above one missed last month and half rebuilt since, and two cards on
+ * the same footing are separated by their accuracy as before. Streaks are
+ * capped at the recovery bar so a card cannot be pushed down the order by a run
+ * far longer than the one that would have cleared it outright.
+ */
+export function weaknessRank(
+  p: CardProgress,
+  languages: readonly Language[] = LANGUAGES,
+): number {
+  const streaks = languages.reduce(
+    (n, language) => n + Math.min(p[language].currentStreak, RECOVERY_STREAK),
+    0,
+  );
+  const accuracies = languages.reduce(
+    (n, language) => n + accuracy(p[language]),
+    0,
+  );
+  return streaks * 10 + accuracies;
+}
+
 export function isDueForReview(
   p: CardProgress | undefined,
   now: string,

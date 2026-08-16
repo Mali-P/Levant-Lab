@@ -171,5 +171,8 @@ describe('starter practice progress coverage', () => {
       .first();
     expect(repaired).toBeTruthy();
     expect(await db.sessions.get('session-stale-question-words')).toBeUndefined();
-  }, 10000);
+    // A full pass over the starter set through fake-indexeddb, which is an
+    // order of magnitude slower than the browser's. Budgeted loosely so this
+    // fails on the code rather than on the machine.
+  }, 30000);
 });

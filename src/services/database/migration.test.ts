@@ -269,7 +269,12 @@ describe('refreshing starter cards over an existing install', () => {
     const third = await prepareStarterContent();
     expect(third.ran).toBe(true);
     expect((await db.cards.toArray()).some((card) => card.english === 'two')).toBe(true);
-  }, 10000);
+    // Three full passes over the starter set through fake-indexeddb, which is
+    // an order of magnitude slower than the browser's. The budget is generous
+    // on purpose: a tight one fails on the machine rather than on the code, and
+    // takes the test after it down with it — the timeout leaves an install
+    // still running against a database that test then deletes.
+  }, 30000);
 });
 
 describe('current-version installs with missing starter content', () => {

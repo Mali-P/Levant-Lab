@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { StudySession } from '../types';
+import type { Language, LanguageProgress, StudySession } from '../types';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { db } from '../services/database/db';
 import { LANGUAGE_LABEL } from '../utils/languageSelection';
-import { accuracy, statusFor, STATUS_LABELS } from '../features/review/mastery';
+import {
+  accuracy,
+  isWeak,
+  statusFor,
+  weaknessRank,
+  STATUS_LABELS,
+} from '../features/review/mastery';
 import { dueDecksForReview } from '../features/review/due';
 import { describeStage, isLadderSession } from '../features/study/engine';
+import { askableLanguages, hasSideFor } from '../features/study/prompts';
 import ThemeToggle from '../components/controls/ThemeToggle';
 import Icon from '../components/ornament/Icon';
 import {
@@ -59,14 +66,27 @@ export default function DashboardScreen() {
   }, []);
 
   const now = new Date().toISOString();
-  const progressList = Object.values(cardProgress);
+  // Paired with their cards rather than read straight off the progress rows.
+  // A card with no Hebrew on it used to be graded wrong in Hebrew every time it
+  // came round, and those answers sat in this total dragging the language's
+  // whole figure down. A half that was never there cannot have been got wrong.
+  const scored = cards
+    .map((card) => ({ card, p: cardProgress[card.id] }))
+    .filter((row) => Boolean(row.p));
 
-  const hebrewCorrect = progressList.reduce((n, p) => n + p.hebrew.correct, 0);
-  const hebrewTotal = progressList.reduce(
-    (n, p) => n + p.hebrew.correct + p.hebrew.incorrect, 0);
-  const arabicCorrect = progressList.reduce((n, p) => n + p.arabic.correct, 0);
-  const arabicTotal = progressList.reduce(
-    (n, p) => n + p.arabic.correct + p.arabic.incorrect, 0);
+  const sideSum = (
+    language: Language,
+    pick: (side: LanguageProgress) => number,
+  ) =>
+    scored.reduce(
+      (n, row) => (hasSideFor(row.card, language) ? n + pick(row.p![language]) : n),
+      0,
+    );
+
+  const hebrewCorrect = sideSum('hebrew', (s) => s.correct);
+  const hebrewTotal = sideSum('hebrew', (s) => s.correct + s.incorrect);
+  const arabicCorrect = sideSum('arabic', (s) => s.correct);
+  const arabicTotal = sideSum('arabic', (s) => s.correct + s.incorrect);
 
   const hebrewPct = hebrewTotal ? Math.round((hebrewCorrect / hebrewTotal) * 100) : 0;
   const arabicPct = arabicTotal ? Math.round((arabicCorrect / arabicTotal) * 100) : 0;
@@ -79,8 +99,17 @@ export default function DashboardScreen() {
   const onlyPct = only === 'arabic' ? arabicPct : hebrewPct;
   const onlyTotal = only === 'arabic' ? arabicTotal : hebrewTotal;
 
+  // Judged on the halves each card has. Mastery is capped by the weakest
+  // language, so a card carrying only Arabic was pinned at nought by a Hebrew
+  // score it had no way of earning, and could never be counted here at all.
   const masteredCount = cards.filter(
-    (c) => statusFor(cardProgress[c.id], now, settings.enableMasteryDecay, languages) === 'mastered',
+    (c) =>
+      statusFor(
+        cardProgress[c.id],
+        now,
+        settings.enableMasteryDecay,
+        askableLanguages(c, languages),
+      ) === 'mastered',
   ).length;
 
   const dueDecks = dueDecksForReview({
@@ -92,18 +121,19 @@ export default function DashboardScreen() {
     limit: 4,
   });
 
-  // Weakest in the languages she is studying. A card whose Arabic she keeps
-  // missing is not a weak card to a learner studying Hebrew — it is a card she
-  // has never been asked about in Arabic at all.
-  const misses = (p: (typeof progressList)[number]) =>
-    languages.reduce((n, language) => n + p[language].incorrect, 0);
-  const strength = (p: (typeof progressList)[number]) =>
-    languages.reduce((n, language) => n + accuracy(p[language]), 0);
-
-  const weakest = cards
-    .map((card) => ({ card, p: cardProgress[card.id] }))
-    .filter((row) => row.p && misses(row.p) > 0)
-    .sort((a, b) => strength(a.p!) - strength(b.p!))
+  // Weakest in the languages she is studying, and only in the ones each card
+  // can actually be asked in. A card whose Arabic she keeps missing is not a
+  // weak card to a learner studying Hebrew — it is a card she has never been
+  // asked about in Arabic at all.
+  //
+  // "Weak" is now a statement about where a card stands rather than about its
+  // record: missed at some point, and not put right since. The old test was
+  // simply "ever missed", so a word could be drilled to perfection and still
+  // sit here unchanged, which is precisely what it did.
+  const weakest = scored
+    .map((row) => ({ ...row, on: askableLanguages(row.card, languages) }))
+    .filter((row) => isWeak(row.p, row.on))
+    .sort((a, b) => weaknessRank(a.p!, a.on) - weaknessRank(b.p!, b.on))
     .slice(0, 3);
 
   const openDeck = open ? decks.find((d) => d.id === open.deckId) : undefined;
@@ -221,7 +251,7 @@ export default function DashboardScreen() {
               to practise, not something to edit — the editor is a deliberate
               trip through Manage, never where a weak card lands you. */}
           <div className="list">
-            {weakest.map(({ card, p }) => (
+            {weakest.map(({ card, p, on }) => (
               <Link
                 className="list-item"
                 key={card.id}
@@ -229,8 +259,12 @@ export default function DashboardScreen() {
               >
                 <span className="grow english">
                   <strong>{card.english}</strong>
+                  {/* Only the halves this card has. Printing "Hebrew 0%" for a
+                      word carrying no Hebrew read as a score she had earned,
+                      when it was really the mark of a question that could never
+                      have been answered. */}
                   <div className="small muted">
-                    {languages
+                    {on
                       .map(
                         (language) =>
                           LANGUAGE_LABEL[language] +
@@ -240,7 +274,7 @@ export default function DashboardScreen() {
                       )
                       .join(' · ')}{' '}
                     ·{' '}
-                    {STATUS_LABELS[statusFor(p, now, settings.enableMasteryDecay, languages)]}
+                    {STATUS_LABELS[statusFor(p, now, settings.enableMasteryDecay, on)]}
                   </div>
                 </span>
               </Link>
