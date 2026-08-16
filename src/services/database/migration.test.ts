@@ -6,6 +6,7 @@ import { db } from './db';
 import { DEFAULT_SETTINGS } from './defaults';
 import {
   STARTER_CONTENT_VERSION,
+  archiveRetiredBasicsCanCards,
   installStarterCards,
   OFFICIAL_CARD_COUNT,
   prepareStarterContent,
@@ -416,5 +417,139 @@ describe('retired Basics gender cards', () => {
       archived.map(async (card) => (await db.decks.get(card.deckId))!.name),
     );
     expect(new Set(archivedDeckNames)).toEqual(new Set(['Retired starter words']));
+  });
+
+  /**
+   * The device that reported an empty fourth lot. Its "Can" deck was never
+   * renamed into "Can — Hebrew", because an in-between build had already
+   * written a language onto it and the rename skipped anything carrying one.
+   * Bearing a name the seed does not list, it was passed over by every top-up
+   * — and then the sweep for retired combined rows, which matches a bare "Can"
+   * by name, carried off the only four cards it had.
+   */
+  it('restores a bare Can deck that an in-between build gave a language', async () => {
+    await db.delete();
+    await db.open();
+
+    const now = '2026-08-15T20:00:00.000Z';
+    await db.settings.put({
+      ...DEFAULT_SETTINGS,
+      starterContentVersion: STARTER_CONTENT_VERSION,
+    });
+    await db.categories.add({
+      id: 'basics',
+      name: 'Basics of Basics',
+      icon: '🔰',
+      order: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.decks.add({
+      id: 'can-bare',
+      categoryId: 'basics',
+      name: 'Can',
+      order: 9,
+      studyLanguages: ['hebrew'],
+      perfectRunsRequired: 10,
+      promptDirections: ['en>he+ar'],
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.cards.bulkAdd(
+      ['I can', "I can't", 'you can', "you can't"].map((english) => ({
+        id: 'bare-' + english.toLowerCase().replace(/[^a-z]+/g, '-'),
+        categoryId: 'basics',
+        deckId: 'can-bare',
+        english,
+        hebrew: { script: 'אני יכול', transliteration: 'ani yakhol' },
+        arabic: {
+          script: 'بقدر',
+          transliteration: 'baʾdar',
+          dialect: 'Palestinian' as const,
+        },
+        createdAt: now,
+        updatedAt: now,
+      })),
+    );
+    // Runs already recorded against the deck under its old name.
+    await db.deckProgress.put({
+      deckId: 'can-bare',
+      perfectRunsCompleted: 4,
+      hardModeFailures: 0,
+    });
+
+    await prepareStarterContent();
+
+    const decks = await db.decks.toArray();
+    expect(decks.some((deck) => deck.name === 'Can')).toBe(false);
+
+    const hebrew = decks.find((deck) => deck.name === 'Can — Hebrew')!;
+    expect(hebrew).toBeDefined();
+    const canCards = await db.cards.where('deckId').equals(hebrew.id).toArray();
+    expect(canCards.map((card) => card.english).sort()).toEqual([
+      'I can (female)',
+      'I can (male)',
+      "I can't (female)",
+      "I can't (male)",
+      'you can (female)',
+      'you can (male)',
+      "you can't (female)",
+      "you can't (male)",
+    ]);
+
+    // The deck kept its id, and with it the runs the learner had put in.
+    expect(hebrew.id).toBe('can-bare');
+    expect((await db.deckProgress.get('can-bare'))?.perfectRunsCompleted).toBe(4);
+  });
+
+  /**
+   * The sweep exists to clear a word taught twice. Where the replacements have
+   * not arrived there is nothing doubled, and taking the old rows would leave
+   * the learner with an empty lot.
+   */
+  it('leaves the old rows alone in a deck the replacements have not reached', async () => {
+    await db.delete();
+    await db.open();
+
+    const now = '2026-08-15T20:00:00.000Z';
+    await db.categories.add({
+      id: 'basics',
+      name: 'Basics of Basics',
+      icon: '🔰',
+      order: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.decks.add({
+      id: 'can-hebrew',
+      categoryId: 'basics',
+      name: 'Can — Hebrew',
+      order: 9,
+      studyLanguages: ['hebrew'],
+      perfectRunsRequired: 10,
+      promptDirections: ['en>he+ar'],
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.cards.bulkAdd(
+      ['I can', 'you can'].map((english) => ({
+        id: 'left-' + english.toLowerCase().replace(/[^a-z]+/g, '-'),
+        categoryId: 'basics',
+        deckId: 'can-hebrew',
+        english,
+        hebrew: { script: 'אני יכול', transliteration: 'ani yakhol' },
+        arabic: {
+          script: 'بقدر',
+          transliteration: 'baʾdar',
+          dialect: 'Palestinian' as const,
+        },
+        createdAt: now,
+        updatedAt: now,
+      })),
+    );
+
+    expect(await archiveRetiredBasicsCanCards()).toBe(0);
+    const still = await db.cards.where('deckId').equals('can-hebrew').toArray();
+    expect(still.map((card) => card.english).sort()).toEqual(['I can', 'you can']);
   });
 });

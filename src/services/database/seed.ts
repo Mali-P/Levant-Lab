@@ -389,11 +389,27 @@ export async function archiveCards(cardIds: string[]): Promise<number> {
   return moving.length;
 }
 
+/** The combined rows that the split-out gendered "can" cards replaced. */
+const RETIRED_CAN_ENGLISH: ReadonlySet<string> = new Set([
+  'i can',
+  "i can't",
+  'you can',
+  "you can't",
+]);
+
 /**
  * Earlier Basics installs taught gendered "can" rows as one card with two
  * forms. The official set now teaches those as separate symbol-marked cards,
  * so the old combined rows need to leave the Basics decks even on a device
  * already marked current.
+ *
+ * A row only leaves once the pair replacing it is standing in the same deck.
+ * Archiving is here to clear a word taught twice, and a deck whose
+ * replacements have not arrived has nothing doubled to clear — emptying it
+ * there takes the lot away from the learner and leaves a deck reporting its
+ * own words missing. The replacements come from the top-up above, so on a
+ * device needing both this is one launch; on one the top-up did not reach, the
+ * old rows stay and the deck goes on teaching "can".
  */
 export async function archiveRetiredBasicsCanCards(): Promise<number> {
   const [categories, decks, cards] = await Promise.all([
@@ -415,18 +431,22 @@ export async function archiveRetiredBasicsCanCards(): Promise<number> {
   );
   if (!canDeckIds.size) return 0;
 
+  // Which Can decks hold a replacement — a gendered row such as "I can
+  // (female)". Only those may give up their old combined rows.
+  const replaced = new Set<string>();
+  for (const card of cards) {
+    if (!canDeckIds.has(card.deckId)) continue;
+    const english = card.english.toLowerCase();
+    if (RETIRED_CAN_ENGLISH.has(english)) continue;
+    if (english.startsWith('i can') || english.startsWith('you can')) {
+      replaced.add(card.deckId);
+    }
+  }
+
   const retired = cards
     .filter(
-      (card) => {
-        if (!canDeckIds.has(card.deckId)) return false;
-        const english = card.english.toLowerCase();
-        return (
-          english === 'i can' ||
-          english === "i can't" ||
-          english === 'you can' ||
-          english === "you can't"
-        );
-      },
+      (card) =>
+        replaced.has(card.deckId) && RETIRED_CAN_ENGLISH.has(card.english.toLowerCase()),
     )
     .map((card) => card.id);
 
@@ -653,9 +673,13 @@ export async function reshapeLegacyBasicsDecks(): Promise<number> {
   const decks = await db.decks.toArray();
   const renamed = decks.flatMap((deck) => {
     if (deck.categoryId !== basics.id) return [];
-    // A deck already carrying a language is a stage and keeps its name; only
-    // the unstaged, bare-named decks of the older build are candidates.
-    if (deck.studyLanguages?.length) return [];
+    // Judged by the name alone. The stage names all carry their language, so a
+    // deck that is already a stage cannot match the bare names below and needs
+    // no guard of its own — whereas a bare "Can" that an in-between build gave
+    // a language to is still the old lot, and skipping it over that language
+    // stranded it: named nothing the seed lists, it was never topped up, its
+    // empty state offered to write the words out by hand, and the sweep that
+    // retires the old combined rows took the last of its cards away.
     const stageName = LEGACY_BASICS_STAGE_NAMES.get(deck.name.trim().toLowerCase());
     if (!stageName) return [];
     return [
