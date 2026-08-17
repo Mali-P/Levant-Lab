@@ -380,11 +380,30 @@ export async function archiveCards(cardIds: string[]): Promise<number> {
     .filter((c): c is Flashcard => Boolean(c))
     .map((c) => ({ ...c, categoryId: category!.id, deckId: deck!.id, updatedAt: now }));
 
-  await db.transaction('rw', [db.categories, db.decks, db.cards], async () => {
-    if (newCategories.length) await db.categories.bulkAdd(newCategories);
-    if (newDecks.length) await db.decks.bulkAdd(newDecks);
-    await db.cards.bulkPut(moving);
-  });
+  // An unfinished run dealt one of these words cannot be resumed once the word
+  // has left its deck. The row is moved rather than deleted, so the usual test
+  // — does every card the session names still exist — finds nothing wrong, and
+  // the run comes back on a card its deck can no longer deal. Only unfinished
+  // runs go; a completed one is history and stays.
+  const movedIds = new Set(moving.map((c) => c.id));
+  const stranded = await db.sessions
+    .filter(
+      (session) =>
+        !session.completedAt &&
+        (session.deckCardIds ?? []).some((id) => movedIds.has(id)),
+    )
+    .primaryKeys();
+
+  await db.transaction(
+    'rw',
+    [db.categories, db.decks, db.cards, db.sessions],
+    async () => {
+      if (newCategories.length) await db.categories.bulkAdd(newCategories);
+      if (newDecks.length) await db.decks.bulkAdd(newDecks);
+      await db.cards.bulkPut(moving);
+      if (stranded.length) await db.sessions.bulkDelete(stranded);
+    },
+  );
 
   return moving.length;
 }

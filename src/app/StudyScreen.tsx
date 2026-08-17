@@ -5,6 +5,7 @@ import type {
   Flashcard,
   PromptDirection,
   StudyMode,
+  StudySession,
 } from '../types';
 import { useData } from '../stores/dataStore';
 import { useSession } from '../stores/sessionStore';
@@ -217,8 +218,22 @@ export default function StudyScreen() {
         if (abandoned.length) await db.sessions.bulkDelete(abandoned);
       }
 
-      const open = drillCardId
-        ? undefined
+      // A run can only be resumed onto the cards it was dealt. Retiring a word
+      // moves its row out of the deck rather than deleting it, so a session
+      // naming it still names a card that exists — it is simply no longer
+      // here, and the checks that drop sessions over deleted cards let this
+      // one through. Resumed, it opens on a card the deck can no longer deal
+      // and says "No card to show" for ever, on the one mode holding the stale
+      // run, while a mode never yet opened deals the deck cleanly and hides
+      // how bad it is. Dropped rather than mended: the run was over the old
+      // words, and the honest thing is to begin the stage again.
+      const dealtHere = new Set(sessionCards.map((c) => c.id));
+      const resumable = (s: StudySession): boolean =>
+        (s.currentCardId === undefined || dealtHere.has(s.currentCardId)) &&
+        (s.deckCardIds ?? []).every((id) => dealtHere.has(id));
+
+      const candidates = drillCardId
+        ? []
         : await db.sessions
             .orderBy('updatedAt')
             .reverse()
@@ -233,7 +248,11 @@ export default function StudyScreen() {
                 // Left in place rather than resumed; the climb starts again.
                 isLadderSession(s),
             )
-            .first();
+            .toArray();
+
+      const stranded = candidates.filter((s) => !resumable(s));
+      if (stranded.length) await db.sessions.bulkDelete(stranded.map((s) => s.id));
+      const open = candidates.find(resumable);
 
       if (cancelled) return;
 

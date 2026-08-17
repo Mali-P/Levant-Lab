@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeAll, describe, expect, it } from 'vitest';
-import type { CardProgress, Flashcard } from '../../types';
+import type { CardProgress, Flashcard, Language } from '../../types';
 import { SEED_CATEGORIES } from '../../constants/seed';
 import { db } from './db';
 import { DEFAULT_SETTINGS } from './defaults';
@@ -551,5 +551,111 @@ describe('retired Basics gender cards', () => {
     expect(await archiveRetiredBasicsCanCards()).toBe(0);
     const still = await db.cards.where('deckId').equals('can-hebrew').toArray();
     expect(still.map((card) => card.english).sort()).toEqual(['I can', 'you can']);
+  });
+
+  /**
+   * Why the lot still looked empty after the words were put back, and why it
+   * looked empty on standard alone. The half-finished standard run had been
+   * dealt the old combined words; archiving moved those rows out of the deck
+   * without deleting them, so every check for a session naming a deleted card
+   * passed it, and the screen resumed onto a card the deck could no longer
+   * deal and said "No card to show". Hard mode held no such run and dealt the
+   * deck cleanly — exactly the shape the learner reported.
+   */
+  it('drops the unfinished run that was dealt the words being retired', async () => {
+    await db.delete();
+    await db.open();
+
+    const now = '2026-08-16T20:00:00.000Z';
+    await db.categories.add({
+      id: 'basics',
+      name: 'Basics of Basics',
+      icon: '🔰',
+      order: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.decks.add({
+      id: 'can-hebrew',
+      categoryId: 'basics',
+      name: 'Can — Hebrew',
+      order: 9,
+      studyLanguages: ['hebrew'],
+      perfectRunsRequired: 10,
+      promptDirections: ['en>he+ar'],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const card = (id: string, english: string) => ({
+      id,
+      categoryId: 'basics',
+      deckId: 'can-hebrew',
+      english,
+      hebrew: { script: 'אני יכול', transliteration: 'ani yakhol' },
+      arabic: {
+        script: 'بقدر',
+        transliteration: 'baʾdar',
+        dialect: 'Palestinian' as const,
+      },
+      createdAt: now,
+      updatedAt: now,
+    });
+    // The deck holds both the replacements and the combined rows they retire,
+    // which is the state the sweep is meant to act on.
+    await db.cards.bulkAdd([
+      card('old-i-can', 'I can'),
+      card('new-i-can-f', 'I can (female)'),
+      card('new-i-can-m', 'I can (male)'),
+    ]);
+
+    const run = (id: string, mode: 'normal' | 'hard', cardIds: string[]) => ({
+      id,
+      deckId: 'can-hebrew',
+      studyLanguages: ['hebrew'] as Language[],
+      mode,
+      promptDirection: 'en>he+ar' as const,
+      answerMode: 'self' as const,
+      phase: 'testing' as const,
+      deckCardIds: cardIds,
+      activeCardCount: cardIds.length,
+      activeCardIds: cardIds,
+      introducedCardIds: [],
+      introduceCardIds: [],
+      introduceIndex: 0,
+      introduceFlipped: false,
+      currentCardId: cardIds[0],
+      stageCorrect: [],
+      stageIncorrect: [],
+      stagePerfectRounds: 0,
+      stagePerfect: true,
+      roundQueue: [],
+      roundIndex: 0,
+      roundPerfect: true,
+      currentRound: 0,
+      perfectRounds: 0,
+      perfectRunsRequired: 10,
+      deckMastered: false,
+      answers: [],
+      startedAt: now,
+      updatedAt: now,
+    });
+
+    await db.sessions.bulkPut([
+      // The stale standard run, opening on the word about to be archived.
+      run('run-standard', 'normal', ['old-i-can', 'new-i-can-f']),
+      // A run over none of the retired words carries on untouched.
+      run('run-hard', 'hard', ['new-i-can-f', 'new-i-can-m']),
+      // Finished runs are history and are never swept.
+      { ...run('run-done', 'normal', ['old-i-can']), completedAt: now },
+    ]);
+
+    expect(await archiveRetiredBasicsCanCards()).toBe(1);
+
+    const left = (await db.sessions.toArray()).map((s) => s.id).sort();
+    expect(left).toEqual(['run-done', 'run-hard']);
+
+    // The word itself is archived, not destroyed.
+    expect((await db.cards.get('old-i-can'))?.deckId).not.toBe('can-hebrew');
   });
 });
