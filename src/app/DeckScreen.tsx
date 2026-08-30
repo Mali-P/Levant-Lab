@@ -9,7 +9,7 @@ import { statusFor } from '../features/review/mastery';
 import { isDeckMastered } from '../features/review/unlock';
 import {
   deckStudyLanguages,
-  gateCategoryDecks,
+  gateCategories,
 } from '../features/review/languagePolicy';
 import { isSequencedDeck } from '../features/ordering/sequenced';
 import ScreenHeader from '../components/controls/ScreenHeader';
@@ -69,12 +69,11 @@ export default function DeckScreen() {
     );
   }
 
-  const gate = gateCategoryDecks(
-    category,
-    decks.filter((d) => d.categoryId === deck.categoryId),
-    deckProgress,
-    languages,
-  ).find((g) => g.deck.id === deck.id);
+  const categoryGate = gateCategories(categories, decks, deckProgress, languages, {
+    deckIds: settings.openedDeckIds,
+    categoryIds: settings.openedCategoryIds,
+  }).find((entry) => entry.category.id === deck.categoryId);
+  const gate = categoryGate?.gates.find((g) => g.deck.id === deck.id);
   const studyLanguages = deckStudyLanguages(deck, languages);
 
   // The same ladder the category screen draws, enforced again here so a

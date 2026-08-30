@@ -5,10 +5,9 @@ import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { LANGUAGE_LONG_LABEL } from '../utils/languageSelection';
 import { sortCards } from '../utils/cardOrder';
-import { gateDecks } from '../features/review/unlock';
 import {
-  categoryGateLanguages,
   deckStudyLanguages,
+  gateCategories,
 } from '../features/review/languagePolicy';
 import { isSequencedDeck } from '../features/ordering/sequenced';
 import { fireFeedback } from '../services/audio/feedback';
@@ -132,11 +131,12 @@ export default function OrderRecallScreen() {
 
   // The same ladder every other way into a deck is held to, enforced here too
   // so a bookmark cannot walk past it.
-  const gate = gateDecks(
-    decks.filter((d) => d.categoryId === deck.categoryId),
-    deckProgress,
-    categoryGateLanguages(category, languages),
-  ).find((g) => g.deck.id === deck.id);
+  const gate = gateCategories(categories, decks, deckProgress, languages, {
+    deckIds: settings.openedDeckIds,
+    categoryIds: settings.openedCategoryIds,
+  })
+    .find((entry) => entry.category.id === deck.categoryId)
+    ?.gates.find((g) => g.deck.id === deck.id);
 
   if (gate && !gate.unlocked) {
     return (

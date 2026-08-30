@@ -51,6 +51,16 @@ export type DeckGate = {
   /** 1-based rung on the ladder, for "Deck 3 of 10". */
   position: number;
   unlocked: boolean;
+  /**
+   * Shut, but the learner may open it now — nothing else in the category is
+   * half-finished. Set on the lot's first rung only, which is the deck the
+   * choice is actually offered on.
+   */
+  choosable?: boolean;
+  /** The lot this deck belongs to: its name without the stage suffix. */
+  lotKey?: string;
+  /** Whether every stage of that lot is mastered, Hebrew and Arabic alike. */
+  lotComplete?: boolean;
   mastered: boolean;
   perfectRunsCompleted: number;
   perfectRunsRequired: number;

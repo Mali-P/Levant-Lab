@@ -81,7 +81,7 @@ describe('installStarterCards', () => {
     const progress = await db.cardProgress.get(howAreYou.id);
     expect(progress?.masteryScore).toBe(60);
     expect(progress?.arabic.currentStreak).toBe(3);
-  }, 20000);
+  }, 120000);
 
   it('attaches newly bundled Arabic clips to starter cards', () => {
     expect(toothbrush.arabic.audioPath).toBe(

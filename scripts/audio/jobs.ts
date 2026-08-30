@@ -76,13 +76,21 @@ export function buildJobs(language?: AudioLanguage): JobReport {
     else byPath.set(job.path, [job]);
   }
 
+  // A lot's three language rungs deal the same words and share one audio id, so
+  // the same clip is reached three times over. That is one recording, not a
+  // collision: only two *different* words writing the same file are reported,
+  // which is the mistake this check exists to catch.
   const duplicatePaths = [...byPath.entries()]
-    .filter(([, list]) => list.length > 1)
-    .map(([path, list]) => ({ path, english: list.map((j) => j.english) }));
+    .map(([path, list]) => ({ path, english: [...new Set(list.map((j) => j.english))] }))
+    .filter((entry) => entry.english.length > 1);
+
+  // One job per file. Keeping all three would ask the provider to record the
+  // same sentence three times and pay for it three times.
+  const deduped = [...byPath.values()].map((list) => list[0]);
 
   return {
-    jobs,
-    missingText: jobs.filter((job) => job.spoken.length === 0),
+    jobs: deduped,
+    missingText: deduped.filter((job) => job.spoken.length === 0),
     duplicatePaths,
   };
 }

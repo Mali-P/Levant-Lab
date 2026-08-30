@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { auditPronunciations } from './pronunciationAudit';
+import { deckBaseName } from '../../src/features/review/languagePolicy';
 
 const audit = auditPronunciations();
 
+/**
+ * A lot by its name, whichever of its three language rungs the job came from.
+ * `buildJobs` keeps one job per recording and the rungs share their audio ids,
+ * so a lot reaches the audit once, under whichever rung it was reached by.
+ */
 function deck(name: string) {
-  return audit.forms.filter((form) => form.deckName === name);
+  return audit.forms.filter(
+    (form) => deckBaseName({ name: form.deckName }) === name,
+  );
 }
 
 describe('the counting deck', () => {

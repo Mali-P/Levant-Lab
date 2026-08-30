@@ -3,6 +3,7 @@ import {
   type GenderedForm,
   type LanguageSide,
 } from '../../types';
+import { deckBaseName } from '../../features/review/languagePolicy';
 import { speechWordForms } from '../../utils/wordForms';
 import { resolveSpokenPlan, type TtsSource } from './ttsPlan';
 
@@ -53,13 +54,20 @@ export function slugify(text: string): string {
  * Hebrew or Arabic spelling: fixing a niqqud or a hamza must not orphan a
  * recording, and neither script is safe in a filename. Card `id`s cannot be
  * used because they are generated per device.
+ *
+ * The deck's language stage is stripped off first. A lot's three rungs deal the
+ * same words and want the same recordings, so keying on the staged name would
+ * ask the generator for three copies of every clip — and, on the day a category
+ * was staged, would orphan every recording it already had.
  */
 export function audioIdFor(
   categoryName: string,
   deckName: string,
   english: string,
 ): string {
-  return [categoryName, deckName, english].map(slugify).join('__');
+  return [categoryName, deckBaseName({ name: deckName }), english]
+    .map(slugify)
+    .join('__');
 }
 
 /** `assets/audio/he/animals__pets__cat_feminine.mp3` */

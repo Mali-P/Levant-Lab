@@ -97,7 +97,8 @@ describe('starter practice progress coverage', () => {
       .filter((deck) => deck.categoryId === wants.id)
       .map((deck) => deck.id);
     const wantDeckProgress = await db.deckProgress.bulkGet(wantDeckIds);
-    expect(wantDeckProgress).toHaveLength(3);
+    // Three lots, three rungs each.
+    expect(wantDeckProgress).toHaveLength(9);
     expect(wantDeckProgress.every(Boolean)).toBe(true);
     expect(
       (
@@ -114,7 +115,7 @@ describe('starter practice progress coverage', () => {
           .filter((card) => card.categoryId === wants.id)
           .map((card) => card.id),
       ),
-    ).toHaveLength(30);
+    ).toHaveLength(90);
   });
 
   it('drops unfinished starter sessions when a missing official card is restored', async () => {
@@ -174,5 +175,5 @@ describe('starter practice progress coverage', () => {
     // A full pass over the starter set through fake-indexeddb, which is an
     // order of magnitude slower than the browser's. Budgeted loosely so this
     // fails on the code rather than on the machine.
-  }, 30000);
+  }, 120000);
 });

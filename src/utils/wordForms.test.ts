@@ -3,6 +3,7 @@ import { wordForms } from './wordForms';
 import { expectedAnswers } from '../services/answerValidation';
 import { CUSTOM_CATEGORY, CUSTOM_DECK, SEED_CATEGORIES } from '../constants/seed';
 import type { LanguageSide } from '../types';
+import { deckBaseName } from '../features/review/languagePolicy';
 
 /** "How are you?" — the ending follows the listener, not the speaker. */
 const HOW_ARE_YOU: LanguageSide = {
@@ -256,7 +257,9 @@ describe('starter cards', () => {
 
   it('counts from one to a hundred, ten to a deck', () => {
     const numbers = SEED_CATEGORIES.find((c) => c.name === 'Counting and numbers')!;
-    expect(numbers.decks.map((d) => d.name)).toEqual([
+    // The lots, not the rungs: every deck ships as three — Hebrew, Palestinian
+    // Arabic, both — over the same ten words.
+    expect([...new Set(numbers.decks.map((d) => deckBaseName(d)))]).toEqual([
       'One to ten',
       'Eleven to twenty',
       'Twenty-one to thirty',
@@ -272,8 +275,9 @@ describe('starter cards', () => {
       'Numbers with nouns',
     ]);
 
-    const last = numbers.decks.find((d) => d.name === 'Ninety-one to one hundred')!
-      .cards;
+    const last = numbers.decks.find(
+      (d) => d.name === 'Ninety-one to one hundred — Hebrew',
+    )!.cards;
     expect(last[0].english).toBe('ninety-one');
     expect(last[0].hebrew.forms?.feminine.script).toBe('תשעים ואחת');
     expect(last[0].arabic.script).toBe('واحد وتسعين');

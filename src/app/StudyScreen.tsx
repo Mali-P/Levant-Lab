@@ -33,8 +33,9 @@ import {
   basicsBaseName,
   basicsStage,
   deckStudyLanguages,
+  gateCategories,
   gateCategoryDecks,
-  isBasicsCategory,
+  isStagedDeck,
   sameStudyLanguages,
 } from '../features/review/languagePolicy';
 import { db } from '../services/database/db';
@@ -135,13 +136,14 @@ export default function StudyScreen() {
   // A bookmark or a stale link can point straight at a deck the learner has
   // not earned yet, so the ladder is enforced here too, not only in the UI
   // that hides the button.
+  const opened = {
+    deckIds: settings.openedDeckIds,
+    categoryIds: settings.openedCategoryIds,
+  };
   const gate = deck
-    ? gateCategoryDecks(
-        category,
-        decks.filter((d) => d.categoryId === deck.categoryId),
-        deckProgress,
-        languages,
-      ).find((g) => g.deck.id === deck.id)
+    ? gateCategories(categories, decks, deckProgress, languages, opened)
+        .find((entry) => entry.category.id === deck.categoryId)
+        ?.gates.find((g) => g.deck.id === deck.id)
     : undefined;
   const locked = Boolean(gate && !gate.unlocked);
 
@@ -676,7 +678,9 @@ export default function StudyScreen() {
     // and then points at what comes next. The ladder is meant to run on: the
     // learner who has just held ten words through ten clean rounds should not
     // be dropped back into a menu to work out what to open.
-    const basics = isBasicsCategory(category);
+    // Every category the course ships is staged now, so the wording follows the
+    // deck rather than the category it sits in: a rung is a rung wherever it is.
+    const basics = isStagedDeck(deck);
     const stage = basicsStage(deck);
     const categoryDecks = decks.filter((d) => d.categoryId === deck.categoryId);
     const progressForNext = { ...deckProgress };
@@ -712,6 +716,7 @@ export default function StudyScreen() {
         categoryDecks,
         progressForNext,
         languages,
+        opened,
       ),
     )?.deck;
     const nextStage = upNext ? basicsStage(upNext) : 'other';

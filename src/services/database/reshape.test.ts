@@ -208,9 +208,11 @@ describe('splitting the titles out of the pronouns on an existing install', () =
 
     const decks = await db.decks.toArray();
     expect(
-      decks.filter((d) => d.name === 'Titles and forms of address'),
+      decks.filter((d) => d.name === 'Titles and forms of address — Hebrew'),
     ).toHaveLength(1);
-    expect(decks.filter((d) => d.name === 'Personal pronouns')).toHaveLength(1);
+    expect(
+      decks.filter((d) => d.name === 'Personal pronouns — Hebrew'),
+    ).toHaveLength(1);
   });
 
   it('moves the titles deck across without breaking its progress', async () => {
@@ -258,8 +260,10 @@ describe('splitting the titles out of the pronouns on an existing install', () =
       ['Titles', 1],
     ] as const) {
       const category = categories.find((c) => c.name === name)!;
+      // Three rungs to a lot — Hebrew, Palestinian Arabic, both — each with
+      // its own copy of the ten words.
       expect(cards.filter((c) => c.categoryId === category.id), name).toHaveLength(
-        decks * 10,
+        decks * 10 * 3,
       );
     }
   });
@@ -285,7 +289,7 @@ describe('splitting the titles out of the pronouns on an existing install', () =
     expect(stayed!.categoryId).toBe(ADJECTIVES_CATEGORY);
 
     const cards = await db.cards.toArray();
-    expect(cards.filter((c) => c.categoryId === colours.id)).toHaveLength(30);
+    expect(cards.filter((c) => c.categoryId === colours.id)).toHaveLength(90);
   });
 
   it('writes nothing on a second launch', async () => {

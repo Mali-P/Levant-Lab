@@ -114,11 +114,19 @@ describe('unlockedDecks', () => {
     ).toEqual(['a1', 'b1']);
   });
 
-  it('keeps Basics Hebrew-first regardless of the global language setting', () => {
+  it('reads every Basics rung regardless of the global language setting', () => {
+    // Basics is open throughout, and its rungs are the languages: narrowing the
+    // preference to Arabic must not hide two thirds of the ladder from the pile.
     const basics = category('basics', 0, 'Basics of Basics');
     const stages = [
-      deck('directions-he', 'basics', 0, { studyLanguages: ['hebrew'] }),
-      deck('directions-ar', 'basics', 1, { studyLanguages: ['arabic'] }),
+      deck('directions-he', 'basics', 0, {
+        name: 'Directions — Hebrew',
+        studyLanguages: ['hebrew'],
+      }),
+      deck('directions-ar', 'basics', 1, {
+        name: 'Directions — Palestinian Arabic',
+        studyLanguages: ['arabic'],
+      }),
     ];
 
     expect(
@@ -126,15 +134,6 @@ describe('unlockedDecks', () => {
         categories: [basics],
         decks: stages,
         deckProgress: {},
-        languages: ['arabic'],
-      }).map((d) => d.id),
-    ).toEqual(['directions-he']);
-
-    expect(
-      unlockedDecks({
-        categories: [basics],
-        decks: stages,
-        deckProgress: { 'directions-he': mastered('directions-he') },
         languages: ['arabic'],
       }).map((d) => d.id),
     ).toEqual(['directions-he', 'directions-ar']);

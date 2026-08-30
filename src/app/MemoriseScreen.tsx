@@ -5,7 +5,7 @@ import { useSettings } from '../stores/settingsStore';
 import { usePronunciation } from '../hooks/usePronunciation';
 import { wordForms } from '../utils/wordForms';
 import { sortCards } from '../utils/cardOrder';
-import { deckStudyLanguages, gateCategoryDecks } from '../features/review/languagePolicy';
+import { deckStudyLanguages, gateCategories } from '../features/review/languagePolicy';
 import {
   createMemoriseSession,
   currentMemoriseCardId,
@@ -90,6 +90,10 @@ export default function MemoriseScreen({ pile }: Props) {
             deckProgress,
             selectedIds: settings.memoriseDeckIds,
             languages,
+            opened: {
+              deckIds: settings.openedDeckIds,
+              categoryIds: settings.openedCategoryIds,
+            },
           }),
     [pile, deckId, categories, decks, deckProgress, settings.memoriseDeckIds, languages],
   );
@@ -98,12 +102,12 @@ export default function MemoriseScreen({ pile }: Props) {
   // the ladder is enforced here as well as in the UI that hides the button. The
   // pile has no gate of its own — `memorisePool` simply leaves locked decks out.
   const gate = deck
-    ? gateCategoryDecks(
-        category,
-        decks.filter((d) => d.categoryId === deck.categoryId),
-        deckProgress,
-        languages,
-      ).find((g) => g.deck.id === deck.id)
+    ? gateCategories(categories, decks, deckProgress, languages, {
+        deckIds: settings.openedDeckIds,
+        categoryIds: settings.openedCategoryIds,
+      })
+        .find((entry) => entry.category.id === deck.categoryId)
+        ?.gates.find((g) => g.deck.id === deck.id)
     : undefined;
   const locked = Boolean(gate && !gate.unlocked);
 

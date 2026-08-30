@@ -1,5 +1,5 @@
 import type { Category, Deck, DeckProgress, Flashcard, Language } from '../../types';
-import { gateCategoryDecks } from '../review/languagePolicy';
+import { gateCategories, type OpenedChoices } from '../review/languagePolicy';
 import { sortCards } from '../../utils/cardOrder';
 
 /**
@@ -25,6 +25,8 @@ export type MemoriseDeckParams = {
   deckProgress: Record<string, DeckProgress | undefined>;
   selectedIds: string[] | undefined;
   languages?: readonly Language[];
+  /** The lots and categories the learner has chosen to have open. */
+  opened?: OpenedChoices;
 };
 
 /**
@@ -54,18 +56,21 @@ export function memoriseDecks(params: MemoriseDeckParams): Deck[] {
  * same ladder before it is honoured.
  */
 export function unlockedDecks(
-  params: Pick<MemoriseDeckParams, 'categories' | 'decks' | 'deckProgress' | 'languages'>,
+  params: Pick<
+    MemoriseDeckParams,
+    'categories' | 'decks' | 'deckProgress' | 'languages' | 'opened'
+  >,
 ): Deck[] {
   const open: Deck[] = [];
 
-  for (const category of params.categories) {
-    const gates = gateCategoryDecks(
-      category,
-      params.decks.filter((d) => d.categoryId === category.id),
-      params.deckProgress,
-      params.languages ?? ['hebrew', 'arabic'],
-    );
-    for (const gate of gates) {
+  for (const entry of gateCategories(
+    params.categories,
+    params.decks,
+    params.deckProgress,
+    params.languages ?? ['hebrew', 'arabic'],
+    params.opened,
+  )) {
+    for (const gate of entry.gates) {
       if (gate.unlocked) open.push(gate.deck);
     }
   }
@@ -82,7 +87,10 @@ export function unlockedDecks(
  * browse, rather than a deck-not-found.
  */
 export function resumeDeck(
-  params: Pick<MemoriseDeckParams, 'categories' | 'decks' | 'deckProgress' | 'languages'> & {
+  params: Pick<
+    MemoriseDeckParams,
+    'categories' | 'decks' | 'deckProgress' | 'languages' | 'opened'
+  > & {
     lastDeckId: string | undefined;
   },
 ): Deck | undefined {

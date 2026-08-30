@@ -3761,3 +3761,24 @@ a.btn-primary:active {
 .letter-card-example > .arabic {
   font-size: calc(1.5rem * var(--fit));
 }
+
+
+/* The sort control over a list of categories or lots: where finished work
+   sits. Laid out as a labelled row so it reads as a setting for the list under
+   it rather than as another item in it. */
+.sort-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* Basics offers all three rungs at once, so they stack as one block of
+   choices rather than reading as three unrelated buttons. */
+.stage-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

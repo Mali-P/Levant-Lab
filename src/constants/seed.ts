@@ -1310,25 +1310,46 @@ const BASICS_OF_BASICS_DECKS: SeedDeck[] = [
   },
 ];
 
+/** The suffix a deck carries once it has been split into language stages. */
+const STAGE_SUFFIX = /\s+—\s+(Hebrew|Palestinian Arabic|Both)$/;
+
+/**
+ * One deck as the three rungs it is actually met on: Hebrew, then Palestinian
+ * Arabic, then the two together on the same words.
+ *
+ * Every category is authored as plain both-language decks and split here, so a
+ * new deck needs no staging boilerplate and the three rungs can never drift
+ * apart in their contents — all three deal the same cards.
+ *
+ * A deck already carrying a stage suffix passes through untouched, and so does
+ * a cumulative mastery test: that is a capstone over a category already climbed
+ * one language at a time, not another rung to climb.
+ */
+export function stageDecks(decks: SeedDeck[]): SeedDeck[] {
+  return decks.flatMap((deck) => {
+    if (deck.masteryOnly || STAGE_SUFFIX.test(deck.name)) return [deck];
+    return [
+      {
+        name: deck.name + ' — Hebrew',
+        cards: deck.cards,
+        studyLanguages: ['hebrew'] as Language[],
+      },
+      {
+        name: deck.name + ' — Palestinian Arabic',
+        cards: deck.cards,
+        studyLanguages: ['arabic'] as Language[],
+      },
+      {
+        name: deck.name + ' — Both',
+        cards: deck.cards,
+        studyLanguages: ['hebrew', 'arabic'] as Language[],
+      },
+    ];
+  });
+}
+
 function basicsStageDecks(decks: SeedDeck[]): SeedDeck[] {
-  const stages: SeedDeck[] = [];
-  for (const deck of decks) {
-    stages.push({
-      name: deck.name + ' — Hebrew',
-      cards: deck.cards,
-      studyLanguages: ['hebrew'],
-    });
-    stages.push({
-      name: deck.name + ' — Palestinian Arabic',
-      cards: deck.cards,
-      studyLanguages: ['arabic'],
-    });
-    stages.push({
-      name: deck.name + ' — Both',
-      cards: deck.cards,
-      studyLanguages: ['hebrew', 'arabic'],
-    });
-  }
+  const stages: SeedDeck[] = stageDecks(decks);
 
   const allCards = decks.flatMap((deck) => deck.cards);
   stages.push({
@@ -1348,7 +1369,13 @@ function basicsStageDecks(decks: SeedDeck[]): SeedDeck[] {
 
 const BASICS_OF_BASICS_STAGES = basicsStageDecks(BASICS_OF_BASICS_DECKS);
 
-export const SEED_CATEGORIES: SeedCategory[] = [
+/**
+ * The course as it is written: plain both-language decks, in the order they
+ * are meant to be met. Every category bar the learner's own is split into
+ * language stages below — this is the authoring view, and nothing outside this
+ * file should read it.
+ */
+const AUTHORED_CATEGORIES: SeedCategory[] = [
   {
     name: 'Basics of Basics',
     icon: '🔰',
@@ -2454,3 +2481,20 @@ export const SEED_CATEGORIES: SeedCategory[] = [
     decks: CUSTOM_DECKS,
   },
 ];
+
+/**
+ * The starter set as the app installs it: every category a language ladder.
+ *
+ * Basics of Basics arrives already staged, with its two cumulative master
+ * tests; every other category is split here the same way, so a word is met in
+ * Hebrew, then in Palestinian Arabic, then in both at once, whichever category
+ * it lives in. The learner's own sentences are left alone — a deck she writes
+ * is hers to arrange, and splitting it into three would deal her own words back
+ * at her three times over.
+ */
+export const SEED_CATEGORIES: SeedCategory[] = AUTHORED_CATEGORIES.map(
+  (category) =>
+    category.name === CUSTOM_CATEGORY
+      ? category
+      : { ...category, decks: stageDecks(category.decks) },
+);

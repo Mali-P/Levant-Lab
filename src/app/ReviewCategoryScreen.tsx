@@ -39,6 +39,7 @@ export default function ReviewCategoryScreen() {
     decks.filter((d) => d.categoryId === categoryId),
     deckProgress,
     languages,
+    { deckIds: settings.openedDeckIds, categoryIds: settings.openedCategoryIds },
   );
 
   const picked = settings.memoriseDeckIds ?? [];

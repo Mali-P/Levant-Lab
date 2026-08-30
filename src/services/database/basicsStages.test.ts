@@ -114,7 +114,7 @@ describe('a Basics install from before the language stages', () => {
     expect((await db.deckProgress.get(hebrew.id))?.perfectRunsCompleted).toBe(10);
   }, 120000);
 
-  it('leaves exactly one rung of the ladder open', async () => {
+  it('leaves the whole of Basics open to pick from', async () => {
     const basics = (await db.categories.toArray()).find(
       (c) => c.name === 'Basics of Basics',
     )!;
@@ -124,11 +124,18 @@ describe('a Basics install from before the language stages', () => {
     );
 
     const gates = gateCategoryDecks(basics, decks, progress, ['hebrew', 'arabic']);
-    const open = gates.filter((gate) => gate.unlocked && !gate.mastered);
 
-    expect(open.map((gate) => gate.deck.name)).toEqual([
-      'Directions — Palestinian Arabic',
-    ]);
+    // Basics is the ground floor: nothing in it waits on anything else, so the
+    // learner dips into whichever lot and whichever language she needs.
+    expect(gates.every((gate) => gate.unlocked)).toBe(true);
+
+    // The rescued deck is still the rung its ten flawless runs are recorded
+    // against, and is still counted as finished.
+    const hebrew = gates.find((g) => g.deck.name === 'Directions — Hebrew')!;
+    expect(hebrew.mastered).toBe(true);
+    expect(
+      gates.find((g) => g.deck.name === 'Directions — Palestinian Arabic')!.mastered,
+    ).toBe(false);
   }, 120000);
 });
 

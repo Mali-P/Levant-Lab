@@ -32,6 +32,13 @@ export const DEFAULT_SETTINGS: Settings = {
   // Nothing ticked yet, which `memoriseDecks` reads as the first unlocked deck.
   memoriseDeckIds: [],
 
+  // Nothing opened yet. Outside Basics that means the whole course is hers to
+  // choose from: the gate holds only once something is half-finished.
+  openedDeckIds: [],
+  openedCategoryIds: [],
+  // Finished work stays where the course put it until she says otherwise.
+  finishedSort: 'course',
+
   defaultMode: 'normal',
   defaultAnswerMode: 'self',
   defaultDeckSize: 10,

@@ -21,6 +21,15 @@ export type LanguageChoice = Language | 'both';
 
 export type StudyMode = 'normal' | 'hard' | 'brutal';
 
+/**
+ * Where finished work sits in a list of categories or lots.
+ *
+ * `course` leaves the order the course wrote. The other two gather everything
+ * finished at one end, consecutively, so a learner a long way in can either
+ * keep what she has done in front of her or push it out of the way.
+ */
+export type FinishedSort = 'course' | 'first' | 'last';
+
 export type AnswerMode = 'self' | 'typed' | 'audio';
 
 export type PromptDirection =
@@ -665,6 +674,29 @@ export type Settings = {
    * a comment cannot say.
    */
   memoriseDeckIds: string[];
+
+  /**
+   * The lots the learner has chosen to open, by the id of the deck she opened.
+   *
+   * Outside Basics the course runs one unfinished lot at a time, but never
+   * insists on which: she picks, and the pick is stored because it has to
+   * survive her closing the app before she has answered a single card. A deck
+   * she has already worked counts as open whether or not its id is here, so an
+   * install made before this existed is never shut out of work in progress.
+   *
+   * Ids of decks that no longer exist are ignored on read; removing one closes
+   * the lot again and hands the choice back, without touching a single score.
+   */
+  openedDeckIds?: string[];
+
+  /** The same choice one level up: which categories she has opened. */
+  openedCategoryIds?: string[];
+
+  /**
+   * Where finished categories and lots sit in their lists — left where the
+   * course put them, gathered at the top, or pushed to the bottom.
+   */
+  finishedSort?: FinishedSort;
 
   /**
    * The deck the Review tab was last reading, so the tab reopens on it.

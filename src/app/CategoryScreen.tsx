@@ -2,6 +2,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import type {
   CardProgress,
   Deck,
+  FinishedSort,
   Flashcard,
   Language,
   MasteryStatus,
@@ -13,13 +14,15 @@ import { useSettings } from '../stores/settingsStore';
 import { statusFor, STATUS_LABELS } from '../features/review/mastery';
 import type { DeckGate } from '../features/review/unlock';
 import {
-  basicsBaseName,
-  basicsStage,
+  deckBaseName,
+  deckStage,
   deckStudyLanguages,
-  gateCategoryDecks,
-  isBasicsCategory,
+  gateCategories,
+  isStagedCategory,
+  sortByFinished,
 } from '../features/review/languagePolicy';
 import ScreenHeader from '../components/controls/ScreenHeader';
+import FinishedSortControl from '../components/controls/FinishedSortControl';
 import Tip from '../components/controls/Tip';
 import PerfectRuns from '../components/progress/PerfectRuns';
 import WordForms from '../components/cards/WordForms';
@@ -31,6 +34,7 @@ export default function CategoryScreen() {
   const navigate = useNavigate();
   const settings = useSettings((s) => s.settings);
   const languages = useSettings((s) => s.languages);
+  const update = useSettings((s) => s.update);
   const categories = useData((s) => s.categories);
   const decks = useData((s) => s.decks);
   const cards = useData((s) => s.cards);
@@ -38,14 +42,36 @@ export default function CategoryScreen() {
   const deckProgress = useData((s) => s.deckProgress);
   const saveCard = useData((s) => s.saveCard);
 
-  const category = categories.find((c) => c.id === categoryId);
-  const gates = gateCategoryDecks(
-    category,
-    decks.filter((d) => d.categoryId === categoryId),
-    deckProgress,
-    languages,
-  );
+  // The whole course rather than this category alone, because the category
+  // itself can be shut: outside Basics one unfinished category runs at a time,
+  // and which one that is is a fact about the others.
+  const categoryGate = gateCategories(categories, decks, deckProgress, languages, {
+    deckIds: settings.openedDeckIds,
+    categoryIds: settings.openedCategoryIds,
+  }).find((entry) => entry.category.id === categoryId);
+  const category = categoryGate?.category;
+  const gates = categoryGate?.gates ?? [];
   const now = new Date().toISOString();
+  const sort: FinishedSort = settings.finishedSort ?? 'course';
+
+  const openedDecks = settings.openedDeckIds ?? [];
+
+  function openLot(deckId: string) {
+    if (openedDecks.includes(deckId)) return;
+    void update({ openedDeckIds: [...openedDecks, deckId] });
+  }
+
+  /**
+   * Hands the choice back. Every score stays exactly where it is — the lot
+   * simply stops being the one in hand, so another may be opened instead.
+   * Without it a mistaken tap would commit her to one lot for the rest of the
+   * category.
+   */
+  function closeLot(lotDeckIds: string[]) {
+    void update({
+      openedDeckIds: openedDecks.filter((id) => !lotDeckIds.includes(id)),
+    });
+  }
 
   // The learner's own category is the one place a card can be started from
   // outside the manage screen, so the sentences kept there can be added while
@@ -74,13 +100,37 @@ export default function CategoryScreen() {
     navigate('/manage/card/' + id);
   }
 
-  if (!category) {
+  if (!category || !categoryGate) {
     return (
       <div className="screen">
         <ScreenHeader title="Category not found" back />
       </div>
     );
   }
+
+  // The same gate the categories list draws, enforced again here so a bookmark
+  // cannot walk past it.
+  if (!categoryGate.unlocked) {
+    return (
+      <div className="screen">
+        <ScreenHeader title={category.name} eyebrow="Category" back />
+        <div className="empty">
+          <LevantMotif name="amphora" />
+          <p>
+            This category is still closed. Finish{' '}
+            <strong>{categoryGate.blockedBy?.name}</strong> in Hebrew and Arabic
+            first, or set it aside from the categories list to choose this one
+            instead.
+          </p>
+          <Link className="btn btn-primary" to="/categories">
+            Back to categories
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const staged = isStagedCategory(gates.map((g) => g.deck));
 
   return (
     <div className="screen">
@@ -94,13 +144,25 @@ export default function CategoryScreen() {
         </div>
       )}
 
-      {isBasicsCategory(category) ? (
-        <BasicsGates
+      {staged && gates.length > 0 && (
+        <FinishedSortControl
+          value={sort}
+          onChange={(next) => void update({ finishedSort: next })}
+          label="Finished lots"
+        />
+      )}
+
+      {staged ? (
+        <StagedLots
           gates={gates}
+          gated={categoryGate.gated}
+          sort={sort}
           cards={cards}
           cardProgress={cardProgress}
           decayEnabled={settings.enableMasteryDecay}
           now={now}
+          onOpen={openLot}
+          onClose={closeLot}
         />
       ) : gates.map((gate) => {
         const deck = gate.deck;
@@ -110,9 +172,7 @@ export default function CategoryScreen() {
           statusFor(cardProgress[c.id], now, settings.enableMasteryDecay, studyLanguages),
         );
         const mastered = statuses.filter((s) => s === 'mastered').length;
-        const needsReview = statuses.filter(
-          (s) => s === 'rusty' || s === 'needs-review' || s === 'forgotten',
-        ).length;
+        const needsReview = statuses.filter(needsReviewStatus).length;
         const progress = deckProgress[deck.id];
 
         return (
@@ -195,24 +255,53 @@ export default function CategoryScreen() {
   );
 }
 
-function BasicsGates({
+type LotGroup = {
+  key: string;
+  name: string;
+  hebrew?: DeckGate;
+  arabic?: DeckGate;
+  both?: DeckGate;
+  gates: DeckGate[];
+  /** Every rung mastered — Hebrew, Arabic and the two together. */
+  complete: boolean;
+};
+
+/**
+ * A staged category, lot by lot.
+ *
+ * Every lot is three rungs over the same words — Hebrew, then Palestinian
+ * Arabic, then both together — and is finished only when all three are. Basics
+ * of Basics is open throughout and offers all three at once; every other
+ * category runs one lot at a time and lets the learner say which, so a lot she
+ * has not opened offers the choice rather than a rung.
+ */
+function StagedLots({
   gates,
+  gated,
+  sort,
   cards,
   cardProgress,
   decayEnabled,
   now,
+  onOpen,
+  onClose,
 }: {
   gates: DeckGate[];
+  gated: boolean;
+  sort: FinishedSort;
   cards: Flashcard[];
   cardProgress: Record<string, CardProgress | undefined>;
   decayEnabled: boolean;
   now: string;
+  onOpen: (deckId: string) => void;
+  onClose: (deckIds: string[]) => void;
 }) {
-  const groups = basicsGroups(gates);
+  const groups = lotGroups(gates);
+  const ordered = sortByFinished(groups, (group) => group.complete, sort);
 
   return (
     <>
-      {groups.map((group, index) => {
+      {ordered.map((group, index) => {
         const primary = group.hebrew ?? group.arabic ?? group.both;
         if (!primary) return null;
 
@@ -225,60 +314,106 @@ function BasicsGates({
                 ? group.both
                 : undefined;
         const active = target ?? group.both ?? group.arabic ?? group.hebrew;
-        const locked = Boolean(target && !target.unlocked);
+        const opened = group.gates.some((gate) => gate.unlocked);
+        const choosable = group.gates.some((gate) => gate.choosable);
         const deckCards = cards.filter((c) => c.deckId === primary.deck.id);
         const statusLanguages: readonly Language[] = active
           ? deckStudyLanguages(active.deck, ['hebrew', 'arabic'])
           : ['hebrew', 'arabic'];
         const statuses = deckCards.map((c) =>
-          statusFor(
-            cardProgress[c.id],
-            now,
-            decayEnabled,
-            statusLanguages,
-          ),
+          statusFor(cardProgress[c.id], now, decayEnabled, statusLanguages),
         );
         const mastered = statuses.filter((s) => s === 'mastered').length;
         const needsReview = statuses.filter(needsReviewStatus).length;
 
         return (
           <section
-            className={'panel' + (locked ? ' locked' : '')}
+            className={'panel' + (!opened && !choosable ? ' locked' : '')}
             key={group.key}
           >
             <div className="spread">
               <div>
                 <div className="eyebrow">
-                  Deck {index + 1} of {groups.length} · {group.name}
+                  Lot {index + 1} of {ordered.length} · {group.name}
                 </div>
                 <div className="small muted">
                   {deckCards.length} cards · {mastered} mastered · {needsReview} need review
                 </div>
               </div>
-              <BasicsStageChip
+              <StageChip
                 hebrew={group.hebrew}
                 arabic={group.arabic}
                 both={group.both}
               />
             </div>
 
-            <BasicsProgressBar
+            <StageProgressBar
               hebrew={group.hebrew}
               arabic={group.arabic}
               both={group.both}
             />
 
-            {target && target.unlocked ? (
-              <Link className="btn btn-primary btn-block" to={'/deck/' + target.deck.id}>
-                Practise {basicsStageLabel(target.deck)}
-              </Link>
+            {!gated ? (
+              // Basics: every rung open, so all three are offered and she picks.
+              <div className="stage-choices">
+                {[group.hebrew, group.arabic, group.both].map(
+                  (stage) =>
+                    stage && (
+                      <Link
+                        className={
+                          'btn btn-block' +
+                          (stage === target ? ' btn-primary' : '') +
+                          (stage.mastered ? ' btn-ghost' : '')
+                        }
+                        key={stage.deck.id}
+                        to={'/deck/' + stage.deck.id}
+                      >
+                        {stage.mastered ? '✓ ' : ''}
+                        Practise {stageLabel(stage.deck)}
+                      </Link>
+                    ),
+                )}
+              </div>
+            ) : choosable ? (
+              <>
+                <p className="small muted">
+                  Not started. Open this lot next, or pick any other in this
+                  category — the order is yours.
+                </p>
+                <button
+                  className="btn btn-primary btn-block"
+                  onClick={() => onOpen(primary.deck.id)}
+                >
+                  Open this lot
+                </button>
+              </>
+            ) : !opened ? (
+              <p className="small muted">
+                Opens once <strong>{primary.blockedBy?.name}</strong> is
+                finished — {primary.perfectRunsRequired} flawless runs through
+                it.
+              </p>
+            ) : target && target.unlocked ? (
+              <>
+                <Link className="btn btn-primary btn-block" to={'/deck/' + target.deck.id}>
+                  Practise {stageLabel(target.deck)}
+                </Link>
+                <button
+                  className="btn btn-block btn-ghost"
+                  onClick={() => onClose(group.gates.map((g) => g.deck.id))}
+                >
+                  Set this lot aside
+                </button>
+              </>
             ) : target?.blockedBy ? (
               <p className="small muted">
                 Opens once <strong>{target.blockedBy.name}</strong> is mastered —{' '}
                 {target.perfectRunsRequired} flawless runs through it.
               </p>
             ) : (
-              <p className="small muted">This Basics stage is complete.</p>
+              <p className="small muted">
+                This lot is complete in Hebrew and Arabic.
+              </p>
             )}
 
             {deckCards.length > 0 && active?.unlocked && (
@@ -309,7 +444,7 @@ function BasicsGates({
   );
 }
 
-function BasicsStageChip({
+function StageChip({
   hebrew,
   arabic,
   both,
@@ -326,7 +461,7 @@ function BasicsStageChip({
   return <span className="chip">Hebrew first</span>;
 }
 
-function BasicsProgressBar({
+function StageProgressBar({
   hebrew,
   arabic,
   both,
@@ -410,8 +545,8 @@ function BasicsProgressBar({
   );
 }
 
-function basicsStageLabel(deck: Deck): string {
-  const stage = basicsStage(deck);
+function stageLabel(deck: Deck): string {
+  const stage = deckStage(deck);
   if (stage === 'arabic') return 'Arabic';
   if (stage === 'both') return 'Both';
   return 'Hebrew';
@@ -421,33 +556,27 @@ function needsReviewStatus(status: MasteryStatus): boolean {
   return status === 'rusty' || status === 'needs-review' || status === 'forgotten';
 }
 
-function basicsGroups(gates: DeckGate[]): {
-  key: string;
-  name: string;
-  hebrew?: DeckGate;
-  arabic?: DeckGate;
-  both?: DeckGate;
-}[] {
-  const byName = new Map<
-    string,
-    { key: string; name: string; hebrew?: DeckGate; arabic?: DeckGate; both?: DeckGate }
-  >();
+function lotGroups(gates: DeckGate[]): LotGroup[] {
+  const byKey = new Map<string, LotGroup>();
 
   for (const gate of gates) {
-    const stage = basicsStage(gate.deck);
-    const name = basicsBaseName(gate.deck);
-    const existing = byName.get(name) ?? { key: name.toLowerCase(), name };
-    if (stage === 'hebrew') existing.hebrew = gate;
-    else if (stage === 'arabic') existing.arabic = gate;
-    else if (stage === 'both') existing.both = gate;
+    const name = deckBaseName(gate.deck);
+    const key = gate.lotKey ?? name.toLowerCase();
+    const group = byKey.get(key) ?? { key, name, gates: [], complete: true };
+    const stage = deckStage(gate.deck);
+    if (stage === 'hebrew') group.hebrew = gate;
+    else if (stage === 'arabic') group.arabic = gate;
+    else if (stage === 'both') group.both = gate;
     // A deck of this lot carrying no language stands in for the Hebrew rung,
-    // but only where there is no real one. It used to be assigned outright,
-    // so a deck left over from before the lot was split could take the Hebrew
+    // but only where there is no real one. It used to be assigned outright, so
+    // a deck left over from before the lot was split could take the Hebrew
     // rung's place in the panel and the learner would be shown that deck's
     // card count and offered that deck to practise.
-    else existing.hebrew ??= gate;
-    byName.set(name, existing);
+    else group.hebrew ??= gate;
+    group.gates.push(gate);
+    group.complete = group.complete && gate.mastered;
+    byKey.set(key, group);
   }
 
-  return [...byName.values()];
+  return [...byKey.values()];
 }

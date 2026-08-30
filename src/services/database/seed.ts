@@ -1,6 +1,5 @@
 import type { Category, Deck, Flashcard, Language } from '../../types';
 import { CUSTOM_CATEGORY, SEED_CATEGORIES, type SeedCard } from '../../constants/seed';
-import { BASICS_CATEGORY_NAME } from '../../features/review/languagePolicy';
 import { uid } from '../../utils/random';
 import { audioIdFor } from '../audio/paths';
 import { withClipPaths } from '../audio/manifest';
@@ -17,7 +16,7 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 43;
+export const STARTER_CONTENT_VERSION = 44;
 
 /** `category|deck|english`, lowercased. Identifies one official word. */
 function officialKey(category: string, deck: string, english: string): string {
@@ -657,49 +656,61 @@ export async function reshapeRenamedCategories(): Promise<number> {
 }
 
 /**
- * Basics decks as they were named before the category became a language
- * ladder, mapped to the stage each one is now the first rung of.
+ * Decks as they were named before their category became a language ladder,
+ * mapped to the stage each one is now the first rung of.
  *
- * The lots were once a single deck each — "Directions", "Question words" — and
- * are now three: Hebrew, then Palestinian Arabic, then both together. The deck
- * a learner already worked is the Hebrew rung of its lot, so it is renamed
+ * A lot was once a single deck — "Directions", "Hello and goodbye" — and is now
+ * three: Hebrew, then Palestinian Arabic, then both together. The deck a
+ * learner has already worked is the Hebrew rung of its lot, so it is renamed
  * into that rung rather than left standing beside it. Without this the top-up
- * finds no deck called "Directions — Hebrew", builds a second one, and the
- * learner is shown her old deck and its replacement side by side with her ten
- * flawless runs recorded against the copy the ladder no longer uses.
+ * finds no deck called "Directions — Hebrew", builds a second one, and she is
+ * shown her old deck and its replacement side by side with her ten flawless
+ * runs recorded against the copy the ladder no longer uses.
+ *
+ * Keyed by category as well as by name because the same bare name occurs in
+ * more than one category — "Colours" is a deck in Basics and a category of its
+ * own — and a rename must never reach across.
  */
-const LEGACY_BASICS_STAGE_NAMES: ReadonlyMap<string, string> = new Map(
-  (SEED_CATEGORIES.find((c) => c.name === BASICS_CATEGORY_NAME)?.decks ?? [])
-    .filter((deck) => deck.name.endsWith(' — Hebrew'))
-    .map((deck) => [
-      deck.name.slice(0, -' — Hebrew'.length).trim().toLowerCase(),
-      deck.name,
-    ]),
+const LEGACY_STAGE_NAMES: ReadonlyMap<string, string> = new Map(
+  SEED_CATEGORIES.flatMap((category) =>
+    category.decks
+      .filter((deck) => deck.name.endsWith(' — Hebrew'))
+      .map((deck): [string, string] => [
+        legacyStageKey(category.name, deck.name.slice(0, -' — Hebrew'.length)),
+        deck.name,
+      ]),
+  ),
 );
+
+function legacyStageKey(categoryName: string, deckName: string): string {
+  return [categoryName, deckName].map((s) => s.trim().toLowerCase()).join('|');
+}
 
 /**
  * Renames those decks in place, keeping every id. Writes nothing on a device
  * seeded after the split, or on one that has already been through this.
  */
-export async function reshapeLegacyBasicsDecks(): Promise<number> {
-  const categories = await db.categories.toArray();
-  const basics = categories.find(
-    (c) => c.name.trim().toLowerCase() === BASICS_CATEGORY_NAME.toLowerCase(),
-  );
-  if (!basics) return 0;
-
+export async function reshapeLegacyStagedDecks(): Promise<number> {
+  const [categories, decks] = await Promise.all([
+    db.categories.toArray(),
+    db.decks.toArray(),
+  ]);
+  const categoryById = new Map(categories.map((c) => [c.id, c]));
   const now = new Date().toISOString();
-  const decks = await db.decks.toArray();
+
   const renamed = decks.flatMap((deck) => {
-    if (deck.categoryId !== basics.id) return [];
+    const category = categoryById.get(deck.categoryId);
+    if (!category) return [];
     // Judged by the name alone. The stage names all carry their language, so a
-    // deck that is already a stage cannot match the bare names below and needs
+    // deck that is already a stage cannot match the bare names here and needs
     // no guard of its own — whereas a bare "Can" that an in-between build gave
     // a language to is still the old lot, and skipping it over that language
     // stranded it: named nothing the seed lists, it was never topped up, its
     // empty state offered to write the words out by hand, and the sweep that
     // retires the old combined rows took the last of its cards away.
-    const stageName = LEGACY_BASICS_STAGE_NAMES.get(deck.name.trim().toLowerCase());
+    const stageName = LEGACY_STAGE_NAMES.get(
+      legacyStageKey(category.name, deck.name),
+    );
     if (!stageName) return [];
     return [
       {
@@ -758,7 +769,7 @@ async function runStarterContent(): Promise<StartupReport> {
   // having its own moved across, taking its progress with them.
   if (seeded) {
     await reshapeRenamedCategories();
-    await reshapeLegacyBasicsDecks();
+    await reshapeLegacyStagedDecks();
   }
 
   // What is counted here is words, not rows — see `officialIndex`. It has to
