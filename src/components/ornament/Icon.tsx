@@ -30,6 +30,7 @@ export type IconName =
   | 'ear'
   | 'stylus'
   | 'gate'
+  | 'steps'
   // controls
   | 'speaker'
   | 'info'
@@ -108,6 +109,12 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M9 20.5v-6.5a3 3 0 0 1 6 0v6.5" />
       <path d="M3 20.5h18" />
       <path d="M4 10.5h5M15 10.5h5" />
+    </>
+  ),
+  steps: (
+    <>
+      <path d="M3 20.5h18" />
+      <path d="M4.5 20.5V16H10v-5h5.5V6H21" />
     </>
   ),
   codex: (

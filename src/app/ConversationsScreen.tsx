@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../stores/dataStore';
 import {
   conversationGroups,
@@ -25,6 +25,7 @@ import { EngravedDivider } from '../components/ornament/Ornament';
  * because the whole level is optional and gates nothing.
  */
 export default function ConversationsScreen() {
+  const navigate = useNavigate();
   const categories = useData((s) => s.categories);
   const decks = useData((s) => s.decks);
   const deckProgress = useData((s) => s.deckProgress);
@@ -38,9 +39,13 @@ export default function ConversationsScreen() {
 
   return (
     <div className="screen">
+      {/* Up to the Levels hub rather than back through history: the hub is
+          this area's roof, whatever route brought the learner in. */}
       <ScreenHeader
         title="Conversation Flow"
         eyebrow="From whole thoughts to whole exchanges"
+        back
+        onBack={() => navigate('/levels')}
       />
 
       <p className="small muted">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { prepareStarterContent } from './services/database/seed';
 import { useData } from './stores/dataStore';
 import { useSettings } from './stores/settingsStore';
@@ -33,6 +33,7 @@ import AlphabetWriteScreen from './app/AlphabetWriteScreen';
 import AlphabetCardsScreen from './app/AlphabetCardsScreen';
 import AlphabetOrderScreen from './app/AlphabetOrderScreen';
 import OrderRecallScreen from './app/OrderRecallScreen';
+import LevelsScreen from './app/LevelsScreen';
 import SentencesScreen from './app/SentencesScreen';
 import SentenceGroupScreen from './app/SentenceGroupScreen';
 import SentenceChainScreen from './app/SentenceChainScreen';
@@ -62,22 +63,21 @@ import Icon, { type IconName } from './components/ornament/Icon';
  * clarify anything, and re-cutting the icons as well would have changed
  * everything about the bar at once.
  */
-const TABS: { to: string; icon: IconName; label: string }[] = [
+const TABS: { to: string; icon: IconName; label: string; also?: string[] }[] = [
   { to: '/', icon: 'temple', label: 'Home' },
   { to: '/memorise', icon: 'scroll', label: 'Review' },
   { to: '/categories', icon: 'codex', label: 'Practice' },
-  // The two standalone levels sit beside Practice rather than inside it, in the
-  // order the path is walked: the words, then what to do with them, then the
-  // exchange that happens around them. Each has its own seat because each has
-  // its own progress — finishing or ignoring either moves nothing in the
-  // vocabulary course, and neither moves the other.
-  { to: '/sentences', icon: 'stylus', label: 'Sentences' },
-  // An ear rather than a mouth: the half of a conversation this level actually
-  // adds is understanding what has just been said to you.
-  { to: '/conversations', icon: 'ear', label: 'Talking' },
-  // A city gate: the level where the learning walks out into the street —
-  // the café, the bus, the shop — and gets used for an actual purpose.
-  { to: '/situations', icon: 'gate', label: 'Situations' },
+  // The three levels beyond the words — sentences, conversations, situations —
+  // share one seat: a staircase, because they are a progression, and the hub
+  // behind it lists them in the order they build on each other. `also` keeps
+  // the seat lit while the learner is inside any of the three areas, whose
+  // routes kept their own names when they moved under this roof.
+  {
+    to: '/levels',
+    icon: 'steps',
+    label: 'Levels',
+    also: ['/sentences', '/conversations', '/situations'],
+  },
   { to: '/stats', icon: 'columns', label: 'Stats' },
   { to: '/settings', icon: 'rosette', label: 'Settings' },
 ];
@@ -106,6 +106,7 @@ export default function App() {
   const loadSettings = useSettings((s) => s.load);
   const loadData = useData((s) => s.load);
   const loadAlphabet = useAlphabet((s) => s.load);
+  const { pathname } = useLocation();
 
   useAppearance(settings);
 
@@ -178,6 +179,10 @@ export default function App() {
             as a deck that does not exist. */}
         <Route path="/memorise/alphabet" element={<AlphabetReviewScreen />} />
         <Route path="/memorise/:deckId" element={<MemoriseScreen />} />
+        {/* The hub for the three levels beyond the words, in the order they
+            build on each other. The areas below keep their own routes; this
+            is the one seat in the tab bar they now share. */}
+        <Route path="/levels" element={<LevelsScreen />} />
         {/* Sentence Building: groups, a group's chains, and one chain read as
             it grows. Practising a chain hands over to the ordinary study
             screen — a chain is a deck, and the ladder already deals a deck in
@@ -271,15 +276,35 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
+      {/* Plain links with the current-page mark worked out by hand, because a
+          NavLink only knows its own path: the Levels seat has to stay lit
+          while the learner is inside /sentences, /conversations or
+          /situations, which live beside /levels rather than under it. The
+          matching is NavLink's own — exact for Home, path-prefix for the
+          rest — with a tab's `also` prefixes counted as part of its ground. */}
       <nav className="tabbar" aria-label="Main">
-        {TABS.map((tab) => (
-          <NavLink key={tab.to} to={tab.to} end={tab.to === '/'}>
-            <span className="tab-icon" aria-hidden="true">
-              <Icon name={tab.icon} />
-            </span>
-            {tab.label}
-          </NavLink>
-        ))}
+        {TABS.map((tab) => {
+          const seats = [tab.to, ...(tab.also ?? [])];
+          const active =
+            tab.to === '/'
+              ? pathname === '/'
+              : seats.some(
+                  (seat) =>
+                    pathname === seat || pathname.startsWith(seat + '/'),
+                );
+          return (
+            <Link
+              key={tab.to}
+              to={tab.to}
+              aria-current={active ? 'page' : undefined}
+            >
+              <span className="tab-icon" aria-hidden="true">
+                <Icon name={tab.icon} />
+              </span>
+              {tab.label}
+            </Link>
+          );
+        })}
       </nav>
 
       {!splashGone && <SplashScreen leaving />}

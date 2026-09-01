@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import {
@@ -27,6 +27,7 @@ import { EngravedDivider } from '../components/ornament/Ornament';
  * interaction is the other.
  */
 export default function SituationsScreen() {
+  const navigate = useNavigate();
   const categories = useData((s) => s.categories);
   const decks = useData((s) => s.decks);
   const deckProgress = useData((s) => s.deckProgress);
@@ -36,9 +37,13 @@ export default function SituationsScreen() {
 
   return (
     <div className="screen">
+      {/* Up to the Levels hub rather than back through history: the hub is
+          this area's roof, whatever route brought the learner in. */}
       <ScreenHeader
         title="Real Situations"
         eyebrow="From knowing the moves to using them"
+        back
+        onBack={() => navigate('/levels')}
       />
 
       <p className="small muted">

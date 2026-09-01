@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../stores/dataStore';
 import {
   chainFinished,
@@ -22,6 +22,7 @@ import { EngravedDivider } from '../components/ornament/Ornament';
  * area is optional and gates nothing.
  */
 export default function SentencesScreen() {
+  const navigate = useNavigate();
   const categories = useData((s) => s.categories);
   const decks = useData((s) => s.decks);
   const deckProgress = useData((s) => s.deckProgress);
@@ -35,9 +36,13 @@ export default function SentencesScreen() {
 
   return (
     <div className="screen">
+      {/* Up to the Levels hub rather than back through history: the hub is
+          this area's roof, whatever route brought the learner in. */}
       <ScreenHeader
         title="Sentence Building"
         eyebrow="From words to whole thoughts"
+        back
+        onBack={() => navigate('/levels')}
       />
 
       <p className="small muted">
