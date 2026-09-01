@@ -26,6 +26,8 @@ import { createReadStream } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { DEFAULT_STORE_PATH, SyncStore } from './store.ts';
+import { TalkError, talk, talkConfigured } from './talk.ts';
+import type { TalkRequest } from '../src/services/freetalk/protocol.ts';
 import {
   SYNC_PROTOCOL_VERSION,
   type SyncPushBody,
@@ -222,7 +224,15 @@ async function main(): Promise<void> {
     // Unauthenticated on purpose: it carries no data, and it lets the app's
     // sync screen tell "I cannot reach the laptop" apart from "wrong token".
     if (path === '/api/ping') {
-      json(response, 200, { ok: true, service: 'levantry-sync', protocol: SYNC_PROTOCOL_VERSION });
+      json(response, 200, {
+        ok: true,
+        service: 'levantry-sync',
+        protocol: SYNC_PROTOCOL_VERSION,
+        // Whether Free Conversation is switched on here, so the app can say
+        // "the server has no key" apart from "no server". A boolean carries
+        // no data worth guarding.
+        talk: talkConfigured(),
+      });
       return;
     }
 
@@ -280,6 +290,41 @@ async function main(): Promise<void> {
           `(seq ${since} -> ${result.seq})`,
       );
       json(response, 200, payload);
+      return;
+    }
+
+    // Free Conversation. Behind the same bearer token as sync on purpose:
+    // the route spends real money per call, so it is exactly as private as
+    // the learner's data.
+    if (path === '/api/talk' && request.method === 'POST') {
+      let body: TalkRequest;
+      try {
+        body = JSON.parse(await readBody(request)) as TalkRequest;
+      } catch (error) {
+        json(response, 400, {
+          error: error instanceof Error ? error.message : 'Unreadable body.',
+        });
+        return;
+      }
+
+      const kinds = ['open', 'turn', 'say', 'word', 'review'];
+      if (!body || !kinds.includes(body.kind) || typeof body.setting !== 'object') {
+        json(response, 400, { error: 'That is not a talk request.' });
+        return;
+      }
+
+      try {
+        json(response, 200, await talk(body));
+      } catch (error) {
+        if (error instanceof TalkError) {
+          json(response, error.status, { error: error.message });
+        } else {
+          console.error('[talk] request failed:', error);
+          json(response, 502, {
+            error: error instanceof Error ? error.message : 'The model call failed.',
+          });
+        }
+      }
       return;
     }
 

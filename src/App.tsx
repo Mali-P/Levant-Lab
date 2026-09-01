@@ -41,6 +41,8 @@ import ConversationsScreen from './app/ConversationsScreen';
 import ConversationGroupScreen from './app/ConversationGroupScreen';
 import ConversationExchangeScreen from './app/ConversationExchangeScreen';
 import SituationsScreen from './app/SituationsScreen';
+import FreeTalkScreen from './app/FreeTalkScreen';
+import FreeTalkSessionScreen from './app/FreeTalkSessionScreen';
 import SituationScreen from './app/SituationScreen';
 import SituationRehearsalScreen from './app/SituationRehearsalScreen';
 import SplashScreen from './app/SplashScreen';
@@ -76,7 +78,7 @@ const TABS: { to: string; icon: IconName; label: string; also?: string[] }[] = [
     to: '/levels',
     icon: 'steps',
     label: 'Levels',
-    also: ['/sentences', '/conversations', '/situations'],
+    also: ['/sentences', '/conversations', '/situations', '/freetalk'],
   },
   { to: '/stats', icon: 'columns', label: 'Stats' },
   { to: '/settings', icon: 'rosette', label: 'Settings' },
@@ -223,6 +225,12 @@ export default function App() {
           path="/situations/rehearse/:categoryId"
           element={<SituationRehearsalScreen />}
         />
+        {/* Free Conversation: the hub, and one live conversation. The session
+            carries its shape in the query string, because a free conversation
+            is deliberately ephemeral — there is no deck and no stored session
+            to resume, only the record of conversations completed. */}
+        <Route path="/freetalk" element={<FreeTalkScreen />} />
+        <Route path="/freetalk/session" element={<FreeTalkSessionScreen />} />
         <Route path="/study/:deckId" element={<StudyScreen />} />
         {/* Putting a deck back in order. Its own route rather than a study
             mode: it asks about the deck's sequence rather than about any one

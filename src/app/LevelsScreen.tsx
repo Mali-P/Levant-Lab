@@ -15,6 +15,8 @@ import {
   situationParts,
   situationStatus,
 } from '../features/situations/situations';
+import { useSettings } from '../stores/settingsStore';
+import { statsFor } from '../features/freetalk/freetalk';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon, { type IconName } from '../components/ornament/Icon';
 import { EngravedDivider } from '../components/ornament/Ornament';
@@ -41,7 +43,11 @@ type LevelRow = {
   name: string;
   claim: string;
   done: number;
-  total: number;
+  /**
+   * Absent on a level with no finish line: Free Conversation counts
+   * conversations held rather than working through a fixed set.
+   */
+  total?: number;
   unit: string;
 };
 
@@ -49,6 +55,8 @@ export default function LevelsScreen() {
   const categories = useData((s) => s.categories);
   const decks = useData((s) => s.decks);
   const deckProgress = useData((s) => s.deckProgress);
+  const settings = useSettings((s) => s.settings);
+  const languages = useSettings((s) => s.languages);
 
   let chainsDone = 0;
   let chainsTotal = 0;
@@ -114,6 +122,20 @@ export default function LevelsScreen() {
       total: scenarios.length,
       unit: 'scenarios',
     },
+    {
+      to: '/freetalk',
+      icon: 'compass',
+      rank: 'Level 4',
+      name: 'Free Conversation',
+      claim: 'From using the moves to saying what you mean',
+      // No finish line on purpose: a free conversation has no fixed set to
+      // work through, so the count is conversations actually held.
+      done: languages.reduce(
+        (sum, language) => sum + statsFor(settings, language).conversations,
+        0,
+      ),
+      unit: 'conversations',
+    },
   ];
 
   return (
@@ -121,10 +143,11 @@ export default function LevelsScreen() {
       <ScreenHeader title="Levels" eyebrow="Where the words go next" />
 
       <p className="small muted">
-        Three levels, each built on the one before: say the sentence, hold the
-        exchange it sits in, then get through the real interaction. Climb them
-        in order — or don&apos;t: every level is open from the first day, and
-        none of them gates the vocabulary decks.
+        Four levels, each built on the one before: say the sentence, hold the
+        exchange it sits in, get through the real interaction, then say what
+        you actually mean with no script at all. Climb them in order — or
+        don&apos;t: every level is open from the first day, and none of them
+        gates the vocabulary decks.
       </p>
 
       <EngravedDivider />
@@ -140,10 +163,12 @@ export default function LevelsScreen() {
               <strong>{level.name}</strong>
               <div className="small muted">{level.claim}</div>
               <div className="small muted">
-                {level.done} of {level.total} {level.unit} finished
+                {level.total === undefined
+                  ? `${level.done} ${level.done === 1 ? level.unit.replace(/s$/, '') : level.unit} held`
+                  : `${level.done} of ${level.total} ${level.unit} finished`}
               </div>
             </span>
-            {level.total > 0 && level.done === level.total && (
+            {level.total !== undefined && level.total > 0 && level.done === level.total && (
               <span className="chip chip-ok">Complete</span>
             )}
             <Icon name="forward" className="chevron" />

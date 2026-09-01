@@ -629,6 +629,22 @@ export type MasteryStatus =
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+/**
+ * One language's Free Conversation record. Counts, never percentages: the
+ * level's own progress screen turns these into sentences, and nothing else
+ * reads them.
+ */
+export type FreeTalkLangStats = {
+  /** Conversations carried to a close, in this language. */
+  conversations: number;
+  /** Of those, ones that needed no English help at all. */
+  withoutHelp: number;
+  /** Learner turns spoken across all of them. */
+  turns: number;
+  /** Phrases taught mid-conversation and saved for review. */
+  phrasesSaved: number;
+};
+
 export type Settings = {
   id: 'settings';
 
@@ -751,6 +767,17 @@ export type Settings = {
    * progress row of its own to live on.
    */
   situationRehearsals?: Record<string, string>;
+
+  /**
+   * What Free Conversation has amounted to so far, per language.
+   *
+   * Deliberately not a mastery score. A free conversation has no single
+   * expected answer, so nothing here is an accuracy percentage — it is a
+   * record of conversations actually held, and of the help they did or did
+   * not need. Rides the settings row like `situationRehearsals` does, because
+   * a conversation is not a deck and has no progress row of its own.
+   */
+  freeTalkStats?: Partial<Record<Language, FreeTalkLangStats>>;
 
   /**
    * The deck the Review tab was last reading, so the tab reopens on it.

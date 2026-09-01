@@ -21,6 +21,7 @@
     "validate-alphabet": "tsx scripts/validateAlphabet.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
     "dexie": "^4.0.11",
     "framer-motion": "^11.15.0",
     "react": "^18.3.1",
