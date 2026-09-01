@@ -112,7 +112,7 @@ describe('a Basics install from before the language stages', () => {
     expect(hebrew.id).toBe('old_deck_0');
     expect(hebrew.studyLanguages).toEqual(['hebrew']);
     expect((await db.deckProgress.get(hebrew.id))?.perfectRunsCompleted).toBe(10);
-  }, 120000);
+  }, 300000);
 
   it('leaves the whole of Basics open to pick from', async () => {
     const basics = (await db.categories.toArray()).find(
@@ -136,7 +136,7 @@ describe('a Basics install from before the language stages', () => {
     expect(
       gates.find((g) => g.deck.name === 'Directions — Palestinian Arabic')!.mastered,
     ).toBe(false);
-  }, 120000);
+  }, 300000);
 });
 
 describe('isOfficialDeck', () => {
@@ -182,5 +182,5 @@ describe('starter coverage', () => {
     await prepareStarterContent();
     expect((await starterCoverage()).missing).toBe(0);
     expect(await db.cards.where('deckId').equals(emptied.id).count()).toBe(lost.length);
-  }, 120000);
+  }, 300000);
 });

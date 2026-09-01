@@ -22,13 +22,38 @@ export type SeedCard = {
   icon?: string;
   hebrew: SeedSide;
   arabic: SeedSide & { dialect?: ArabicDialect };
+  /**
+   * The line this card answers, where it is one turn of an exchange rather than
+   * something said on its own. Only Conversation Flow authors it; every other
+   * card leaves it undefined and is exactly the card it always was.
+   *
+   * Shaped like a card without its own trimmings, because that is what it is —
+   * `c()` builds one, and `turn()` in `constants/conversations` fits it on.
+   */
+  cue?: SeedCue;
 };
+
+/** A card's opposite half: what is said to her, before she answers. */
+export type SeedCue = Pick<SeedCard, 'english' | 'hebrew' | 'arabic'>;
 
 export type SeedDeck = {
   name: string;
   cards: SeedCard[];
   studyLanguages?: Language[];
   masteryOnly?: boolean;
+  /**
+   * Flawless runs this deck asks for, where the course fixes one. Absent means
+   * the learner's own default — ten, unless she has changed it. Sentence chains
+   * set it lower: they are a bridge to speaking, not another mastery grind.
+   */
+  perfectRunsRequired?: number;
+  /**
+   * Deal each mastery round as this many cards drawn from the deck at random,
+   * rather than one pass over all of it. Only the sentence final test sets it:
+   * a hundred-card flawless pass is unfinishable, ten out of a hundred at a
+   * time is the same claim made in a way a person can hold.
+   */
+  roundSize?: number;
 };
 
 export type SeedCategory = {
@@ -46,10 +71,10 @@ const PAL: ArabicDialect = 'Palestinian';
  * `[script, transliteration]` — one shared form.
  * `[fScript, fTranslit, mScript, mTranslit]` — feminine first, masculine second.
  */
-type Word = [string, string] | [string, string, string, string];
+export type Word = [string, string] | [string, string, string, string];
 
 /** One wording: `[script, transliteration]`. */
-type W = [string, string];
+export type W = [string, string];
 
 /**
  * How a phrase changes with who is in the conversation.
@@ -72,7 +97,7 @@ type W = [string, string];
  * variants at all — the point is never to manufacture four versions of
  * something people say one way.
  */
-type Speech =
+export type Speech =
   | { by: 'listener'; toMale: W; toFemale: W }
   | { by: 'speaker'; female: W; male: W }
   | { by: 'both'; f2m: W; f2f: W; m2f: W; m2m: W };
@@ -87,15 +112,15 @@ type Speech =
  * purpose: those four perspectives exist because the *wording* differs per
  * perspective, whereas this is two wordings and a rule for choosing.
  */
-type AgreeingWord = { pair: [string, string, string, string]; by: 'speaker' | 'listener' };
+export type AgreeingWord = { pair: [string, string, string, string]; by: 'speaker' | 'listener' };
 
-type Entry = Word | Speech | AgreeingWord;
+export type Entry = Word | Speech | AgreeingWord;
 
 /**
  * A pair the speaker's own gender picks between — "I'm tired", "I'm hungry".
  * A woman says the feminine one to anybody.
  */
-function ofSpeaker(
+export function ofSpeaker(
   fScript: string,
   fTranslit: string,
   mScript: string,
@@ -108,7 +133,7 @@ function ofSpeaker(
  * A pair the listener's gender picks between — an imperative, or anything said
  * about the person being addressed.
  */
-function ofListener(
+export function ofListener(
   fScript: string,
   fTranslit: string,
   mScript: string,
@@ -209,7 +234,7 @@ function side(entry: Entry): SeedSide {
  * feminine/masculine word pair, or a set of speaker/listener variants — a
  * distinction can exist in Hebrew and not in Arabic, or the reverse.
  */
-function c(
+export function c(
   english: string,
   hebrew: Entry,
   arabic: Entry,
@@ -222,7 +247,7 @@ function c(
   };
 }
 
-function genderCard(
+export function genderCard(
   english: string,
   gender: 'female' | 'male',
   hebrew: W,
@@ -236,17 +261,17 @@ function genderCard(
 }
 
 /** Only the listener's gender changes the wording. */
-function toL(toMale: W, toFemale: W): Speech {
+export function toL(toMale: W, toFemale: W): Speech {
   return { by: 'listener', toMale, toFemale };
 }
 
 /** Only the speaker's own gender changes the wording. */
-function bySp(female: W, male: W): Speech {
+export function bySp(female: W, male: W): Speech {
   return { by: 'speaker', female, male };
 }
 
 /** Both matter, so all four perspectives differ. Female-speaker pair first. */
-function both4(f2m: W, f2f: W, m2f: W, m2m: W): Speech {
+export function both4(f2m: W, f2f: W, m2f: W, m2m: W): Speech {
   return { by: 'both', f2m, f2f, m2f, m2m };
 }
 
@@ -1328,20 +1353,27 @@ const STAGE_SUFFIX = /\s+—\s+(Hebrew|Palestinian Arabic|Both)$/;
 export function stageDecks(decks: SeedDeck[]): SeedDeck[] {
   return decks.flatMap((deck) => {
     if (deck.masteryOnly || STAGE_SUFFIX.test(deck.name)) return [deck];
+    // Everything but the name, contents and language slice — how many runs the
+    // deck asks for, how a round is dealt — travels onto every rung unchanged.
+    const { name, cards, studyLanguages, ...shared } = deck;
+    void studyLanguages;
     return [
       {
-        name: deck.name + ' — Hebrew',
-        cards: deck.cards,
+        ...shared,
+        name: name + ' — Hebrew',
+        cards,
         studyLanguages: ['hebrew'] as Language[],
       },
       {
-        name: deck.name + ' — Palestinian Arabic',
-        cards: deck.cards,
+        ...shared,
+        name: name + ' — Palestinian Arabic',
+        cards,
         studyLanguages: ['arabic'] as Language[],
       },
       {
-        name: deck.name + ' — Both',
-        cards: deck.cards,
+        ...shared,
+        name: name + ' — Both',
+        cards,
         studyLanguages: ['hebrew', 'arabic'] as Language[],
       },
     ];

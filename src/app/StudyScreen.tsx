@@ -278,6 +278,7 @@ export default function StudyScreen() {
           perfectRunsRequired: deck.perfectRunsRequired,
           studyLanguages,
           masteryOnly: deck.masteryOnly,
+          roundSize: deck.roundSize,
           drill: Boolean(drillCardId),
           // Only a deck that runs in an order gets the ordering interlude, and
           // the decision is written onto the session rather than looked up each
@@ -944,6 +945,10 @@ export default function StudyScreen() {
         perspectives={perspectives}
         lead={lead}
         showTransliteration={showTransliteration}
+        // The half of a Conversation Flow card she is not asked for, narrowed
+        // to the languages this rung studies — a Hebrew rung shows the question
+        // in Hebrew, and nothing about the cue is ever graded.
+        cueLanguages={studyLanguages}
         animationIntensity={settings.cardAnimationIntensity}
         reducedMotion={settings.reducedMotion}
         onChange={(scores, value) =>

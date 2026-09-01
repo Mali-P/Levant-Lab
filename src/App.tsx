@@ -33,6 +33,15 @@ import AlphabetWriteScreen from './app/AlphabetWriteScreen';
 import AlphabetCardsScreen from './app/AlphabetCardsScreen';
 import AlphabetOrderScreen from './app/AlphabetOrderScreen';
 import OrderRecallScreen from './app/OrderRecallScreen';
+import SentencesScreen from './app/SentencesScreen';
+import SentenceGroupScreen from './app/SentenceGroupScreen';
+import SentenceChainScreen from './app/SentenceChainScreen';
+import ConversationsScreen from './app/ConversationsScreen';
+import ConversationGroupScreen from './app/ConversationGroupScreen';
+import ConversationExchangeScreen from './app/ConversationExchangeScreen';
+import SituationsScreen from './app/SituationsScreen';
+import SituationScreen from './app/SituationScreen';
+import SituationRehearsalScreen from './app/SituationRehearsalScreen';
 import SplashScreen from './app/SplashScreen';
 import { useAlphabet } from './stores/alphabetStore';
 import Icon, { type IconName } from './components/ornament/Icon';
@@ -57,6 +66,18 @@ const TABS: { to: string; icon: IconName; label: string }[] = [
   { to: '/', icon: 'temple', label: 'Home' },
   { to: '/memorise', icon: 'scroll', label: 'Review' },
   { to: '/categories', icon: 'codex', label: 'Practice' },
+  // The two standalone levels sit beside Practice rather than inside it, in the
+  // order the path is walked: the words, then what to do with them, then the
+  // exchange that happens around them. Each has its own seat because each has
+  // its own progress — finishing or ignoring either moves nothing in the
+  // vocabulary course, and neither moves the other.
+  { to: '/sentences', icon: 'stylus', label: 'Sentences' },
+  // An ear rather than a mouth: the half of a conversation this level actually
+  // adds is understanding what has just been said to you.
+  { to: '/conversations', icon: 'ear', label: 'Talking' },
+  // A city gate: the level where the learning walks out into the street —
+  // the café, the bus, the shop — and gets used for an actual purpose.
+  { to: '/situations', icon: 'gate', label: 'Situations' },
   { to: '/stats', icon: 'columns', label: 'Stats' },
   { to: '/settings', icon: 'rosette', label: 'Settings' },
 ];
@@ -157,6 +178,46 @@ export default function App() {
             as a deck that does not exist. */}
         <Route path="/memorise/alphabet" element={<AlphabetReviewScreen />} />
         <Route path="/memorise/:deckId" element={<MemoriseScreen />} />
+        {/* Sentence Building: groups, a group's chains, and one chain read as
+            it grows. Practising a chain hands over to the ordinary study
+            screen — a chain is a deck, and the ladder already deals a deck in
+            its own order, which is exactly the expansion. */}
+        <Route path="/sentences" element={<SentencesScreen />} />
+        <Route
+          path="/sentences/group/:categoryId"
+          element={<SentenceGroupScreen />}
+        />
+        <Route
+          path="/sentences/chain/:deckId"
+          element={<SentenceChainScreen />}
+        />
+        {/* Conversation Flow: groups, a group's exchanges, and one exchange
+            read as the conversation it is. Practising an exchange hands over
+            to the ordinary study screen — an exchange is a deck, and the
+            ladder growing its active set one card at a time is exactly the
+            learner being made responsible for more of the conversation. */}
+        <Route path="/conversations" element={<ConversationsScreen />} />
+        <Route
+          path="/conversations/group/:categoryId"
+          element={<ConversationGroupScreen />}
+        />
+        <Route
+          path="/conversations/exchange/:deckId"
+          element={<ConversationExchangeScreen />}
+        />
+        {/* Real Situations: the scenarios, one scenario read whole, and its
+            rehearsal — the branching play-through that is this level's own
+            machine. Practising a scenario's lines still hands over to the
+            ordinary study screen, because its parts are ordinary decks. */}
+        <Route path="/situations" element={<SituationsScreen />} />
+        <Route
+          path="/situations/scenario/:categoryId"
+          element={<SituationScreen />}
+        />
+        <Route
+          path="/situations/rehearse/:categoryId"
+          element={<SituationRehearsalScreen />}
+        />
         <Route path="/study/:deckId" element={<StudyScreen />} />
         {/* Putting a deck back in order. Its own route rather than a study
             mode: it asks about the deck's sequence rather than about any one

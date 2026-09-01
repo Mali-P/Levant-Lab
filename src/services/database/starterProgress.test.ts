@@ -1,11 +1,11 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { SEED_CATEGORIES } from '../../constants/seed';
 import { applyAnswerToProgress } from '../../features/review/mastery';
 import type { CardProgress, DeckProgress, StudySession } from '../../types';
 import { emptyDeckProgress } from './defaults';
 import { db } from './db';
 import {
+  INSTALLED_CATEGORIES,
   installStarterCards,
   OFFICIAL_CARD_COUNT,
   starterCoverage,
@@ -48,7 +48,7 @@ describe('starter practice progress coverage', () => {
     const cardProgressRows: CardProgress[] = [];
     const deckProgressRows: DeckProgress[] = [];
 
-    for (const seedCategory of SEED_CATEGORIES) {
+    for (const seedCategory of INSTALLED_CATEGORIES) {
       const category = categoriesByName.get(seedCategory.name);
       expect(category, seedCategory.name).toBeTruthy();
 
@@ -89,7 +89,7 @@ describe('starter practice progress coverage', () => {
 
     expect(await db.cardProgress.count()).toBe(OFFICIAL_CARD_COUNT);
     expect(await db.deckProgress.count()).toBe(
-      SEED_CATEGORIES.reduce((total, category) => total + category.decks.length, 0),
+      INSTALLED_CATEGORIES.reduce((total, category) => total + category.decks.length, 0),
     );
 
     const wants = categoriesByName.get('Wants and feelings')!;
@@ -175,5 +175,5 @@ describe('starter practice progress coverage', () => {
     // A full pass over the starter set through fake-indexeddb, which is an
     // order of magnitude slower than the browser's. Budgeted loosely so this
     // fails on the code rather than on the machine.
-  }, 120000);
+  }, 300000);
 });

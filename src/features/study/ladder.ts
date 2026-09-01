@@ -137,9 +137,16 @@ export function pickNextCard(params: PickParams): string {
  */
 export function buildRound(
   cardIds: readonly string[],
-  opts: { lastAskedCardId?: string; rng?: RNG } = {},
+  opts: { lastAskedCardId?: string; size?: number; rng?: RNG } = {},
 ): string[] {
-  const queue = shuffle(cardIds, opts.rng ?? Math.random);
+  const dealt = shuffle(cardIds, opts.rng ?? Math.random);
+  // A capped round is the front of the shuffle: every card holds the same
+  // chance of a seat, and no two rounds deal a predictable ten. At or above
+  // the pool — or uncapped — the round is the whole pool, exactly as before.
+  const queue =
+    opts.size && opts.size > 0 && opts.size < dealt.length
+      ? dealt.slice(0, opts.size)
+      : dealt;
   if (queue.length > 1 && queue[0] === opts.lastAskedCardId) {
     [queue[0], queue[1]] = [queue[1], queue[0]];
   }

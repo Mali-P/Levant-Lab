@@ -85,6 +85,12 @@ export type CreateSessionParams = {
   perfectRoundsCompleted?: number;
   /** Skip the learning ladder and begin shuffled full-pool mastery immediately. */
   masteryOnly?: boolean;
+  /**
+   * Deal each mastery round as this many cards drawn from the pool at random,
+   * rather than one pass over all of it. From `Deck.roundSize`; copied onto
+   * the session so an edit to the deck cannot reshape a run in progress.
+   */
+  roundSize?: number;
   /** A single weak card being drilled, rather than a climb through the deck. */
   drill?: boolean;
   /**
@@ -124,6 +130,7 @@ export function createSession(params: CreateSessionParams): StudySession {
     answerMode: params.answerMode,
 
     sequenced: params.sequenced,
+    roundSize: params.roundSize,
 
     phase: 'introducing',
     deckCardIds,
@@ -329,6 +336,7 @@ function openRound(s: StudySession, rng: RNG): void {
   s.currentRound += 1;
   s.roundQueue = buildRound(s.activeCardIds, {
     lastAskedCardId: s.lastAskedCardId,
+    size: s.roundSize,
     rng,
   });
   s.roundIndex = 0;

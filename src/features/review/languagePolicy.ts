@@ -7,8 +7,67 @@ import {
   type Language,
 } from '../../types';
 import { gateDecks, isDeckMastered, sortDecks, type DeckGate } from './unlock';
+import { SENTENCE_CATEGORY_NAMES } from '../../constants/sentences';
+import { CONVERSATION_CATEGORY_NAMES } from '../../constants/conversations';
+import { SITUATION_CATEGORY_NAMES } from '../../constants/situations';
 
 export const BASICS_CATEGORY_NAME = 'Basics of Basics';
+
+/**
+ * Whether this category belongs to Sentence Building rather than the course.
+ *
+ * Sentence groups are laid out by their own screens, never by the Practice
+ * ladder, and they follow their own rule: every chain open to choose freely,
+ * the three language rungs inside a chain still met in order.
+ */
+export function isSentenceCategory(
+  category: Pick<Category, 'name'> | undefined,
+): boolean {
+  return Boolean(category && SENTENCE_CATEGORY_NAMES.has(category.name.toLowerCase()));
+}
+
+/** The same question for Conversation Flow, the level after Sentence Building. */
+export function isConversationCategory(
+  category: Pick<Category, 'name'> | undefined,
+): boolean {
+  return Boolean(
+    category && CONVERSATION_CATEGORY_NAMES.has(category.name.toLowerCase()),
+  );
+}
+
+/** And for Real Situations, the level after Conversation Flow. */
+export function isSituationCategory(
+  category: Pick<Category, 'name'> | undefined,
+): boolean {
+  return Boolean(
+    category && SITUATION_CATEGORY_NAMES.has(category.name.toLowerCase()),
+  );
+}
+
+/**
+ * Whether this category belongs to a standalone level rather than the course.
+ *
+ * The one place the study areas are told apart, and the reason each level's
+ * progress is genuinely its own. A standalone level is laid out by its own
+ * screens; its groups queue behind nothing and nothing queues behind them, so
+ * finishing or ignoring one moves nothing in the vocabulary course and nothing
+ * in any other level. The rungs *inside* one of its lots are still met in
+ * order — Hebrew, then Arabic, then both — because that is a fact about
+ * learning two languages rather than about where the lot sits.
+ *
+ * The list grows as the path does: words, then sentences, then conversation,
+ * and later the situations those get used in. Membership is by category name,
+ * so nothing stored on a device has to be migrated to join.
+ */
+export function isStandaloneLevel(
+  category: Pick<Category, 'name'> | undefined,
+): boolean {
+  return (
+    isSentenceCategory(category) ||
+    isConversationCategory(category) ||
+    isSituationCategory(category)
+  );
+}
 
 /**
  * The suffix a deck carries once the course has split it into language stages.
@@ -260,9 +319,14 @@ export function gateCategoryDecks(
   }
 
   const ordered = sortDecks(decks);
-  const gated = !isBasicsCategory(category);
+  // Two separate questions. Whether the lots queue behind one another — the
+  // course says yes, Basics and the standalone levels say no — and whether the
+  // rungs inside an open lot are met in order, which only Basics waives: a
+  // sentence chain, like an exchange, is still Hebrew, then Arabic, then both.
+  const lotsGated = !isBasicsCategory(category) && !isStandaloneLevel(category);
+  const rungsGated = !isBasicsCategory(category);
   const chosen = new Set(opened.deckIds ?? []);
-  const states = lotStates(deckLots(decks), deckProgress, chosen, gated);
+  const states = lotStates(deckLots(decks), deckProgress, chosen, lotsGated);
   const blocker = blockingDeck(states, deckProgress);
 
   type Open = { unlocked: boolean; choosable: boolean; blockedBy?: Deck };
@@ -297,7 +361,7 @@ export function gateCategoryDecks(
     // Inside an open lot the order is fixed: Hebrew, then Palestinian Arabic,
     // then the two together. Basics excepted — it is open throughout, stages
     // included, so a stage there is never held back.
-    const free = !gated;
+    const free = !rungsGated;
     for (const deck of [hebrew, spare]) {
       if (deck) openByDeck.set(deck.id, { unlocked: true, choosable: false });
     }
@@ -385,7 +449,15 @@ export function gateCategories(
 
   const base = categories.map((category) => {
     const own = decksByCategory.get(category.id) ?? [];
-    const gated = own.length > 0 && isStagedCategory(own) && !isBasicsCategory(category);
+    // A standalone level's categories are never gated here: they queue behind
+    // nothing, and nothing queues behind them — which is the promise that the
+    // sentence and conversation work can never lock a single course category,
+    // and that neither of those levels can lock the other.
+    const gated =
+      own.length > 0 &&
+      isStagedCategory(own) &&
+      !isBasicsCategory(category) &&
+      !isStandaloneLevel(category);
     const complete =
       own.length > 0 &&
       own.every((deck) => isDeckMastered(deck, deckProgress[deck.id]));

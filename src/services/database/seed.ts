@@ -1,5 +1,8 @@
-import type { Category, Deck, Flashcard, Language } from '../../types';
+import type { Category, Deck, Flashcard, Language, LanguageSide } from '../../types';
 import { CUSTOM_CATEGORY, SEED_CATEGORIES, type SeedCard } from '../../constants/seed';
+import { SENTENCE_CATEGORIES } from '../../constants/sentences';
+import { CONVERSATION_CATEGORIES } from '../../constants/conversations';
+import { SITUATION_CATEGORIES } from '../../constants/situations';
 import { uid } from '../../utils/random';
 import { audioIdFor } from '../audio/paths';
 import { withClipPaths } from '../audio/manifest';
@@ -16,7 +19,24 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 44;
+export const STARTER_CONTENT_VERSION = 48;
+
+/**
+ * Everything the app installs: the vocabulary course, then Sentence Building,
+ * then Conversation Flow.
+ *
+ * One list for the installer and the official-word bookkeeping, so an exchange
+ * is topped up, deduplicated and counted exactly the way a word is. The three
+ * bodies of content stay separate constants because everything *else* about
+ * them differs — the course is gated into a ladder, the standalone levels are
+ * not, and `languagePolicy.isStandaloneLevel` tells the areas apart by name.
+ */
+export const INSTALLED_CATEGORIES = [
+  ...SEED_CATEGORIES,
+  ...SENTENCE_CATEGORIES,
+  ...CONVERSATION_CATEGORIES,
+  ...SITUATION_CATEGORIES,
+];
 
 /** `category|deck|english`, lowercased. Identifies one official word. */
 function officialKey(category: string, deck: string, english: string): string {
@@ -24,7 +44,7 @@ function officialKey(category: string, deck: string, english: string): string {
 }
 
 const OFFICIAL_KEYS: ReadonlySet<string> = new Set(
-  SEED_CATEGORIES.flatMap((category) =>
+  INSTALLED_CATEGORIES.flatMap((category) =>
     category.decks.flatMap((deck) =>
       deck.cards.map((card) => officialKey(category.name, deck.name, card.english)),
     ),
@@ -55,7 +75,7 @@ function officialDeckKey(category: string, deck: string): string {
 }
 
 const OFFICIAL_DECK_KEYS: ReadonlySet<string> = new Set(
-  SEED_CATEGORIES.filter((category) => category.name !== CUSTOM_CATEGORY).flatMap(
+  INSTALLED_CATEGORIES.filter((category) => category.name !== CUSTOM_CATEGORY).flatMap(
     (category) => category.decks.map((deck) => officialDeckKey(category.name, deck.name)),
   ),
 );
@@ -74,6 +94,26 @@ export function isOfficialDeck(
   return OFFICIAL_DECK_KEYS.has(officialDeckKey(categoryName, deckName));
 }
 
+/**
+ * One authored side, narrowed to the fields a stored card may carry.
+ *
+ * A whitelist rather than a spread, and every field on it is here on purpose.
+ * A side arriving without its `speechForms` falls back to `script` alone, which
+ * is one perspective's wording presented as everybody's; `agreement` travels
+ * with `forms` for the same reason, since a pair that loses it has quietly
+ * become word gender and shows both halves for ever.
+ */
+function sideOf(side: SeedCard['hebrew']): LanguageSide {
+  return {
+    script: side.script,
+    transliteration: side.transliteration,
+    forms: side.forms,
+    agreement: side.agreement,
+    speechForms: side.speechForms,
+    notes: side.notes,
+  };
+}
+
 function sidesFor(
   card: SeedCard,
   categoryName: string,
@@ -88,41 +128,33 @@ function sidesFor(
   return {
     english: card.english,
     icon: card.icon,
+    // The question this card answers, where it has one. Always written, even
+    // as undefined: the top-up merges with `{...existing, ...sides}`, so a key
+    // left off entirely would strand a cue on a card that no longer has one.
+    //
+    // Its clips are filed under an id of their own, because the cue is a
+    // different sentence from the answer and recording them under one key
+    // would have the two overwrite each other.
+    cue: card.cue
+      ? {
+          english: card.cue.english,
+          hebrew: withClipPaths(sideOf(card.cue.hebrew), audioId + '__ask', 'hebrew'),
+          arabic: {
+            ...withClipPaths(sideOf(card.cue.arabic), audioId + '__ask', 'arabic'),
+            dialect: card.cue.arabic.dialect,
+          },
+        }
+      : undefined,
     // The position this word holds in its seed deck. Rewritten on every
     // top-up, so a device seeded before ordering existed stops reading its
     // counting decks in whatever order IndexedDB returned them.
     order,
     audioId,
-    hebrew: withClipPaths(
-      {
-        script: card.hebrew.script,
-        transliteration: card.hebrew.transliteration,
-        forms: card.hebrew.forms,
-        // Carried across explicitly: a card whose variants were dropped here
-        // would fall back to `script` alone, which is one perspective's
-        // wording presented as if it were everybody's. `agreement` travels
-        // with `forms` for the same reason — a pair that arrives without it
-        // has quietly become word gender, and shows both halves for ever.
-        agreement: card.hebrew.agreement,
-        speechForms: card.hebrew.speechForms,
-        notes: card.hebrew.notes,
-      },
-      audioId,
-      'hebrew',
-    ),
-    arabic: withClipPaths(
-      {
-        script: card.arabic.script,
-        transliteration: card.arabic.transliteration,
-        forms: card.arabic.forms,
-        agreement: card.arabic.agreement,
-        speechForms: card.arabic.speechForms,
-        dialect: card.arabic.dialect,
-        notes: card.arabic.notes,
-      },
-      audioId,
-      'arabic',
-    ),
+    hebrew: withClipPaths(sideOf(card.hebrew), audioId, 'hebrew'),
+    arabic: {
+      ...withClipPaths(sideOf(card.arabic), audioId, 'arabic'),
+      dialect: card.arabic.dialect,
+    },
     updatedAt: now,
   };
 }
@@ -161,7 +193,7 @@ export async function installStarterCards(): Promise<InstallReport> {
     cards.map((c) => [c.deckId + '|' + c.english.toLowerCase(), c]),
   );
 
-  SEED_CATEGORIES.forEach((seedCategory, categoryOrder) => {
+  INSTALLED_CATEGORIES.forEach((seedCategory, categoryOrder) => {
     let category = categoryByName.get(seedCategory.name.toLowerCase());
     if (!category) {
       category = {
@@ -198,7 +230,13 @@ export async function installStarterCards(): Promise<InstallReport> {
           order: deckOrder,
           studyLanguages: seedDeck.studyLanguages,
           masteryOnly: seedDeck.masteryOnly,
-          perfectRunsRequired: DEFAULT_SETTINGS.defaultPerfectRunsRequired,
+          roundSize: seedDeck.roundSize,
+          // The course's own figure where it sets one — sentence chains ask
+          // for less than a vocabulary deck — and the learner's default
+          // everywhere the seed has no opinion.
+          perfectRunsRequired:
+            seedDeck.perfectRunsRequired ??
+            DEFAULT_SETTINGS.defaultPerfectRunsRequired,
           promptDirections: ['en>he+ar'],
           createdAt: now,
           updatedAt: now,
@@ -208,6 +246,11 @@ export async function installStarterCards(): Promise<InstallReport> {
       } else if (
         deck.order !== deckOrder ||
         deck.masteryOnly !== seedDeck.masteryOnly ||
+        deck.roundSize !== seedDeck.roundSize ||
+        // Only where the seed fixes a figure: a deck the seed is silent about
+        // keeps whatever the learner's default gave it, for ever.
+        (seedDeck.perfectRunsRequired !== undefined &&
+          deck.perfectRunsRequired !== seedDeck.perfectRunsRequired) ||
         JSON.stringify(deck.studyLanguages ?? null) !==
           JSON.stringify(seedDeck.studyLanguages ?? null)
       ) {
@@ -216,6 +259,9 @@ export async function installStarterCards(): Promise<InstallReport> {
           order: deckOrder,
           studyLanguages: seedDeck.studyLanguages,
           masteryOnly: seedDeck.masteryOnly,
+          roundSize: seedDeck.roundSize,
+          perfectRunsRequired:
+            seedDeck.perfectRunsRequired ?? deck.perfectRunsRequired,
           updatedAt: now,
         };
         changedDecks.push(deck);
@@ -295,7 +341,7 @@ export type StarterCoverage = {
 /** How much of the official starter set this device actually has. */
 export async function starterCoverage(): Promise<StarterCoverage> {
   const { presentKeys, cardsByCategory } = await officialIndex();
-  const emptyCategories = SEED_CATEGORIES.filter(
+  const emptyCategories = INSTALLED_CATEGORIES.filter(
     (c) => (cardsByCategory.get(c.name.toLowerCase()) ?? 0) === 0,
   ).map((c) => c.name);
 

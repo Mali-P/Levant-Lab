@@ -164,7 +164,9 @@ describe('refreshing starter cards over an existing install', () => {
   it('starts from a fifty-card install missing most of the official set', () => {
     expect(before.cards).toBe(50);
     expect(before.official).toBe(36);
-    expect(OFFICIAL_CARD_COUNT).toBe(3476);
+    // Moves whenever the starter set gains words. The last step was Real
+    // Situations, whose thirteen scenarios added 306.
+    expect(OFFICIAL_CARD_COUNT).toBe(4581);
   });
 
   it('ends with the full official set present', async () => {
@@ -275,7 +277,7 @@ describe('refreshing starter cards over an existing install', () => {
     // on purpose: a tight one fails on the machine rather than on the code, and
     // takes the test after it down with it — the timeout leaves an install
     // still running against a database that test then deletes.
-  }, 120000);
+  }, 300000);
 });
 
 describe('current-version installs with missing starter content', () => {

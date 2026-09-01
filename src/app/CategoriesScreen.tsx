@@ -4,7 +4,11 @@ import { useData } from '../stores/dataStore';
 import { useSettings } from '../stores/settingsStore';
 import { useAlphabet } from '../stores/alphabetStore';
 import type { CategoryGate } from '../features/review/languagePolicy';
-import { gateCategories, sortByFinished } from '../features/review/languagePolicy';
+import {
+  gateCategories,
+  isStandaloneLevel,
+  sortByFinished,
+} from '../features/review/languagePolicy';
 import { ALPHABET_SCRIPTS, lettersFor } from '../data/alphabets';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import FinishedSortControl from '../components/controls/FinishedSortControl';
@@ -34,7 +38,12 @@ export default function CategoriesScreen() {
   const gates = gateCategories(categories, decks, deckProgress, languages, {
     deckIds: settings.openedDeckIds,
     categoryIds: settings.openedCategoryIds,
-  });
+  })
+    // The standalone levels — Sentence Building, Conversation Flow, Real
+    // Situations — each have their own tab and their own rules. Their groups
+    // would read here as dozens more categories of the course, and completing
+    // them is deliberately no part of finishing it.
+    .filter((gate) => !isStandaloneLevel(gate.category));
   const sort: FinishedSort = settings.finishedSort ?? 'course';
   const ordered = sortByFinished(gates, (gate) => gate.complete, sort);
 

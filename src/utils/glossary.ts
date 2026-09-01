@@ -1,7 +1,56 @@
-import { SEED_CATEGORIES, type SeedSide } from '../constants/seed';
+import { SEED_CATEGORIES, type SeedCard, type SeedSide } from '../constants/seed';
+import { SENTENCE_CATEGORIES } from '../constants/sentences';
+import { CONVERSATION_CATEGORIES } from '../constants/conversations';
+import { SITUATION_CATEGORIES } from '../constants/situations';
 import { CLITICS, CURATED_GLOSSES } from '../constants/glossary';
 
 export type GlossLanguage = 'hebrew' | 'arabic';
+
+/**
+ * Every category the app installs: the course, then the standalone levels.
+ *
+ * Named here rather than taken from the installer, so a plain unit test can
+ * sweep exactly what this index is built from without opening a database.
+ */
+export const GLOSSED_CATEGORIES = [
+  ...SEED_CATEGORIES,
+  ...SENTENCE_CATEGORIES,
+  ...CONVERSATION_CATEGORIES,
+  ...SITUATION_CATEGORIES,
+];
+
+/** One side of one line, with the English that side actually means. */
+export type GlossedSide = {
+  language: GlossLanguage;
+  side: SeedSide;
+  /** What this side says. The cue's own English on a cue, never the card's. */
+  meaning: string;
+};
+
+/**
+ * Both halves of a card, and both halves of the line it answers.
+ *
+ * A cue is rendered with the same hoverable romanisation as everything else, so
+ * a word appearing only inside a question still has to mean something.
+ *
+ * Its `meaning` is the cue's English and not the card's, which is the whole
+ * reason this returns a shape rather than a pair. A one-word cue defines its
+ * word — ēmta is "When?" — and reading the card's English there would file it
+ * under the answer instead, so hovering ēmta would come back "Tomorrow."
+ */
+export function glossedSides(card: SeedCard): GlossedSide[] {
+  const sides: GlossedSide[] = [
+    { language: 'hebrew', side: card.hebrew, meaning: card.english },
+    { language: 'arabic', side: card.arabic, meaning: card.english },
+  ];
+  if (card.cue) {
+    sides.push(
+      { language: 'hebrew', side: card.cue.hebrew, meaning: card.cue.english },
+      { language: 'arabic', side: card.cue.arabic, meaning: card.cue.english },
+    );
+  }
+  return sides;
+}
 
 /**
  * One piece of a transliteration line: either a word that can be looked up, or
@@ -70,15 +119,14 @@ function buildDerived(): Record<GlossLanguage, Map<string, string>> {
     arabic: new Map(),
   };
 
-  for (const category of SEED_CATEGORIES) {
+  // The standalone levels rarely add to this index — their transliterations are
+  // whole phrases, and only single-word sides define anything — but the words
+  // they do teach alone ("a little", shwayye; "when?", ēmta) belong here like
+  // any other, and a one-word cue defines its word exactly as a card does.
+  for (const category of GLOSSED_CATEGORIES) {
     for (const deck of category.decks) {
       for (const card of deck.cards) {
-        const sides: [GlossLanguage, SeedSide][] = [
-          ['hebrew', card.hebrew],
-          ['arabic', card.arabic],
-        ];
-
-        for (const [language, side] of sides) {
+        for (const { language, side, meaning } of glossedSides(card)) {
           for (const text of transliterationsOf(side)) {
             const words = text.match(WORD) ?? [];
             if (words.length !== 1) continue;
@@ -87,7 +135,7 @@ function buildDerived(): Record<GlossLanguage, Map<string, string>> {
             if (!key) continue;
 
             const meanings = collected[language].get(key) ?? new Set<string>();
-            meanings.add(card.english);
+            meanings.add(meaning);
             collected[language].set(key, meanings);
           }
         }
@@ -96,18 +144,34 @@ function buildDerived(): Record<GlossLanguage, Map<string, string>> {
   }
 
   /**
-   * Drops "six (with a noun)" where plain "six" is already one of the readings.
+   * One reading per distinct meaning, in the order the course teaches them.
    *
-   * A parenthesis on a card prompt says which card this is, not what the word
-   * means, and Hebrew שש is taught by both. Only the redundant reading goes: a
-   * word that is *only* ever "clean (verb)" keeps its parenthesis, because
-   * there nothing plainer was ever written.
+   * Two kinds of redundancy are folded away. A parenthesis on a card prompt
+   * says which card this is rather than what the word means — Hebrew שש is
+   * taught as both "six" and "six (with a noun)" — so the qualified reading
+   * goes wherever the plain one is also present. Only the redundant one: a word
+   * that is *only* ever "clean (verb)" keeps its parenthesis, because there
+   * nothing plainer was ever written.
+   *
+   * And a reading differing from another only in case is the same reading. The
+   * vocabulary course writes a one-word card as a dictionary entry, "now";
+   * Conversation Flow writes the same word as an answer somebody gives, "Now".
+   * A learner hovering hallaʾ wants one meaning, not the same meaning twice.
    */
-  const withoutRedundantContext = (meanings: Set<string>): string[] => {
+  const distinctReadings = (meanings: Set<string>): string[] => {
     const plain = [...meanings].filter((meaning) => !meaning.includes('('));
-    return [...meanings].filter(
-      (meaning) => !plain.some((bare) => meaning.startsWith(bare + ' (')),
-    );
+    const seen = new Set<string>();
+    const kept: string[] = [];
+
+    for (const meaning of meanings) {
+      if (plain.some((bare) => meaning.startsWith(bare + ' ('))) continue;
+      const key = meaning.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      kept.push(meaning);
+    }
+
+    return kept;
   };
 
   const flatten = (source: Map<string, Set<string>>) =>
@@ -117,7 +181,7 @@ function buildDerived(): Record<GlossLanguage, Map<string, string>> {
         // Three readings is already more than a hover is worth reading; a word
         // with more than that is a common one whose first senses are the ones
         // being asked about.
-        withoutRedundantContext(meanings).slice(0, 3).join(' · '),
+        distinctReadings(meanings).slice(0, 3).join(' · '),
       ]),
     );
 

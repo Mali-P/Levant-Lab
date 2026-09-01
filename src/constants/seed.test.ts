@@ -9,6 +9,15 @@ import {
 import { clipsForSide } from '../services/audio/paths';
 import { speechWordForms, wordForms } from '../utils/wordForms';
 import { SEED_CATEGORIES, type SeedSide } from './seed';
+import { GLOSSED_CATEGORIES, glossedSides } from '../utils/glossary';
+
+/**
+ * Every category the app installs — the course and both standalone levels.
+ *
+ * Borrowed from the glossary rather than re-listed, so a level added there and
+ * forgotten here cannot quietly escape the invariants below.
+ */
+const INSTALLED_CATEGORIES = GLOSSED_CATEGORIES;
 
 type Entry = {
   /** `Greetings › How are you? › how are you? (arabic)` — enough to fix a card. */
@@ -16,14 +25,23 @@ type Entry = {
   side: SeedSide;
 };
 
+/**
+ * Every side the starter set carries, a Conversation Flow cue included.
+ *
+ * A cue is authored, rendered and spoken exactly like any other line, so all of
+ * the invariants below have to hold on it too: it leads feminine, it never
+ * claims an agreement with no pair to choose between, and it never carries a
+ * gendered pair and a set of perspectives at once.
+ */
 function everySide(): Entry[] {
   const entries: Entry[] = [];
-  for (const category of SEED_CATEGORIES) {
+  for (const category of INSTALLED_CATEGORIES) {
     for (const deck of category.decks) {
       for (const card of deck.cards) {
-        const at = category.name + ' › ' + deck.name + ' › ' + card.english;
-        entries.push({ where: at + ' (hebrew)', side: card.hebrew });
-        entries.push({ where: at + ' (arabic)', side: card.arabic });
+        const at = category.name + ' › ' + deck.name + ' › ';
+        for (const { language, side, meaning } of glossedSides(card)) {
+          entries.push({ where: at + meaning + ' (' + language + ')', side });
+        }
       }
     }
   }
@@ -358,7 +376,7 @@ describe('the starter table', () => {
     // The rule the decks were re-authored under: a gendered pair on a verb
     // card is somebody in the conversation, and it has to name which. An
     // untagged pair here would be a third-person conjugation again.
-    for (const category of SEED_CATEGORIES) {
+    for (const category of INSTALLED_CATEGORIES) {
       for (const deck of category.decks) {
         const person = VERB_DECK_PERSON[deck.name];
         if (!person) continue;
@@ -378,7 +396,7 @@ describe('the starter table', () => {
     // "wake up" over a third-person verb is how this went wrong. A first
     // person card has to say "I", and a command is left bare — but a bare
     // prompt is only allowed where the forms really are imperatives.
-    for (const category of SEED_CATEGORIES) {
+    for (const category of INSTALLED_CATEGORIES) {
       for (const deck of category.decks) {
         const person = VERB_DECK_PERSON[deck.name];
         if (!person) continue;
@@ -397,7 +415,7 @@ describe('the starter table', () => {
     // Palestinian Arabic says "I read" one way for everybody. Splitting that
     // into a feminine and a masculine to match Hebrew would be inventing a
     // distinction and then teaching it.
-    for (const category of SEED_CATEGORIES) {
+    for (const category of INSTALLED_CATEGORIES) {
       for (const deck of category.decks) {
         if (VERB_DECK_PERSON[deck.name] !== 'first') continue;
         for (const card of deck.cards) {
@@ -410,7 +428,7 @@ describe('the starter table', () => {
   });
 
   it('keeps verb conjugations out of the speaker/listener variant table', () => {
-    for (const category of SEED_CATEGORIES) {
+    for (const category of INSTALLED_CATEGORIES) {
       for (const deck of category.decks) {
         if (!VERB_DECK_PERSON[deck.name]) continue;
         for (const card of deck.cards) {

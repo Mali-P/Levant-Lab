@@ -192,3 +192,47 @@ describe('buildRound', () => {
     expect(buildRound(['c1'], { lastAskedCardId: 'c1' })).toEqual(['c1']);
   });
 });
+
+describe('buildRound with a batch size', () => {
+  it('deals exactly that many distinct cards from the pool', () => {
+    const round = buildRound(TEN, { size: 4, rng: mulberry32(5) });
+    expect(round).toHaveLength(4);
+    expect(new Set(round).size).toBe(4);
+    for (const id of round) expect(TEN).toContain(id);
+  });
+
+  it('draws a different batch from round to round', () => {
+    // The point of a batched test: no ten questions can be predicted from the
+    // last ten. Two seeds standing in for two consecutive rounds.
+    const a = buildRound(TEN, { size: 4, rng: mulberry32(5) });
+    const b = buildRound(TEN, { size: 4, rng: mulberry32(9) });
+    expect(a).not.toEqual(b);
+  });
+
+  it('gives every card a seat over enough rounds', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 40; seed++) {
+      for (const id of buildRound(TEN, { size: 4, rng: mulberry32(seed) })) {
+        seen.add(id);
+      }
+    }
+    expect([...seen].sort()).toEqual([...TEN].sort());
+  });
+
+  it('still holds back the card just answered', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const round = buildRound(TEN, {
+        size: 4,
+        lastAskedCardId: 'c4',
+        rng: mulberry32(seed),
+      });
+      expect(round[0]).not.toBe('c4');
+    }
+  });
+
+  it('is the whole pool at or above the pool, and when absent', () => {
+    expect(buildRound(TEN, { size: 10, rng: mulberry32(5) })).toHaveLength(10);
+    expect(buildRound(TEN, { size: 99, rng: mulberry32(5) })).toHaveLength(10);
+    expect(buildRound(TEN, { rng: mulberry32(5) })).toHaveLength(10);
+  });
+});

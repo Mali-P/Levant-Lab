@@ -38,6 +38,8 @@ type StartParams = {
   drill?: boolean;
   /** Whether this deck opens directly into full-pool mastery rounds. */
   masteryOnly?: boolean;
+  /** Cards per mastery round, where the deck deals batches from a larger pool. */
+  roundSize?: number;
   /** Whether this deck runs in an order, and so gets the ordering interlude. */
   sequenced?: boolean;
 };
@@ -158,6 +160,7 @@ export const useSession = create<SessionState>((set, get) => ({
       perfectRunsRequired: params.perfectRunsRequired,
       studyLanguages: params.studyLanguages ? [...params.studyLanguages] : undefined,
       masteryOnly: params.masteryOnly,
+      roundSize: params.roundSize,
       // Banked rounds carry across sessions in every mode now. Ten flawless
       // rounds is a deck-long achievement; closing the tab is not a mistake.
       perfectRoundsCompleted: params.drill

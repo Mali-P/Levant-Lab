@@ -302,6 +302,28 @@ export type LanguageSide = {
 
 export type ArabicHalf = LanguageSide & { dialect?: ArabicDialect };
 
+/**
+ * The line somebody else says, that this card's own line answers.
+ *
+ * Conversation Flow is the one area where a card is half of an exchange rather
+ * than a thing on its own: "I'm going home" is not the card, "Where are you
+ * going? — I'm going home" is. The question is carried here rather than folded
+ * into `english`, because the two are used differently. A cue is shown, spoken
+ * and hovered like any other line; it is never typed into, never hidden behind
+ * the reveal and never graded, so the learner is only ever scored on her half.
+ *
+ * Whose gender picks between a cue's two forms is the one thing worth pausing
+ * over. A cue is spoken *to* the learner, so its endings follow her — which is
+ * `agreement: 'speaker'`, because that is the value the settings resolve
+ * against her own identity. See `askedOfHer` in `constants/conversations`,
+ * where every cue in the course is authored.
+ */
+export type CardCue = {
+  english: string;
+  hebrew: LanguageSide;
+  arabic: ArabicHalf;
+};
+
 export type Flashcard = {
   id: string;
   categoryId: string;
@@ -310,6 +332,9 @@ export type Flashcard = {
   english: string;
   imageUrl?: string;
   icon?: string;
+
+  /** What was said to her, where this card is the reply. Conversation Flow only. */
+  cue?: CardCue;
 
   /**
    * Position within the deck — the order the words are meant to be met, which
@@ -361,6 +386,14 @@ export type Deck = {
   studyLanguages?: Language[];
   /** Opens directly into shuffled full-deck mastery rounds, with no intro ladder. */
   masteryOnly?: boolean;
+  /**
+   * Deal each mastery round as this many cards drawn from the deck at random,
+   * rather than one shuffled pass over all of it — and a different draw every
+   * round, so no round can be predicted from the last. Set on cumulative test
+   * decks whose pool is far larger than a sitting; absent everywhere else,
+   * which keeps the round the whole deck, exactly as before the field existed.
+   */
+  roundSize?: number;
   perfectRunsRequired: number;
   promptDirections: PromptDirection[];
   createdAt: string;
@@ -545,6 +578,14 @@ export type StudySession = {
   /** False the moment a card is missed in the pass being worked. */
   stagePerfect: boolean;
 
+  /**
+   * How many cards each mastery round deals, where the deck caps it. Copied
+   * from `Deck.roundSize` at the start for the same reason `sequenced` is:
+   * a run in progress must not change shape because the deck was edited
+   * halfway through it. Absent means every round is the whole active set.
+   */
+  roundSize?: number;
+
   /** The shuffled full-deck pass being worked through. `fullDeckMastery` only. */
   roundQueue: string[];
   roundIndex: number;
@@ -697,6 +738,19 @@ export type Settings = {
    * course put them, gathered at the top, or pushed to the bottom.
    */
   finishedSort?: FinishedSort;
+
+  /**
+   * When each Real Situations scenario was first rehearsed to the end, keyed
+   * by the scenario's name lowercased — the same name-keyed identity the area
+   * itself runs on, so it survives a reinstall regenerating category ids.
+   *
+   * A separate claim from the decks' mastery on purpose: mastering the lines
+   * says she can produce each reply, getting through the rehearsal says she
+   * can steer the whole interaction. The stamp rides the settings row like
+   * `pairedLetterRuns` does, because a rehearsal is not a deck and has no
+   * progress row of its own to live on.
+   */
+  situationRehearsals?: Record<string, string>;
 
   /**
    * The deck the Review tab was last reading, so the tab reopens on it.

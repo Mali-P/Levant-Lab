@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { SEED_CATEGORIES, type SeedSide } from '../constants/seed';
-import { glossFor, readTransliteration } from './glossary';
+import { type SeedSide } from '../constants/seed';
+import {
+  GLOSSED_CATEGORIES,
+  glossedSides,
+  glossFor,
+  readTransliteration,
+} from './glossary';
 
 type Lang = 'hebrew' | 'arabic';
 
@@ -27,17 +32,20 @@ function transliterationsOf(side: SeedSide): string[] {
 function everyLine(): { where: string; language: Lang; text: string }[] {
   const lines: { where: string; language: Lang; text: string }[] = [];
 
-  for (const category of SEED_CATEGORIES) {
+  // Cues included, via `glossedSides` — a question a learner is asked is
+  // hovered exactly like the answer she gives, so a word appearing only inside
+  // one still has to mean something.
+  for (const category of GLOSSED_CATEGORIES) {
     for (const deck of category.decks) {
       for (const card of deck.cards) {
         const at = category.name + ' › ' + deck.name + ' › ' + card.english;
-        const sides: [Lang, SeedSide][] = [
-          ['hebrew', card.hebrew],
-          ['arabic', card.arabic],
-        ];
-        for (const [language, side] of sides) {
+        for (const { language, side, meaning } of glossedSides(card)) {
           for (const text of transliterationsOf(side)) {
-            lines.push({ where: at + ' (' + language + ')', language, text });
+            lines.push({
+              where: at + ' › “' + meaning + '” (' + language + ')',
+              language,
+              text,
+            });
           }
         }
       }
@@ -92,7 +100,14 @@ describe('glossing one word', () => {
   it('reads a clitic through to the word it is written onto', () => {
     expect(glossFor('hebrew', 've-shesh')).toBe('and six');
     expect(glossFor('arabic', 'w-ʿishrīn')).toBe('and twenty');
-    expect(glossFor('arabic', 'bil-bēt')).toBe('in the house');
+    expect(glossFor('arabic', 'bil-madrase')).toBe('in the school');
+  });
+
+  it('lets a card defining the whole token beat the decomposition', () => {
+    // bil-bēt read as "in the house" from its pieces until a Conversation Flow
+    // reply taught the phrase outright. Decomposition is the fallback for a
+    // token nothing defines, never an override of one something does.
+    expect(glossFor('arabic', 'bil-bēt')).toBe('At home');
   });
 
   it('never splits a word that merely starts like a clitic', () => {

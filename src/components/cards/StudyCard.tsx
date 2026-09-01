@@ -5,12 +5,13 @@ import {
   useTransform,
   type PanInfo,
 } from 'framer-motion';
-import type { Flashcard, SpeechPerspective } from '../../types';
+import type { Flashcard, Language, SpeechPerspective } from '../../types';
 import type { PromptPlan } from '../../features/study/prompts';
 import { useFitToBox } from '../../hooks/useFitToBox';
 import { sentenceCase } from '../../utils/textCase';
 import { wordForms, type WordForm } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
+import CardCue from './CardCue';
 import Transliteration from './Transliteration';
 import Icon from '../ornament/Icon';
 import { EngravedDivider } from '../ornament/Ornament';
@@ -34,6 +35,13 @@ export type StudyCardProps = {
    */
   lead?: 'feminine' | 'masculine';
   showTransliteration: boolean;
+  /**
+   * The languages this run is studying, used only to narrow the cue on a
+   * Conversation Flow card. The answer fields are narrowed by the plan, which
+   * already knows; the cue is not part of the plan because nothing about it is
+   * asked for or graded.
+   */
+  cueLanguages?: readonly Language[];
   animationIntensity: number;
   reducedMotion: boolean;
   onChange: (scores: 'hebrew' | 'arabic', value: string) => void;
@@ -385,6 +393,14 @@ export default function StudyCard(props: StudyCardProps) {
             <EngravedDivider tone="card" />
           </>
         )}
+
+        {/* What was said to her, above the answer she is being asked for. Only
+            Conversation Flow puts one here. It sits over the prompt rather than
+            beside it because it comes first in time: somebody speaks, and then
+            it is her turn. Never hidden behind the reveal — a question you
+            cannot see is not a question you can answer — and never typed into,
+            because she is graded on her own half of the exchange alone. */}
+        <CardCue card={card} languages={props.cueLanguages} />
 
         <div className="card-prompt">
           {plan.audio ? (

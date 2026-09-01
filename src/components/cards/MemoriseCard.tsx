@@ -17,6 +17,7 @@ import { LANGUAGE_LONG_LABEL } from '../../utils/languageSelection';
 import { sentenceCase } from '../../utils/textCase';
 import { wordForms, type WordForm } from '../../utils/wordForms';
 import SpeakerButton from '../controls/SpeakerButton';
+import CardCue from './CardCue';
 import Transliteration from './Transliteration';
 import { EngravedDivider } from '../ornament/Ornament';
 
@@ -318,6 +319,11 @@ export default function MemoriseCard(props: MemoriseCardProps) {
         {/* The catalogue label at the head of the tablet. It names the mode,
             not the card, so it stays put when the card is turned over. */}
         <div className="eyebrow memorise-eyebrow">Review</div>
+
+        {/* The line this card answers, on a Conversation Flow card and nowhere
+            else. It stays on both faces: it is not part of the answer being
+            hidden, it is the question that makes the answer mean anything. */}
+        <CardCue card={card} languages={props.languages} />
 
         {flipped && above.length > 0 && (
           <>

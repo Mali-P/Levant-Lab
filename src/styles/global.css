@@ -3003,6 +3003,56 @@ a.btn-primary:active {
   }
 }
 
+/* ---- the line a card answers ------------------------------------------- */
+
+/*
+ * Conversation Flow cards carry the question that was put to the learner, and
+ * it has to read as somebody else's line rather than as part of hers. Three
+ * cues do that and not one of them is colour alone: it is set smaller than the
+ * answer, it is ruled down the side the script starts from, and it carries a
+ * written label. On every other card in the app this block does not render at
+ * all, so nothing here touches a single existing face.
+ */
+.card-cue {
+  align-self: stretch;
+  margin: 0 0 2px;
+  padding: 6px 10px;
+  border-inline-start: 2px solid var(--terracotta);
+  background: color-mix(in srgb, var(--terracotta) 7%, transparent);
+  border-radius: var(--radius-sm);
+  text-align: start;
+}
+
+.card-cue-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--terracotta-ink);
+}
+
+.card-cue-english {
+  margin: 2px 0 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+
+.card-cue-line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-cue-form {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  /* A shade under the answer's size, so the eye still lands on the half she
+     has to produce even though the question is read first. */
+  font-size: 0.92rem;
+}
+
 /* ---- engraved icons ---------------------------------------------------- */
 
 /*
