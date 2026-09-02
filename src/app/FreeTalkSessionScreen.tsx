@@ -17,6 +17,9 @@ import {
   wantedCategory,
   wantedDeck,
 } from '../features/freetalk/freetalk';
+import { tensesUnlocked } from '../features/pastfuture/pastfuture';
+import { narrativeUnlocked } from '../features/tellme/tellme';
+import { opinionsUnlocked } from '../features/opinions/opinions';
 import {
   askHowToSay,
   fetchReview,
@@ -106,6 +109,24 @@ export default function FreeTalkSessionScreen() {
       learnerGender: useSettings.getState().settings.learnerGender,
       partnerGender: partnerGender(useSettings.getState().settings.listenerGenders),
       strugglePhrases: strugglePhrases(useData.getState().cards, deck?.id),
+      // Read once at the start, like everything else here: a lesson finished
+      // mid-conversation must not change what the partner is allowed to say
+      // halfway through it.
+      tensesUnlocked: tensesUnlocked(
+        useData.getState().categories,
+        useData.getState().decks,
+        useData.getState().deckProgress,
+      ),
+      narrativeUnlocked: narrativeUnlocked(
+        useData.getState().categories,
+        useData.getState().decks,
+        useData.getState().deckProgress,
+      ),
+      opinionsUnlocked: opinionsUnlocked(
+        useData.getState().categories,
+        useData.getState().decks,
+        useData.getState().deckProgress,
+      ),
     };
   });
 

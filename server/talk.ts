@@ -217,6 +217,21 @@ function settingBlock(setting: TalkSetting): string {
     LEVEL_FRAMES[setting.level] ?? LEVEL_FRAMES[3],
     LENGTH_FRAMES[setting.length],
   ];
+  lines.push(
+    setting.tensesUnlocked
+      ? 'She has worked through the past and future level: use past and future freely — what she did yesterday, what happened, what she is doing tomorrow, what she will do — and expect them back from her.'
+      : 'She has not yet worked through the past and future level: keep to the present, and to what is true right now. You may still ask about plans in the simplest way she has met ("are you working tomorrow?"), but do not build a conversation out of narrating yesterday.',
+  );
+  lines.push(
+    setting.narrativeUnlocked
+      ? 'She has worked through the level on connected speech: ask the open questions ("tell me about your day", "what happened then?", "what is your neighbourhood like?"), leave room for an answer of several sentences, and do not cut her off after one. Where she answers in a single sentence, ask one follow-up that invites the rest rather than moving on.'
+      : 'She has not yet worked through the level on connected speech: ask questions a single sentence answers, and do not ask her to tell a story or describe something at length. One question at a time.',
+  );
+  lines.push(
+    setting.opinionsUnlocked
+      ? 'She has worked through the level on opinions: ask what she thinks and, when she answers, ask why — "which do you prefer?", "do you agree?", "would you recommend it?", "is it worth it?". State a mild opinion of your own from time to time ("I think mornings are better for studying") so she has something to agree with, disagree with or qualify. Never treat an opinion as wrong: if she prefers tea, that is the correct answer. Respond to what she thinks, and correct only the language she said it in.'
+      : 'She has not yet worked through the level on opinions: ask about facts and events rather than judgements. "What did you do?" and "where is it?" rather than "what do you think of it?" or "which is better?". If she offers an opinion unprompted, take it and move on — do not push her to defend it.',
+  );
   if (setting.strugglePhrases?.length) {
     lines.push(
       'She has recently needed help saying: ' +

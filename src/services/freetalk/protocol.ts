@@ -60,6 +60,38 @@ export type TalkSetting = {
    * quietly make room to practise them. Phrasing opportunities, never quizzes.
    */
   strugglePhrases?: string[];
+  /**
+   * Whether Past & Future is far enough along that the partner may talk about
+   * yesterday and tomorrow freely.
+   *
+   * A conversation is only useful while it stays roughly inside what she can
+   * answer, and before this level every scripted thing she has met sits in the
+   * present. Absent or false, the partner keeps to it; true, and "what did you
+   * do yesterday?" becomes fair game.
+   */
+  tensesUnlocked?: boolean;
+  /**
+   * Whether Tell Me About It is far enough along that the partner may ask the
+   * open questions — "tell me about your day", "what happened then?".
+   *
+   * Before that level every scripted answer she has met is one sentence long,
+   * and a question that wants four is a question she can only fail. Absent or
+   * false, the partner asks what a single sentence answers; true, and it starts
+   * expecting — and leaving room for — a connected answer.
+   */
+  narrativeUnlocked?: boolean;
+  /**
+   * Whether Opinions & Reasons is far enough along that the partner may ask
+   * what she thinks — and offer a mild opinion of its own for her to answer.
+   *
+   * Before that level every scripted thing she has met reports a fact, and
+   * "which do you think is better, and why?" is a question she can only fail.
+   * Absent or false, the partner keeps to what happened and what is; true, and
+   * it starts asking why, which do you prefer, would you recommend it — and
+   * saying "I think mornings are better for studying" so she has something to
+   * disagree with.
+   */
+  opinionsUnlocked?: boolean;
 };
 
 export type TalkRequest =
