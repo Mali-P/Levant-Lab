@@ -10,6 +10,7 @@ import { gateDecks, isDeckMastered, sortDecks, type DeckGate } from './unlock';
 import { SENTENCE_CATEGORY_NAMES } from '../../constants/sentences';
 import { CONVERSATION_CATEGORY_NAMES } from '../../constants/conversations';
 import { SITUATION_CATEGORY_NAMES } from '../../constants/situations';
+import { PAST_FUTURE_CATEGORY_NAMES } from '../../constants/pastfuture';
 
 export const BASICS_CATEGORY_NAME = 'Basics of Basics';
 
@@ -44,6 +45,15 @@ export function isSituationCategory(
   );
 }
 
+/** And for Past & Future, the level after Free Conversation. */
+export function isPastFutureCategory(
+  category: Pick<Category, 'name'> | undefined,
+): boolean {
+  return Boolean(
+    category && PAST_FUTURE_CATEGORY_NAMES.has(category.name.toLowerCase()),
+  );
+}
+
 /**
  * Whether this category belongs to a standalone level rather than the course.
  *
@@ -56,8 +66,9 @@ export function isSituationCategory(
  * learning two languages rather than about where the lot sits.
  *
  * The list grows as the path does: words, then sentences, then conversation,
- * and later the situations those get used in. Membership is by category name,
- * so nothing stored on a device has to be migrated to join.
+ * the situations those get used in, and then the same things said about
+ * yesterday and tomorrow. Membership is by category name, so nothing stored on
+ * a device has to be migrated to join.
  */
 export function isStandaloneLevel(
   category: Pick<Category, 'name'> | undefined,
@@ -65,7 +76,8 @@ export function isStandaloneLevel(
   return (
     isSentenceCategory(category) ||
     isConversationCategory(category) ||
-    isSituationCategory(category)
+    isSituationCategory(category) ||
+    isPastFutureCategory(category)
   );
 }
 

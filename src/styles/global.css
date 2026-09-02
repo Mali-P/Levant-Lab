@@ -3832,3 +3832,83 @@ a.btn-primary:active {
   flex-direction: column;
   gap: 6px;
 }
+
+/*
+ * Past & Future
+ * ---------------------------------------------------------------------------
+ * Two marks, and only two, because the level's idea is a line and a line is
+ * cheap to draw. `.timeline-rule` is the PAST ← NOW → FUTURE band at the head
+ * of the contrast screen; `.time-band` is the same idea shrunk to a caption
+ * under a lesson's title, saying which end of the line that lesson sits at.
+ *
+ * `.timeline-row` is three cells side by side on a wide screen and stacked on
+ * a narrow one — which is the right degradation, because reading across is the
+ * point but a squeezed three-column row of Hebrew and Arabic is unreadable.
+ */
+.timeline-rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.timeline-end {
+  color: var(--ink-dim);
+}
+
+.timeline-now {
+  color: var(--ink);
+  font-weight: 700;
+  padding: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--ok) 45%, transparent);
+  border-radius: 999px;
+}
+
+.timeline-arrow {
+  color: var(--ink-dim);
+  letter-spacing: 0;
+}
+
+.time-band {
+  margin: -4px 0 12px;
+  color: var(--ink-dim);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.timeline-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.timeline-cell {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.timeline-cell-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+@media (min-width: 620px) {
+  .timeline-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

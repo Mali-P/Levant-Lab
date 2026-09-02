@@ -24,8 +24,10 @@ export type SeedCard = {
   arabic: SeedSide & { dialect?: ArabicDialect };
   /**
    * The line this card answers, where it is one turn of an exchange rather than
-   * something said on its own. Only Conversation Flow authors it; every other
-   * card leaves it undefined and is exactly the card it always was.
+   * something said on its own. Conversation Flow authors it throughout, and
+   * Past & Future on the cards whose whole point is answering a question —
+   * "what did you do yesterday?". Every other card leaves it undefined and is
+   * exactly the card it always was.
    *
    * Shaped like a card without its own trimmings, because that is what it is —
    * `c()` builds one, and `turn()` in `constants/conversations` fits it on.

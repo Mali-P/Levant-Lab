@@ -17,19 +17,21 @@ import {
 } from '../features/situations/situations';
 import { useSettings } from '../stores/settingsStore';
 import { statsFor } from '../features/freetalk/freetalk';
+import { levelProgress } from '../features/pastfuture/pastfuture';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon, { type IconName } from '../components/ornament/Icon';
 import { EngravedDivider } from '../components/ornament/Ornament';
 
 /**
- * The staircase above the vocabulary: the three levels that take the words
+ * The staircase above the vocabulary: the levels that take the words
  * somewhere, in the order they build on each other.
  *
  * Sentence Building turns words into whole thoughts; Conversation Flow turns
  * thoughts into exchanges; Real Situations walks the exchange out into the
- * street. They once held three seats in the tab bar, which spent the bar's
- * room on saying they were separate while hiding that they were a progression.
- * One seat and one flight of steps says both things at once.
+ * street; Free Conversation takes the script away; Past & Future takes all of
+ * it off the present moment. They once held a seat each in the tab bar, which
+ * spent the bar's room on saying they were separate while hiding that they
+ * were a progression. One seat and one flight of steps says both at once.
  *
  * The order is advice, not a gate. Every level stays open from the first day,
  * exactly as it was when each had its own tab — this screen ranks them, it
@@ -91,6 +93,8 @@ export default function LevelsScreen() {
       ) === 'complete',
   ).length;
 
+  const tenses = levelProgress(categories, decks, deckProgress);
+
   const levels: LevelRow[] = [
     {
       to: '/sentences',
@@ -136,6 +140,16 @@ export default function LevelsScreen() {
       ),
       unit: 'conversations',
     },
+    {
+      to: '/pastfuture',
+      icon: 'wheel',
+      rank: 'Level 5',
+      name: 'Past & Future',
+      claim: 'From saying what is to saying when it was',
+      done: tenses.done,
+      total: tenses.total,
+      unit: 'lessons',
+    },
   ];
 
   return (
@@ -143,9 +157,10 @@ export default function LevelsScreen() {
       <ScreenHeader title="Levels" eyebrow="Where the words go next" />
 
       <p className="small muted">
-        Four levels, each built on the one before: say the sentence, hold the
-        exchange it sits in, get through the real interaction, then say what
-        you actually mean with no script at all. Climb them in order — or
+        Five levels, each built on the one before: say the sentence, hold the
+        exchange it sits in, get through the real interaction, say what you
+        actually mean with no script at all, then say all of it about yesterday
+        and tomorrow. Climb them in order — or
         don&apos;t: every level is open from the first day, and none of them
         gates the vocabulary decks.
       </p>

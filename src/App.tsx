@@ -45,6 +45,10 @@ import FreeTalkScreen from './app/FreeTalkScreen';
 import FreeTalkSessionScreen from './app/FreeTalkSessionScreen';
 import SituationScreen from './app/SituationScreen';
 import SituationRehearsalScreen from './app/SituationRehearsalScreen';
+import PastFutureScreen from './app/PastFutureScreen';
+import PastFutureSectionScreen from './app/PastFutureSectionScreen';
+import PastFutureLessonScreen from './app/PastFutureLessonScreen';
+import TenseTimelineScreen from './app/TenseTimelineScreen';
 import SplashScreen from './app/SplashScreen';
 import { useAlphabet } from './stores/alphabetStore';
 import Icon, { type IconName } from './components/ornament/Icon';
@@ -69,16 +73,23 @@ const TABS: { to: string; icon: IconName; label: string; also?: string[] }[] = [
   { to: '/', icon: 'temple', label: 'Home' },
   { to: '/memorise', icon: 'scroll', label: 'Review' },
   { to: '/categories', icon: 'codex', label: 'Practice' },
-  // The three levels beyond the words — sentences, conversations, situations —
-  // share one seat: a staircase, because they are a progression, and the hub
-  // behind it lists them in the order they build on each other. `also` keeps
-  // the seat lit while the learner is inside any of the three areas, whose
-  // routes kept their own names when they moved under this roof.
+  // The levels beyond the words — sentences, conversations, situations, free
+  // talk, and the same things said about yesterday and tomorrow — share one
+  // seat: a staircase, because they are a progression, and the hub behind it
+  // lists them in the order they build on each other. `also` keeps the seat
+  // lit while the learner is inside any of those areas, whose routes kept
+  // their own names when they moved under this roof.
   {
     to: '/levels',
     icon: 'steps',
     label: 'Levels',
-    also: ['/sentences', '/conversations', '/situations', '/freetalk'],
+    also: [
+      '/sentences',
+      '/conversations',
+      '/situations',
+      '/freetalk',
+      '/pastfuture',
+    ],
   },
   { to: '/stats', icon: 'columns', label: 'Stats' },
   { to: '/settings', icon: 'rosette', label: 'Settings' },
@@ -181,7 +192,7 @@ export default function App() {
             as a deck that does not exist. */}
         <Route path="/memorise/alphabet" element={<AlphabetReviewScreen />} />
         <Route path="/memorise/:deckId" element={<MemoriseScreen />} />
-        {/* The hub for the three levels beyond the words, in the order they
+        {/* The hub for the levels beyond the words, in the order they
             build on each other. The areas below keep their own routes; this
             is the one seat in the tab bar they now share. */}
         <Route path="/levels" element={<LevelsScreen />} />
@@ -231,6 +242,21 @@ export default function App() {
             to resume, only the record of conversations completed. */}
         <Route path="/freetalk" element={<FreeTalkScreen />} />
         <Route path="/freetalk/session" element={<FreeTalkSessionScreen />} />
+        {/* Past & Future: the sections, one section's lessons, one lesson read
+            whole, and the timeline the contrast section is drawn on. Practising
+            a lesson still hands over to the ordinary study screen, because a
+            lesson is an ordinary deck; the timeline is the level's own view and
+            scores nothing. The static path is matched ahead of `:deckId`. */}
+        <Route path="/pastfuture" element={<PastFutureScreen />} />
+        <Route path="/pastfuture/timeline" element={<TenseTimelineScreen />} />
+        <Route
+          path="/pastfuture/section/:categoryId"
+          element={<PastFutureSectionScreen />}
+        />
+        <Route
+          path="/pastfuture/lesson/:deckId"
+          element={<PastFutureLessonScreen />}
+        />
         <Route path="/study/:deckId" element={<StudyScreen />} />
         {/* Putting a deck back in order. Its own route rather than a study
             mode: it asks about the deck's sequence rather than about any one

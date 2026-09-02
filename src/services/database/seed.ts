@@ -3,6 +3,7 @@ import { CUSTOM_CATEGORY, SEED_CATEGORIES, type SeedCard } from '../../constants
 import { SENTENCE_CATEGORIES } from '../../constants/sentences';
 import { CONVERSATION_CATEGORIES } from '../../constants/conversations';
 import { SITUATION_CATEGORIES } from '../../constants/situations';
+import { PAST_FUTURE_CATEGORIES } from '../../constants/pastfuture';
 import { uid } from '../../utils/random';
 import { audioIdFor } from '../audio/paths';
 import { withClipPaths } from '../audio/manifest';
@@ -19,16 +20,16 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 48;
+export const STARTER_CONTENT_VERSION = 49;
 
 /**
- * Everything the app installs: the vocabulary course, then Sentence Building,
- * then Conversation Flow.
+ * Everything the app installs: the vocabulary course, then each standalone
+ * level in the order the learner meets it.
  *
  * One list for the installer and the official-word bookkeeping, so an exchange
- * is topped up, deduplicated and counted exactly the way a word is. The three
- * bodies of content stay separate constants because everything *else* about
- * them differs — the course is gated into a ladder, the standalone levels are
+ * is topped up, deduplicated and counted exactly the way a word is. The bodies
+ * of content stay separate constants because everything *else* about them
+ * differs — the course is gated into a ladder, the standalone levels are
  * not, and `languagePolicy.isStandaloneLevel` tells the areas apart by name.
  */
 export const INSTALLED_CATEGORIES = [
@@ -36,6 +37,7 @@ export const INSTALLED_CATEGORIES = [
   ...SENTENCE_CATEGORIES,
   ...CONVERSATION_CATEGORIES,
   ...SITUATION_CATEGORIES,
+  ...PAST_FUTURE_CATEGORIES,
 ];
 
 /** `category|deck|english`, lowercased. Identifies one official word. */

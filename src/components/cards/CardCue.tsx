@@ -8,8 +8,10 @@ import Transliteration from './Transliteration';
 /**
  * The line somebody said to her, shown above the card that answers it.
  *
- * Only Conversation Flow cards carry one, so on every other card this renders
- * nothing at all and the face stays exactly the face it has always been.
+ * Only a card authored with one carries it — every Conversation Flow turn, and
+ * the Past & Future lines whose whole point is answering a question — so on
+ * every other card this renders nothing at all and the face stays exactly the
+ * face it has always been.
  *
  * Three things it deliberately is not. It is not hidden behind the reveal: a
  * question she cannot see is not a question she can answer, and understanding

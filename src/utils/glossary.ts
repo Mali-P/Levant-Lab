@@ -2,6 +2,7 @@ import { SEED_CATEGORIES, type SeedCard, type SeedSide } from '../constants/seed
 import { SENTENCE_CATEGORIES } from '../constants/sentences';
 import { CONVERSATION_CATEGORIES } from '../constants/conversations';
 import { SITUATION_CATEGORIES } from '../constants/situations';
+import { PAST_FUTURE_CATEGORIES } from '../constants/pastfuture';
 import { CLITICS, CURATED_GLOSSES } from '../constants/glossary';
 
 export type GlossLanguage = 'hebrew' | 'arabic';
@@ -17,6 +18,7 @@ export const GLOSSED_CATEGORIES = [
   ...SENTENCE_CATEGORIES,
   ...CONVERSATION_CATEGORIES,
   ...SITUATION_CATEGORIES,
+  ...PAST_FUTURE_CATEGORIES,
 ];
 
 /** One side of one line, with the English that side actually means. */
