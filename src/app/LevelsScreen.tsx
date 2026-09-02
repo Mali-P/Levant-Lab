@@ -19,6 +19,7 @@ import { useSettings } from '../stores/settingsStore';
 import { statsFor } from '../features/freetalk/freetalk';
 import { levelProgress } from '../features/pastfuture/pastfuture';
 import { levelProgress as tellMeProgress } from '../features/tellme/tellme';
+import { levelProgress as opinionsProgress } from '../features/opinions/opinions';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon, { type IconName } from '../components/ornament/Icon';
 import { EngravedDivider } from '../components/ornament/Ornament';
@@ -31,7 +32,8 @@ import { EngravedDivider } from '../components/ornament/Ornament';
  * thoughts into exchanges; Real Situations walks the exchange out into the
  * street; Free Conversation takes the script away; Past & Future takes all of
  * it off the present moment; Tell Me About It joins several of them into one
- * piece of speech. They once held a seat each in the tab bar, which spent the
+ * piece of speech; Opinions & Reasons stops reporting and starts judging. They
+ * once held a seat each in the tab bar, which spent the
  * bar's room on saying they were separate while hiding that they were a
  * progression. One seat and one flight of steps says both at once.
  *
@@ -97,6 +99,7 @@ export default function LevelsScreen() {
 
   const tenses = levelProgress(categories, decks, deckProgress);
   const telling = tellMeProgress(categories, decks, deckProgress);
+  const opining = opinionsProgress(categories, decks, deckProgress);
 
   const levels: LevelRow[] = [
     {
@@ -163,6 +166,16 @@ export default function LevelsScreen() {
       total: telling.total,
       unit: 'lessons',
     },
+    {
+      to: '/opinions',
+      icon: 'scales',
+      rank: 'Level 7',
+      name: 'Opinions & Reasons',
+      claim: 'From saying what happened to saying what you make of it',
+      done: opining.done,
+      total: opining.total,
+      unit: 'lessons',
+    },
   ];
 
   return (
@@ -170,11 +183,11 @@ export default function LevelsScreen() {
       <ScreenHeader title="Levels" eyebrow="Where the words go next" />
 
       <p className="small muted">
-        Six levels, each built on the one before: say the sentence, hold the
+        Seven levels, each built on the one before: say the sentence, hold the
         exchange it sits in, get through the real interaction, say what you
         actually mean with no script at all, say all of it about yesterday and
-        tomorrow, then join several of those into one answer. Climb them in
-        order — or
+        tomorrow, join several of those into one answer, then say what you
+        think of the whole business and why. Climb them in order — or
         don&apos;t: every level is open from the first day, and none of them
         gates the vocabulary decks.
       </p>

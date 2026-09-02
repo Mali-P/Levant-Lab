@@ -55,6 +55,12 @@ import TellMeLessonScreen from './app/TellMeLessonScreen';
 import ConnectorMapScreen from './app/ConnectorMapScreen';
 import StoryBuilderScreen from './app/StoryBuilderScreen';
 import ShortStoryScreen from './app/ShortStoryScreen';
+import OpinionsScreen from './app/OpinionsScreen';
+import OpinionsSectionScreen from './app/OpinionsSectionScreen';
+import OpinionsLessonScreen from './app/OpinionsLessonScreen';
+import CertaintyScaleScreen from './app/CertaintyScaleScreen';
+import OpinionBuilderScreen from './app/OpinionBuilderScreen';
+import TakeAStandScreen from './app/TakeAStandScreen';
 import SplashScreen from './app/SplashScreen';
 import { useAlphabet } from './stores/alphabetStore';
 import Icon, { type IconName } from './components/ornament/Icon';
@@ -80,8 +86,9 @@ const TABS: { to: string; icon: IconName; label: string; also?: string[] }[] = [
   { to: '/memorise', icon: 'scroll', label: 'Review' },
   { to: '/categories', icon: 'codex', label: 'Practice' },
   // The levels beyond the words — sentences, conversations, situations, free
-  // talk, the same things said about yesterday and tomorrow, and several of
-  // those said in one breath — share one seat: a staircase, because they are a
+  // talk, the same things said about yesterday and tomorrow, several of those
+  // said in one breath, and what she thinks of any of it — share one seat: a
+  // staircase, because they are a
   // progression, and the hub behind it lists them in the order they build on
   // each other. `also` keeps the seat lit while the learner is inside any of
   // those areas, whose routes kept their own names when they moved under this
@@ -97,6 +104,7 @@ const TABS: { to: string; icon: IconName; label: string; also?: string[] }[] = [
       '/freetalk',
       '/pastfuture',
       '/tellme',
+      '/opinions',
     ],
   },
   { to: '/stats', icon: 'columns', label: 'Stats' },
@@ -280,6 +288,28 @@ export default function App() {
           element={<TellMeSectionScreen />}
         />
         <Route path="/tellme/lesson/:deckId" element={<TellMeLessonScreen />} />
+        {/* Opinions & Reasons: the sections, one section's lessons, one lesson
+            read whole, and the level's three own views — the certainty scale,
+            the opinion builder, and taking a position on something. Practising
+            a lesson still hands over to the ordinary study screen, because a
+            lesson is an ordinary deck; the other three score nothing, and two
+            of them could not be scored — there is no right opinion. The static
+            paths are matched ahead of `:deckId`. */}
+        <Route path="/opinions" element={<OpinionsScreen />} />
+        <Route path="/opinions/certainty" element={<CertaintyScaleScreen />} />
+        <Route
+          path="/opinions/build/:buildId"
+          element={<OpinionBuilderScreen />}
+        />
+        <Route path="/opinions/stand/:standId" element={<TakeAStandScreen />} />
+        <Route
+          path="/opinions/section/:categoryId"
+          element={<OpinionsSectionScreen />}
+        />
+        <Route
+          path="/opinions/lesson/:deckId"
+          element={<OpinionsLessonScreen />}
+        />
         <Route path="/study/:deckId" element={<StudyScreen />} />
         {/* Putting a deck back in order. Its own route rather than a study
             mode: it asks about the deck's sequence rather than about any one

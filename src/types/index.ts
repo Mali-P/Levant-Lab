@@ -655,6 +655,18 @@ export type TellMeStats = {
   stories: number;
 };
 
+/**
+ * Opinions & Reasons' record. Counts, never percentages — and here that is not
+ * only a convention: neither exercise has a right answer to score. See
+ * `opinionStats`.
+ */
+export type OpinionStats = {
+  /** Opinions put together out of three answers, start to finish. */
+  builds: number;
+  /** Positions taken on a statement or a choice, with a reason given. */
+  stands: number;
+};
+
 export type Settings = {
   id: 'settings';
 
@@ -800,6 +812,18 @@ export type Settings = {
    * language is on, and counting it twice would say she had done it twice.
    */
   tellMeStats?: TellMeStats;
+
+  /**
+   * The same, for Opinions & Reasons' two unscored exercises.
+   *
+   * Its lessons are ordinary decks and keep their own progress rows; these are
+   * the two things that are not decks — an opinion built out of three answers,
+   * and a position taken on something with a reason behind it. Neither is a
+   * percentage, because neither has a correct answer to be a percentage *of*:
+   * the level's whole claim is that an opinion cannot be wrong. One record for
+   * the level rather than one per language, as Tell Me About It's is.
+   */
+  opinionStats?: OpinionStats;
 
   /**
    * The deck the Review tab was last reading, so the tab reopens on it.

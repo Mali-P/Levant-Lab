@@ -4,6 +4,7 @@ import { CONVERSATION_CATEGORIES } from '../constants/conversations';
 import { SITUATION_CATEGORIES } from '../constants/situations';
 import { PAST_FUTURE_CATEGORIES } from '../constants/pastfuture';
 import { TELL_ME_CATEGORIES, TELL_ME_LOOSE_LINES } from '../constants/tellme';
+import { OPINIONS_CATEGORIES, OPINIONS_LOOSE_LINES } from '../constants/opinions';
 import { CLITICS, CURATED_GLOSSES } from '../constants/glossary';
 
 export type GlossLanguage = 'hebrew' | 'arabic';
@@ -21,6 +22,7 @@ export const GLOSSED_CATEGORIES = [
   ...SITUATION_CATEGORIES,
   ...PAST_FUTURE_CATEGORIES,
   ...TELL_ME_CATEGORIES,
+  ...OPINIONS_CATEGORIES,
 ];
 
 /**
@@ -29,11 +31,14 @@ export const GLOSSED_CATEGORIES = [
  * Tell Me About It was the first level with any: its story builds, its short
  * stories and its connector examples are read and heard exactly as a card is,
  * same romanisation and same hover, so their words have to mean something too.
- * Kept beside `GLOSSED_CATEGORIES` rather than folded into it, because these
- * are emphatically not installed — nothing here is ever a row on a device.
+ * Opinions & Reasons adds its certainty scale, its opinion builds and its
+ * stands on the same terms. Kept beside `GLOSSED_CATEGORIES` rather than folded
+ * into it, because these are emphatically not installed — nothing here is ever
+ * a row on a device.
  */
 export const GLOSSED_LOOSE_CARDS: SeedCard[] = [
   ...TELL_ME_LOOSE_LINES,
+  ...OPINIONS_LOOSE_LINES,
 ];
 
 /** One side of one line, with the English that side actually means. */

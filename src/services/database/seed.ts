@@ -5,6 +5,7 @@ import { CONVERSATION_CATEGORIES } from '../../constants/conversations';
 import { SITUATION_CATEGORIES } from '../../constants/situations';
 import { PAST_FUTURE_CATEGORIES } from '../../constants/pastfuture';
 import { TELL_ME_CATEGORIES } from '../../constants/tellme';
+import { OPINIONS_CATEGORIES } from '../../constants/opinions';
 import { uid } from '../../utils/random';
 import { audioIdFor } from '../audio/paths';
 import { withClipPaths } from '../audio/manifest';
@@ -21,7 +22,7 @@ export type InstallReport = { added: number; updated: number };
  * rescues a device seeded before the later categories existed. Deletions made
  * after that top-up are the learner's own and are not undone.
  */
-export const STARTER_CONTENT_VERSION = 50;
+export const STARTER_CONTENT_VERSION = 51;
 
 /**
  * Everything the app installs: the vocabulary course, then each standalone
@@ -40,6 +41,7 @@ export const INSTALLED_CATEGORIES = [
   ...SITUATION_CATEGORIES,
   ...PAST_FUTURE_CATEGORIES,
   ...TELL_ME_CATEGORIES,
+  ...OPINIONS_CATEGORIES,
 ];
 
 /** `category|deck|english`, lowercased. Identifies one official word. */

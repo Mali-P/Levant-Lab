@@ -12,6 +12,7 @@ import { CONVERSATION_CATEGORY_NAMES } from '../../constants/conversations';
 import { SITUATION_CATEGORY_NAMES } from '../../constants/situations';
 import { PAST_FUTURE_CATEGORY_NAMES } from '../../constants/pastfuture';
 import { TELL_ME_CATEGORY_NAMES } from '../../constants/tellme';
+import { OPINIONS_CATEGORY_NAMES } from '../../constants/opinions';
 
 export const BASICS_CATEGORY_NAME = 'Basics of Basics';
 
@@ -64,6 +65,15 @@ export function isTellMeCategory(
   );
 }
 
+/** And for Opinions & Reasons, the level after Tell Me About It. */
+export function isOpinionsCategory(
+  category: Pick<Category, 'name'> | undefined,
+): boolean {
+  return Boolean(
+    category && OPINIONS_CATEGORY_NAMES.has(category.name.toLowerCase()),
+  );
+}
+
 /**
  * Whether this category belongs to a standalone level rather than the course.
  *
@@ -77,8 +87,9 @@ export function isTellMeCategory(
  *
  * The list grows as the path does: words, then sentences, then conversation,
  * the situations those get used in, then the same things said about yesterday
- * and tomorrow, and several of those said in one breath. Membership is by
- * category name, so nothing stored on a device has to be migrated to join.
+ * and tomorrow, several of those said in one breath, and finally what she
+ * thinks about any of it. Membership is by category name, so nothing stored on
+ * a device has to be migrated to join.
  */
 export function isStandaloneLevel(
   category: Pick<Category, 'name'> | undefined,
@@ -88,7 +99,8 @@ export function isStandaloneLevel(
     isConversationCategory(category) ||
     isSituationCategory(category) ||
     isPastFutureCategory(category) ||
-    isTellMeCategory(category)
+    isTellMeCategory(category) ||
+    isOpinionsCategory(category)
   );
 }
 

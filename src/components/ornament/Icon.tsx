@@ -59,7 +59,8 @@ export type IconName =
   | 'wheel'
   | 'compass'
   | 'basket'
-  | 'pomegranate';
+  | 'pomegranate'
+  | 'scales';
 
 const PATHS: Record<IconName, JSX.Element> = {
   temple: (
@@ -296,6 +297,16 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M12 6.6c4 0 6.6 2.9 6.6 6.6S15.8 20.4 12 20.4 5.4 16.9 5.4 13.2 8 6.6 12 6.6z" />
       <path d="M12 6.6V3.6M10 4.2l2 2 2-2" />
       <path d="M9.6 12.6h.01M12 15h.01M14.4 12.6h.01" />
+    </>
+  ),
+  // A balance: two pans hung off one beam, level with each other. Level with
+  // each other on purpose — the mark for a level whose whole claim is that
+  // neither side of an opinion is the right one.
+  scales: (
+    <>
+      <path d="M12 4.5v15M8 20h8" />
+      <path d="M4.5 7.5h15" />
+      <path d="M4.5 7.5 2 14h5zM19.5 7.5 17 14h5z" />
     </>
   ),
 };
