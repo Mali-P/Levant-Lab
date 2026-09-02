@@ -3,6 +3,7 @@ import { SENTENCE_CATEGORIES } from '../constants/sentences';
 import { CONVERSATION_CATEGORIES } from '../constants/conversations';
 import { SITUATION_CATEGORIES } from '../constants/situations';
 import { PAST_FUTURE_CATEGORIES } from '../constants/pastfuture';
+import { TELL_ME_CATEGORIES, TELL_ME_LOOSE_LINES } from '../constants/tellme';
 import { CLITICS, CURATED_GLOSSES } from '../constants/glossary';
 
 export type GlossLanguage = 'hebrew' | 'arabic';
@@ -19,6 +20,20 @@ export const GLOSSED_CATEGORIES = [
   ...CONVERSATION_CATEGORIES,
   ...SITUATION_CATEGORIES,
   ...PAST_FUTURE_CATEGORIES,
+  ...TELL_ME_CATEGORIES,
+];
+
+/**
+ * Authored lines a level shows the learner without installing them as cards.
+ *
+ * Tell Me About It was the first level with any: its story builds, its short
+ * stories and its connector examples are read and heard exactly as a card is,
+ * same romanisation and same hover, so their words have to mean something too.
+ * Kept beside `GLOSSED_CATEGORIES` rather than folded into it, because these
+ * are emphatically not installed — nothing here is ever a row on a device.
+ */
+export const GLOSSED_LOOSE_CARDS: SeedCard[] = [
+  ...TELL_ME_LOOSE_LINES,
 ];
 
 /** One side of one line, with the English that side actually means. */
@@ -125,25 +140,28 @@ function buildDerived(): Record<GlossLanguage, Map<string, string>> {
   // whole phrases, and only single-word sides define anything — but the words
   // they do teach alone ("a little", shwayye; "when?", ēmta) belong here like
   // any other, and a one-word cue defines its word exactly as a card does.
-  for (const category of GLOSSED_CATEGORIES) {
-    for (const deck of category.decks) {
-      for (const card of deck.cards) {
-        for (const { language, side, meaning } of glossedSides(card)) {
-          for (const text of transliterationsOf(side)) {
-            const words = text.match(WORD) ?? [];
-            if (words.length !== 1) continue;
+  const take = (card: SeedCard) => {
+    for (const { language, side, meaning } of glossedSides(card)) {
+      for (const text of transliterationsOf(side)) {
+        const words = text.match(WORD) ?? [];
+        if (words.length !== 1) continue;
 
-            const key = normalise(words[0]);
-            if (!key) continue;
+        const key = normalise(words[0]);
+        if (!key) continue;
 
-            const meanings = collected[language].get(key) ?? new Set<string>();
-            meanings.add(meaning);
-            collected[language].set(key, meanings);
-          }
-        }
+        const meanings = collected[language].get(key) ?? new Set<string>();
+        meanings.add(meaning);
+        collected[language].set(key, meanings);
       }
     }
+  };
+
+  for (const category of GLOSSED_CATEGORIES) {
+    for (const deck of category.decks) {
+      for (const card of deck.cards) take(card);
+    }
   }
+  for (const card of GLOSSED_LOOSE_CARDS) take(card);
 
   /**
    * One reading per distinct meaning, in the order the course teaches them.

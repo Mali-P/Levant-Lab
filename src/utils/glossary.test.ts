@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { type SeedSide } from '../constants/seed';
 import {
   GLOSSED_CATEGORIES,
+  GLOSSED_LOOSE_CARDS,
   glossedSides,
   glossFor,
   readTransliteration,
@@ -48,6 +49,21 @@ function everyLine(): { where: string; language: Lang; text: string }[] {
             });
           }
         }
+      }
+    }
+  }
+
+  // And the lines a level shows without installing — Tell Me About It's story
+  // builds, short stories and connector examples. They are hovered exactly as a
+  // card is, so a word appearing only in one still has to mean something.
+  for (const card of GLOSSED_LOOSE_CARDS) {
+    for (const { language, side, meaning } of glossedSides(card)) {
+      for (const text of transliterationsOf(side)) {
+        lines.push({
+          where: 'loose line › “' + meaning + '” (' + language + ')',
+          language,
+          text,
+        });
       }
     }
   }

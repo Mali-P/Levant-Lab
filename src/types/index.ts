@@ -645,6 +645,16 @@ export type FreeTalkLangStats = {
   phrasesSaved: number;
 };
 
+/**
+ * Tell Me About It's record. Counts, never percentages — see `tellMeStats`.
+ */
+export type TellMeStats = {
+  /** Stories put together out of four answers, start to finish. */
+  builds: number;
+  /** Short stories listened through with every question answered. */
+  stories: number;
+};
+
 export type Settings = {
   id: 'settings';
 
@@ -778,6 +788,18 @@ export type Settings = {
    * a conversation is not a deck and has no progress row of its own.
    */
   freeTalkStats?: Partial<Record<Language, FreeTalkLangStats>>;
+
+  /**
+   * What Tell Me About It's two unscored exercises have amounted to.
+   *
+   * Its lessons are ordinary decks and keep their own progress rows; these are
+   * the two things that are not decks — a story built out of four answers, and
+   * a short story listened through and answered about. Neither has a single
+   * right form to grade, so neither is a percentage. One record for the level
+   * rather than one per language: a build is put together in whichever
+   * language is on, and counting it twice would say she had done it twice.
+   */
+  tellMeStats?: TellMeStats;
 
   /**
    * The deck the Review tab was last reading, so the tab reopens on it.

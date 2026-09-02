@@ -49,6 +49,12 @@ import PastFutureScreen from './app/PastFutureScreen';
 import PastFutureSectionScreen from './app/PastFutureSectionScreen';
 import PastFutureLessonScreen from './app/PastFutureLessonScreen';
 import TenseTimelineScreen from './app/TenseTimelineScreen';
+import TellMeScreen from './app/TellMeScreen';
+import TellMeSectionScreen from './app/TellMeSectionScreen';
+import TellMeLessonScreen from './app/TellMeLessonScreen';
+import ConnectorMapScreen from './app/ConnectorMapScreen';
+import StoryBuilderScreen from './app/StoryBuilderScreen';
+import ShortStoryScreen from './app/ShortStoryScreen';
 import SplashScreen from './app/SplashScreen';
 import { useAlphabet } from './stores/alphabetStore';
 import Icon, { type IconName } from './components/ornament/Icon';
@@ -74,11 +80,12 @@ const TABS: { to: string; icon: IconName; label: string; also?: string[] }[] = [
   { to: '/memorise', icon: 'scroll', label: 'Review' },
   { to: '/categories', icon: 'codex', label: 'Practice' },
   // The levels beyond the words — sentences, conversations, situations, free
-  // talk, and the same things said about yesterday and tomorrow — share one
-  // seat: a staircase, because they are a progression, and the hub behind it
-  // lists them in the order they build on each other. `also` keeps the seat
-  // lit while the learner is inside any of those areas, whose routes kept
-  // their own names when they moved under this roof.
+  // talk, the same things said about yesterday and tomorrow, and several of
+  // those said in one breath — share one seat: a staircase, because they are a
+  // progression, and the hub behind it lists them in the order they build on
+  // each other. `also` keeps the seat lit while the learner is inside any of
+  // those areas, whose routes kept their own names when they moved under this
+  // roof.
   {
     to: '/levels',
     icon: 'steps',
@@ -89,6 +96,7 @@ const TABS: { to: string; icon: IconName; label: string; also?: string[] }[] = [
       '/situations',
       '/freetalk',
       '/pastfuture',
+      '/tellme',
     ],
   },
   { to: '/stats', icon: 'columns', label: 'Stats' },
@@ -257,6 +265,21 @@ export default function App() {
           path="/pastfuture/lesson/:deckId"
           element={<PastFutureLessonScreen />}
         />
+        {/* Tell Me About It: the sections, one section's lessons, one lesson
+            read whole, and the level's three own views — the connector map,
+            the story builder, and a short story to listen through. Practising a
+            lesson still hands over to the ordinary study screen, because a
+            lesson is an ordinary deck; the other three score nothing. The
+            static paths are matched ahead of `:deckId`. */}
+        <Route path="/tellme" element={<TellMeScreen />} />
+        <Route path="/tellme/connectors" element={<ConnectorMapScreen />} />
+        <Route path="/tellme/build/:buildId" element={<StoryBuilderScreen />} />
+        <Route path="/tellme/story/:storyId" element={<ShortStoryScreen />} />
+        <Route
+          path="/tellme/section/:categoryId"
+          element={<TellMeSectionScreen />}
+        />
+        <Route path="/tellme/lesson/:deckId" element={<TellMeLessonScreen />} />
         <Route path="/study/:deckId" element={<StudyScreen />} />
         {/* Putting a deck back in order. Its own route rather than a study
             mode: it asks about the deck's sequence rather than about any one

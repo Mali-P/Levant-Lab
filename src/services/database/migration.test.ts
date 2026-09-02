@@ -164,9 +164,9 @@ describe('refreshing starter cards over an existing install', () => {
   it('starts from a fifty-card install missing most of the official set', () => {
     expect(before.cards).toBe(50);
     expect(before.official).toBe(36);
-    // Moves whenever the starter set gains words. The last step was Past &
-    // Future, whose fourteen sections added 972.
-    expect(OFFICIAL_CARD_COUNT).toBe(5553);
+    // Moves whenever the starter set gains words. The last step was Tell Me
+    // About It, whose fifteen sections added 710.
+    expect(OFFICIAL_CARD_COUNT).toBe(6263);
   });
 
   it('ends with the full official set present', async () => {

@@ -3912,3 +3912,19 @@ a.btn-primary:active {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/*
+ * The story builder's joined version: the chosen answers read as one run.
+ * Each fragment keeps its own block (its forms and speaker need the room),
+ * so what says "this is one piece of speech" is the shared rail down the
+ * side — the fragments hang off one line the way the clauses hang off one
+ * story.
+ */
+.story-join-line {
+  padding: 6px 0 6px 12px;
+  border-inline-start: 2px solid var(--line);
+}
+
+.story-join-line + .story-join-line {
+  margin-top: 2px;
+}
