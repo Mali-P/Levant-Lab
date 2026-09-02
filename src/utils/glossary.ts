@@ -5,6 +5,7 @@ import { SITUATION_CATEGORIES } from '../constants/situations';
 import { PAST_FUTURE_CATEGORIES } from '../constants/pastfuture';
 import { TELL_ME_CATEGORIES, TELL_ME_LOOSE_LINES } from '../constants/tellme';
 import { OPINIONS_CATEGORIES, OPINIONS_LOOSE_LINES } from '../constants/opinions';
+import { LISTENING_LOOSE_LINES } from '../constants/listening';
 import { CLITICS, CURATED_GLOSSES } from '../constants/glossary';
 
 export type GlossLanguage = 'hebrew' | 'arabic';
@@ -35,10 +36,16 @@ export const GLOSSED_CATEGORIES = [
  * stands on the same terms. Kept beside `GLOSSED_CATEGORIES` rather than folded
  * into it, because these are emphatically not installed — nothing here is ever
  * a row on a device.
+ *
+ * Native Listening is the whole of one level rather than the extras beside one.
+ * It installs nothing at all, so every line it plays arrives here — and it is
+ * the level with most reason to be swept, because the word a learner did not
+ * catch is exactly the word she will hover in the review.
  */
 export const GLOSSED_LOOSE_CARDS: SeedCard[] = [
   ...TELL_ME_LOOSE_LINES,
   ...OPINIONS_LOOSE_LINES,
+  ...LISTENING_LOOSE_LINES,
 ];
 
 /** One side of one line, with the English that side actually means. */

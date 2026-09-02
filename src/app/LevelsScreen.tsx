@@ -20,6 +20,7 @@ import { statsFor } from '../features/freetalk/freetalk';
 import { levelProgress } from '../features/pastfuture/pastfuture';
 import { levelProgress as tellMeProgress } from '../features/tellme/tellme';
 import { levelProgress as opinionsProgress } from '../features/opinions/opinions';
+import { stageProgress as listeningProgress } from '../features/listening/listening';
 import ScreenHeader from '../components/controls/ScreenHeader';
 import Icon, { type IconName } from '../components/ornament/Icon';
 import { EngravedDivider } from '../components/ornament/Ornament';
@@ -32,14 +33,18 @@ import { EngravedDivider } from '../components/ornament/Ornament';
  * thoughts into exchanges; Real Situations walks the exchange out into the
  * street; Free Conversation takes the script away; Past & Future takes all of
  * it off the present moment; Tell Me About It joins several of them into one
- * piece of speech; Opinions & Reasons stops reporting and starts judging. They
- * once held a seat each in the tab bar, which spent the
+ * piece of speech; Opinions & Reasons stops reporting and starts judging; and
+ * Native Listening turns the whole thing round and asks her to understand
+ * somebody else. They once held a seat each in the tab bar, which spent the
  * bar's room on saying they were separate while hiding that they were a
  * progression. One seat and one flight of steps says both at once.
  *
  * The order is advice, not a gate. Every level stays open from the first day,
  * exactly as it was when each had its own tab — this screen ranks them, it
- * does not lock them.
+ * does not lock them. What happens *inside* Native Listening is the one
+ * departure, and it belongs to that level rather than to this screen: its own
+ * nine steps open in sequence, because there the difficulty is in the audio
+ * itself rather than in what is being said.
  */
 
 type LevelRow = {
@@ -100,6 +105,9 @@ export default function LevelsScreen() {
   const tenses = levelProgress(categories, decks, deckProgress);
   const telling = tellMeProgress(categories, decks, deckProgress);
   const opining = opinionsProgress(categories, decks, deckProgress);
+  // The one level that reads nothing off a deck, because it installs none —
+  // its whole record is on the settings row. See `constants/listening`.
+  const listening = listeningProgress(settings, languages);
 
   const levels: LevelRow[] = [
     {
@@ -176,6 +184,16 @@ export default function LevelsScreen() {
       total: opining.total,
       unit: 'lessons',
     },
+    {
+      to: '/listening',
+      icon: 'beacon',
+      rank: 'Level 8',
+      name: 'Native Listening',
+      claim: 'From saying it yourself to understanding somebody who is not slowing down',
+      done: listening.done,
+      total: listening.total,
+      unit: 'exercises',
+    },
   ];
 
   return (
@@ -183,13 +201,20 @@ export default function LevelsScreen() {
       <ScreenHeader title="Levels" eyebrow="Where the words go next" />
 
       <p className="small muted">
-        Seven levels, each built on the one before: say the sentence, hold the
+        Eight levels, each built on the one before: say the sentence, hold the
         exchange it sits in, get through the real interaction, say what you
         actually mean with no script at all, say all of it about yesterday and
-        tomorrow, join several of those into one answer, then say what you
-        think of the whole business and why. Climb them in order — or
-        don&apos;t: every level is open from the first day, and none of them
-        gates the vocabulary decks.
+        tomorrow, join several of those into one answer, say what you think of
+        the whole business and why — and then stop talking and understand
+        somebody else. Climb them in order — or don&apos;t: every level is open
+        from the first day, and none of them gates the vocabulary decks.
+      </p>
+
+      <p className="small muted">
+        The one exception is inside the last of them. Native Listening opens its
+        own nine levels in order, because unlike everywhere else the audio there
+        genuinely does get harder, and meeting the end of it first teaches
+        nothing.
       </p>
 
       <EngravedDivider />

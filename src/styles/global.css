@@ -3928,3 +3928,49 @@ a.btn-primary:active {
 .story-join-line + .story-join-line {
   margin-top: 2px;
 }
+
+/* ---------- Native Listening ---------- */
+
+/* The word tiles: the missing-word choices, and the phrase pulled apart.
+   Wrapped rather than scrolled, because a phrase that runs off the side of the
+   screen is a phrase whose end she cannot see, and the end is where the words
+   she could not separate usually are. */
+.listen-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Sized to the word rather than to a grid. These are pieces of one sentence
+   and reading along them should feel like reading a sentence, not filling in
+   a form. */
+.listen-tile {
+  flex: 0 0 auto;
+  font-size: 1.05rem;
+  padding: 6px 12px;
+}
+
+/* Right-to-left for both scripts, so the words lay down in the order they are
+   read as well as the order they were said. */
+.listen-tiles.hebrew,
+.listen-tiles.arabic {
+  direction: rtl;
+}
+
+.listen-gapped {
+  font-size: 1.25rem;
+  line-height: 1.9;
+}
+
+/* The hole in the transcript. Deliberately a rule under empty space rather
+   than a row of underscores: underscores read as a number of letters, and how
+   long the word is is not something she heard. */
+.listen-blank {
+  display: inline-block;
+  min-width: 3.2em;
+  text-align: center;
+  border-bottom: 2px solid var(--line);
+  margin: 0 0.15em;
+  color: var(--muted);
+}

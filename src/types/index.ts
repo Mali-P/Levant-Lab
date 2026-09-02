@@ -667,6 +667,54 @@ export type OpinionStats = {
   stands: number;
 };
 
+/**
+ * How much help one listening item needed before it was understood.
+ *
+ * Ordered best to worst, and that order is the whole point of the level: the
+ * claim Native Listening makes is not "she can read the transcript", it is "she
+ * understood it without one". A learner who recognises every line the moment it
+ * is written down has learned nothing this level set out to teach, so the record
+ * has to keep *how* she got there and not merely that she got there.
+ *
+ * `wrong` is an answer that was wrong on the first try, whatever help was open
+ * at the time. It is the floor rather than a sixth kind of help.
+ */
+export type ListeningOutcome = 'first' | 'replay' | 'slow' | 'transcript' | 'wrong';
+
+/**
+ * Native Listening's record.
+ *
+ * Not a percentage, and not a `DeckProgress`. Nothing in that level is a deck —
+ * there is no line to master, only speech to understand — so there is no
+ * progress row for any of this to live on, and it rides the settings row exactly
+ * as `situationRehearsals` and `freeTalkStats` do.
+ *
+ * Kept per language, because the spec asks for the two ears to be trained
+ * independently: understanding spoken Hebrew says nothing whatever about
+ * understanding spoken Arabic, and one number covering both would let progress
+ * in one hide a standstill in the other.
+ */
+export type ListeningStats = {
+  /**
+   * The best each item has ever managed, keyed `<itemId>:<language>`.
+   *
+   * Best rather than latest: needing a slow replay today does not un-hear the
+   * day she caught it first time. Keys naming an item this build no longer
+   * carries are ignored on read, so content can be re-cut without touching the
+   * record.
+   */
+  heard?: Record<string, ListeningOutcome>;
+  /**
+   * Every attempt ever made, counted by how it went — including the ones that
+   * did not improve on a previous best.
+   *
+   * This is the honest half. `heard` is what she can do; this is what actually
+   * happens when she listens, which is the number that tells her whether
+   * first-listen comprehension is becoming normal.
+   */
+  attempts?: Partial<Record<ListeningOutcome, number>>;
+};
+
 export type Settings = {
   id: 'settings';
 
@@ -824,6 +872,17 @@ export type Settings = {
    * the level rather than one per language, as Tell Me About It's is.
    */
   opinionStats?: OpinionStats;
+
+  /**
+   * What Native Listening has heard, per language.
+   *
+   * The one level whose whole record lives here rather than beside it. Every
+   * level below installs decks and keeps its progress on the deck rows, and
+   * only its unscored extras ride this row; Native Listening installs nothing
+   * at all, because it has no line to master — so this *is* its progress, not
+   * an appendix to it. See `ListeningStats`.
+   */
+  listeningStats?: ListeningStats;
 
   /**
    * The deck the Review tab was last reading, so the tab reopens on it.

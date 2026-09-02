@@ -61,6 +61,9 @@ import OpinionsLessonScreen from './app/OpinionsLessonScreen';
 import CertaintyScaleScreen from './app/CertaintyScaleScreen';
 import OpinionBuilderScreen from './app/OpinionBuilderScreen';
 import TakeAStandScreen from './app/TakeAStandScreen';
+import NativeListeningScreen from './app/NativeListeningScreen';
+import ListeningLevelScreen from './app/ListeningLevelScreen';
+import ListeningItemScreen from './app/ListeningItemScreen';
 import SplashScreen from './app/SplashScreen';
 import { useAlphabet } from './stores/alphabetStore';
 import Icon, { type IconName } from './components/ornament/Icon';
@@ -105,6 +108,7 @@ const TABS: { to: string; icon: IconName; label: string; also?: string[] }[] = [
       '/pastfuture',
       '/tellme',
       '/opinions',
+      '/listening',
     ],
   },
   { to: '/stats', icon: 'columns', label: 'Stats' },
@@ -310,6 +314,16 @@ export default function App() {
           path="/opinions/lesson/:deckId"
           element={<OpinionsLessonScreen />}
         />
+        {/* Native Listening: the ladder, one level, and one thing heard. The
+            only area that installs nothing at all — there is no deck route here
+            because there is no deck, and no `:deckId` for a static path to be
+            matched ahead of. */}
+        <Route path="/listening" element={<NativeListeningScreen />} />
+        <Route
+          path="/listening/level/:levelId"
+          element={<ListeningLevelScreen />}
+        />
+        <Route path="/listening/item/:itemId" element={<ListeningItemScreen />} />
         <Route path="/study/:deckId" element={<StudyScreen />} />
         {/* Putting a deck back in order. Its own route rather than a study
             mode: it asks about the deck's sequence rather than about any one
